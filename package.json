@@ -1,0 +1,46 @@
+{
+  "name": "aweskill",
+  "version": "0.1.0",
+  "description": "Local skill orchestration CLI",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "bin": {
+    "aweskill": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "cli",
+    "skills",
+    "agents",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "dependencies": {
+    "commander": "^14.0.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
