@@ -116,6 +116,23 @@ aweskill doctor dedupe --fix
 
 ## 安装
 
+### 从 npm 安装（推荐）
+
+需要 [Node.js](https://nodejs.org/) 20 及以上。
+
+```bash
+npm install -g aweskill
+aweskill --help
+```
+
+固定到某一版本：
+
+```bash
+npm install -g aweskill@0.1.5
+```
+
+包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
+
 ### 直接从当前仓库安装
 
 ```bash
