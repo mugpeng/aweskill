@@ -13,10 +13,11 @@ The CLI uses `commander`, `@clack/prompts`, and `picocolors` for terminal UX.
 Layout:
 
 - Central repository: `~/.aweskill/skills/`
+- Duplicate holding area: `~/.aweskill/dup_skills/`
 - Bundle definitions: `~/.aweskill/bundles/*.yaml`
 - Supported agents: `amp`, `claude-code`, `cline`, `codex`, `cursor`, `gemini-cli`, `goose`, `opencode`, `roo`, `windsurf`
 
-`init` only creates the directory layout (`skills/`, `bundles/`). It does **not** create or require `~/.aweskill/config.yaml`.
+`init` only creates the directory layout (`skills/`, `dup_skills/`, `bundles/`). It does **not** create or require `~/.aweskill/config.yaml`.
 
 ## Install
 
@@ -76,8 +77,8 @@ aweskill check
 
 | Command | Description |
 | --- | --- |
-| `aweskill init [--scan]` | Create `~/.aweskill` layout (`skills/`, `bundles/`) and optional scan |
-| `aweskill scan [--add] [--mode cp\|mv] [--override]` | Scan supported agent skill directories and optionally import them |
+| `aweskill init [--scan] [--verbose]` | Create `~/.aweskill` layout (`skills/`, `dup_skills/`, `bundles/`) and optional scan summary |
+| `aweskill scan [--add] [--mode cp\|mv] [--override] [--verbose]` | Scan supported agent skill directories and optionally import them |
 | `aweskill add <path> [--mode cp\|mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
 | `aweskill add --scan [--mode cp\|mv] [--override]` | Import scanned skills in batch |
 | `aweskill remove <skill> [--force]` | Remove a skill from the central repo (checks bundles + managed projections unless `--force`) |
@@ -89,6 +90,7 @@ aweskill check
 | `aweskill list skills [--verbose]` | List central skills with totals; defaults to a short preview |
 | `aweskill list bundles` | List bundles |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | Inspect agent skill directories (`linked` / `duplicate` / `new`) and optionally normalize with `--update` |
+| `aweskill rmdup [--remove] [--delete]` | Find duplicate central skills by numeric/version suffix; optionally move duplicates into `dup_skills/` or delete them |
 | `aweskill enable bundle\|skill …` | Create projections (symlink or copy) under agent skills dirs; defaults to global scope and all detected agents |
 | `aweskill disable bundle\|skill … [--force]` | Remove **aweskill-managed** projections only; see **Disable skill and bundles** below |
 | `aweskill sync [--project <dir>]` | Remove stale managed projections whose central skill directory no longer exists |
@@ -112,8 +114,17 @@ aweskill add ~/.agents/skills
 # Scan current project and global agent directories
 aweskill scan
 
+# Show concrete scanned skills instead of only per-agent totals
+aweskill scan --verbose
+
 # Scan and import in one step
 aweskill scan --add
+
+# Find duplicate central skills by versioned/numeric suffix
+aweskill rmdup
+
+# Move duplicate central skills into ~/.aweskill/dup_skills
+aweskill rmdup --remove
 
 # Overwrite existing files instead of only merging missing ones
 aweskill scan --add --override
@@ -183,7 +194,9 @@ Import behavior:
 Display behavior:
 
 - `list skills` shows totals and a short preview unless `--verbose`.
+- `scan` shows per-agent totals by default; `--verbose` lists concrete scanned skills.
 - `check` categorizes `linked` (managed), `duplicate` (central exists but not managed here), `new` (not in central); `--verbose` lists all; `--update` imports/links per its implementation and prints a summary.
+- `rmdup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family, keeps the numerically largest versioned entry by default, and only modifies files when `--remove` is passed.
 
 ## Supported Agents
 

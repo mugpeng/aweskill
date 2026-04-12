@@ -23,6 +23,7 @@ export interface AweskillPaths {
   homeDir: string;
   rootDir: string;
   skillsDir: string;
+  dupSkillsDir: string;
   bundlesDir: string;
 }
 
@@ -64,4 +65,3 @@ export interface SkillEntry {
   path: string;
   hasSKILLMd: boolean;
 }
-

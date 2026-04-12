@@ -17,6 +17,7 @@ import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
 import { runListBundles, runListSkills } from "./commands/list.js";
 import { runRemove } from "./commands/remove.js";
+import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
@@ -72,6 +73,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("init")
     .description("Create ~/.aweskill layout")
     .option("--scan", "scan existing agent directories after init", false)
+    .option("--verbose", "show scanned skill details instead of per-agent totals", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill init ", async () => runInit(context, options));
     });
@@ -82,12 +84,14 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--add", "import scanned skills into the central repository", false)
     .option("--mode <mode>", "import mode when used with --add: cp (default) or mv", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
+    .option("--verbose", "show scanned skill details instead of per-agent totals", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill scan ", async () =>
         runScan(context, {
           add: options.add,
           mode: options.mode,
           override: options.override,
+          verbose: options.verbose,
         }),
       );
     });
@@ -161,7 +165,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 
   program
     .command("check")
-    .description("Check central skills alongside agent skill directories")
+    .description("Inspect agent skill directories and optionally normalize them")
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
@@ -230,6 +234,20 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           agents: options.agent ?? [],
           projectDir,
           force: options.force,
+        }),
+      );
+    });
+
+  program
+    .command("rmdup")
+    .description("Find or remove duplicate central-repo skills with numeric/version suffixes")
+    .option("--remove", "move duplicate skills into dup_skills (or delete them with --delete)", false)
+    .option("--delete", "when used with --remove, permanently delete duplicates instead of moving them", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill rmdup ", async () =>
+        runRmdup(context, {
+          remove: options.remove,
+          delete: options.delete,
         }),
       );
     });

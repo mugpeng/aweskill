@@ -15,10 +15,11 @@ CLI 使用 `commander`、`@clack/prompts`、`picocolors`。
 目录约定：
 
 - 中央仓库：`~/.aweskill/skills/`
+- 重复项暂存目录：`~/.aweskill/dup_skills/`
 - Bundle：`~/.aweskill/bundles/*.yaml`
 - 支持的 agent：`amp`、`claude-code`、`cline`、`codex`、`cursor`、`gemini-cli`、`goose`、`opencode`、`roo`、`windsurf`
 
-`init` 只创建 `skills/`、`bundles/` 等布局，**不会**生成或依赖 `~/.aweskill/config.yaml`。
+`init` 只创建 `skills/`、`dup_skills/`、`bundles/` 等布局，**不会**生成或依赖 `~/.aweskill/config.yaml`。
 
 ## 安装
 
@@ -78,8 +79,8 @@ aweskill check
 
 | 命令 | 说明 |
 | --- | --- |
-| `aweskill init [--scan]` | 初始化 `~/.aweskill`（`skills/`、`bundles/` 等），可选扫描 |
-| `aweskill scan [--add] [--mode cp/mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选导入中央仓库 |
+| `aweskill init [--scan] [--verbose]` | 初始化 `~/.aweskill`（`skills/`、`dup_skills/`、`bundles/` 等），并可选输出扫描摘要 |
+| `aweskill scan [--add] [--mode cp/mv] [--override] [--verbose]` | 扫描已支持 agent 的 skill 目录，并可选导入中央仓库 |
 | `aweskill add <path> [--mode cp/mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
 | `aweskill add --scan [--mode cp/mv] [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 从中央仓库删除 skill（默认检查 bundle 与托管投影，可用 `--force`） |
@@ -91,6 +92,7 @@ aweskill check
 | `aweskill list skills [--verbose]` | 列出中央仓库中的 skills 及总数；默认简短预览 |
 | `aweskill list bundles` | 列出所有 bundle |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查 agent 技能目录（`linked` / `duplicate` / `new`），`--update` 可按需归一化 |
+| `aweskill rmdup [--remove] [--delete]` | 检查中央仓库中带数字/版本后缀的重复 skills；可选移动到 `dup_skills/` 或直接删除 |
 | `aweskill enable bundle/skill …` | 在 agent 目录下创建 symlink或 copy；默认全局 + 所有已检测到的 agent |
 | `aweskill disable bundle/skill … [--force]` | 删除 **托管** 投影；单独 `disable skill` 见下文 |
 | `aweskill sync [--project <dir>]` | 中央仓库里 skill 已不存在时，清理仍指向它的托管投影 |
@@ -114,8 +116,17 @@ aweskill add ~/.agents/skills
 # 扫描当前项目和全局 agent 目录
 aweskill scan
 
+# 显示具体扫描到的 skill，而不仅是每个 agent 的总数
+aweskill scan --verbose
+
 # 扫描并一步导入
 aweskill scan --add
+
+# 检查中央仓库中的版本/数字后缀重复 skill
+aweskill rmdup
+
+# 将重复项移动到 ~/.aweskill/dup_skills
+aweskill rmdup --remove
 
 # 覆盖已有文件，而不是只补缺失文件
 aweskill scan --add --override
@@ -174,7 +185,7 @@ skills:
 
 **不再**根据某个全局 YAML 里的 activation 列表做 reconcile。
 
-导入与展示行为与英文 README 中「Import behavior」「Display behavior」一致：合并/覆盖规则、`--verbose`、`check --update` 的汇总说明等。
+导入与展示行为与英文 README 中「Import behavior」「Display behavior」一致：合并/覆盖规则、`scan --verbose`、`check --update` 的汇总说明、以及 `rmdup` 的重复判定与处理规则等。
 
 ## 当前支持的 Agent
 

@@ -17,6 +17,7 @@ export async function ensureHomeLayout(homeDir: string): Promise<void> {
   const paths = getAweskillPaths(homeDir);
   await mkdir(paths.rootDir, { recursive: true });
   await mkdir(paths.skillsDir, { recursive: true });
+  await mkdir(paths.dupSkillsDir, { recursive: true });
   await mkdir(paths.bundlesDir, { recursive: true });
 }
 

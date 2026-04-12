@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -400,7 +400,63 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
 
-    expect(lines.join("\n")).toContain(`codex\tglobal\taeon\t${discoveredDir}`);
+    expect(lines.join("\n")).toContain("Scanned skills:");
+    expect(lines.join("\n")).toContain("Global scanned skills for codex: 1");
+    expect(lines.join("\n")).not.toContain(`    ✓ aeon ${discoveredDir}`);
+  });
+
+  it("scan defaults to per-agent totals and only shows entries with --verbose", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const verboseLines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const verboseProgram = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => verboseLines.push(message),
+      error: () => undefined,
+    });
+
+    for (const name of ["aeon", "biopython"]) {
+      const discoveredDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), name);
+      await mkdir(discoveredDir, { recursive: true });
+      await writeFile(path.join(discoveredDir, "SKILL.md"), `# ${name}\n`, "utf8");
+    }
+
+    await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
+    await verboseProgram.parseAsync(["node", "aweskill", "scan", "--verbose"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Global scanned skills for codex: 2");
+    expect(lines.join("\n")).not.toContain("    ✓ aeon ");
+    expect(verboseLines.join("\n")).toContain("Global scanned skills for codex: 2");
+    expect(verboseLines.join("\n")).toContain("    ✓ aeon ");
+    expect(verboseLines.join("\n")).toContain("    ✓ biopython ");
+  });
+
+  it("init --scan uses the same summary output as scan", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const discoveredDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(discoveredDir, { recursive: true });
+    await writeFile(path.join(discoveredDir, "SKILL.md"), "# AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "init", "--scan"], { from: "node" });
+
+    expect(lines.join("\n")).toContain(`Initialized ${workspace.homeDir}/.aweskill`);
+    expect(lines.join("\n")).toContain("Scanned skills:");
+    expect(lines.join("\n")).toContain("Global scanned skills for codex: 1");
   });
 
   it("scan --add warns when copying a symlink source", async () => {
@@ -577,6 +633,68 @@ describe("commands", () => {
     expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill`);
     expect(lines.join("\n")).toContain("Imported 1 skills");
     expect(lines.join("\n")).toContain("Missing source files: 1");
+  });
+
+  it("rmdup reports duplicate groups without changing files by default", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
+
+    await program.parseAsync(["node", "aweskill", "rmdup"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Duplicate skill groups in central repo:");
+    expect(lines.join("\n")).toContain("  architecture-designer: 2 entries");
+    expect(lines.join("\n")).toContain("keep: architecture-designer-0.1.0");
+    expect(lines.join("\n")).toContain("drop: architecture-designer ");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"), "utf8")).resolves.toContain("Base");
+  });
+
+  it("rmdup --remove moves duplicates into dup_skills by default", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
+
+    await program.parseAsync(["node", "aweskill", "rmdup", "--remove"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "SKILL.md"), "utf8")).resolves.toContain("Versioned");
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "dup_skills", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();
+  });
+
+  it("rmdup --remove --delete permanently deletes duplicates", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-2.0.0"), "Newest");
+
+    await program.parseAsync(["node", "aweskill", "rmdup", "--remove", "--delete"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-2.0.0"), "SKILL.md"), "utf8")).resolves.toContain("Newest");
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "SKILL.md"))).rejects.toThrow();
+    await expect(readdir(path.join(workspace.homeDir, ".aweskill", "dup_skills"))).resolves.toEqual([]);
   });
 
   it("enable refuses to overwrite an existing unmanaged skill directory", async () => {

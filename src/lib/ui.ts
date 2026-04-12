@@ -33,6 +33,8 @@ function emitMessage(line: string) {
 
   if (
     trimmed.startsWith("Skills in central repo:")
+    || trimmed === "Scanned skills:"
+    || trimmed === "Duplicate skill groups in central repo:"
     || trimmed === "Bundles:"
     || trimmed.startsWith("Global skills for ")
     || trimmed.startsWith("Project skills for ")
@@ -43,6 +45,23 @@ function emitMessage(line: string) {
 
   if (trimmed.startsWith("linked:") || trimmed.startsWith("duplicate:") || trimmed.startsWith("new:")) {
     console.log(pc.dim(trimmed));
+    return;
+  }
+
+  if (trimmed.startsWith("No duplicate skills found")) {
+    console.log(pc.dim(trimmed));
+    return;
+  }
+
+  if (line.startsWith("  Global scanned skills for ") || line.startsWith("  Project scanned skills for ")) {
+    console.log(pc.dim(line.trim()));
+    return;
+  }
+
+  if (line.startsWith("    keep: ") || line.startsWith("    drop: ")) {
+    const [label, ...rest] = line.trim().split(" ");
+    const marker = label === "keep:" ? pc.green("keep:") : pc.yellow("drop:");
+    console.log(`    ${marker} ${rest.join(" ")}`);
     return;
   }
 
