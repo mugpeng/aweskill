@@ -61,6 +61,35 @@ function getActivationType(value: string): ActivationType {
   throw new Error(`Unsupported activation type: ${value}`);
 }
 
+function formatCliErrorMessage(message: string): string {
+  const match = message.match(/missing required argument '([^']+)'/i);
+  if (!match) {
+    return message.replace(/^error:\s*/i, "");
+  }
+
+  const argName = match[1]!;
+  const hints: Record<string, string> = {
+    archive: 'Use a backup archive path, for example "skills-2026-04-12T19-20-00Z.tar.gz".',
+    bundle: "Use a bundle name.",
+    name: 'Use a bundle or skill name, for example "my-bundle" or "biopython".',
+    skill: "Use a skill name.",
+    type: 'Use "bundle" or "skill".',
+  };
+  const hint = hints[argName];
+  return `Missing required argument <${argName}>.${hint ? ` ${hint}` : ""}`;
+}
+
+function configureCommandTree(command: Command): void {
+  command.showHelpAfterError();
+  command.exitOverride((error) => {
+    throw new Error(formatCliErrorMessage(error.message));
+  });
+
+  for (const child of command.commands) {
+    configureCommandTree(child);
+  }
+}
+
 
 export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   const context = createRuntimeContext(overrides);
@@ -303,7 +332,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       );
     });
 
-  program.showHelpAfterError();
+  configureCommandTree(program);
   return program;
 }
 
@@ -312,7 +341,7 @@ export async function main(argv = process.argv) {
   try {
     await program.parseAsync(argv);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = formatCliErrorMessage(error instanceof Error ? error.message : String(error));
     console.error(`Error: ${message}`);
     process.exitCode = 1;
   }

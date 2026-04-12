@@ -36,6 +36,29 @@ async function resolveAgentsForScope(
 async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
   const normalizedName = sanitizeName(name);
 
+  if (normalizedName === "all") {
+    if (type === "bundle") {
+      const bundles = await listBundles(context.homeDir);
+      return uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+    }
+
+    const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
+    const detected = await detectInstalledAgents({
+      homeDir: context.homeDir,
+    });
+    const globalManaged = await Promise.all(
+      detected.map(async (agentId) => {
+        const agentSkillsDir = resolveAgentSkillsDir(agentId, "global", context.homeDir);
+        return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
+      }),
+    );
+    const managedSkillNames = uniqueSorted(
+      globalManaged.flatMap((managed) => [...managed.keys()]),
+    );
+
+    return managedSkillNames;
+  }
+
   if (type === "bundle") {
     const bundle = await readBundle(context.homeDir, normalizedName);
     return bundle.skills;
@@ -101,8 +124,22 @@ export async function runDisable(
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
-  const skillNames = await resolveSkillNames(context, options.type, options.name);
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
+  const skillNames = await resolveSkillNames(context, options.type, options.name);
+
+  if (sanitizeName(options.name) === "all" && options.type === "skill") {
+    const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
+    const scopedManaged = await Promise.all(
+      agents.map(async (agentId) => {
+        const agentSkillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+        return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
+      }),
+    );
+    const managedSkillNames = uniqueSorted(
+      scopedManaged.flatMap((managed) => [...managed.keys()]),
+    );
+    skillNames.splice(0, skillNames.length, ...managedSkillNames);
+  }
 
   if (options.type === "skill" && skillNames.length === 1 && !options.force) {
     const bundleNames = await bundlesWithCoEnabledSiblings({

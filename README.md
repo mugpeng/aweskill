@@ -95,14 +95,16 @@ aweskill check
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | Inspect agent skill directories (`linked` / `duplicate` / `new`) and optionally normalize with `--update` |
 | `aweskill rmdup [--remove] [--delete]` | Find duplicate central skills by numeric/version suffix; optionally move duplicates into `dup_skills/` or delete them |
 | `aweskill recover [--global] [--project [dir]] [--agent <agent>]` | Replace aweskill-managed symlink projections with full copied directories |
-| `aweskill enable bundle\|skill …` | Create projections (symlink or copy) under agent skills dirs; defaults to global scope and all detected agents |
-| `aweskill disable bundle\|skill … [--force]` | Remove **aweskill-managed** projections only; see **Disable skill and bundles** below |
+| `aweskill enable bundle\|skill …` | Create projections (symlink or copy) under agent skills dirs; defaults to global scope and all detected agents; supports `all` |
+| `aweskill disable bundle\|skill … [--force]` | Remove **aweskill-managed** projections only; supports `all`; see **Disable skill and bundles** below |
 | `aweskill sync [--project <dir>]` | Remove stale managed projections whose central skill directory no longer exists |
 
 ## Disable `skill` vs bundle
 
 - **`disable bundle <name>`** expands the bundle to skill names and removes managed projections for each (same scope/agents as you pass).
 - **`disable skill <name>`** removes only that skill’s projection. If that skill appears in a bundle and **another member of the same bundle is still projected** in the same scope and agent set, the command **fails** with a hint unless you pass **`--force`**. Use `--force` to drop only that skill, or use `disable bundle …` to remove the whole set.
+- `enable skill all` enables every skill in `~/.aweskill/skills/`; `enable bundle all` enables the union of all bundle members.
+- `disable skill all` removes all managed skill projections in the selected scope/agents; `disable bundle all` removes the union of all bundle members.
 
 `enable bundle` is a one-time expansion: there is no stored “bundle activation” to edit later beyond what’s on disk.
 
@@ -153,8 +155,14 @@ aweskill enable skill pr-review --project /path/to/repo --agent cursor
 # Enable a skill globally for all detected agents
 aweskill enable skill biopython
 
+# Enable every central-repo skill for one agent
+aweskill enable skill all --global --agent codex
+
 # Enable a bundle globally for all detected agents
 aweskill enable bundle backend --global --agent all
+
+# Enable every bundle member across all bundles
+aweskill enable bundle all --global --agent all
 
 # Check one global agent directory
 aweskill check --agent codex
@@ -170,6 +178,12 @@ aweskill disable skill pr-review --project /path/to/repo --agent cursor
 
 # Force-remove one skill even when bundle siblings are still enabled
 aweskill disable skill my-skill --global --agent codex --force
+
+# Remove every managed projection in one scope/agent selection
+aweskill disable skill all --global --agent codex
+
+# Remove the union of all bundle members
+aweskill disable bundle all --global --agent codex
 
 # Remove broken projections after deleting a skill from the central repo
 aweskill sync

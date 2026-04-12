@@ -1,8 +1,8 @@
 import { mkdir } from "node:fs/promises";
 
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
-import { readBundle } from "../lib/bundles.js";
-import { getSkillPath, skillExists } from "../lib/skills.js";
+import { listBundles, readBundle } from "../lib/bundles.js";
+import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
 import { assertProjectionTargetSafe, createSkillCopy, createSkillSymlink } from "../lib/symlink.js";
 import { sanitizeName, uniqueSorted } from "../lib/path.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
@@ -37,6 +37,22 @@ async function resolveAgentsForScope(
 
 async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
   const normalizedName = sanitizeName(name);
+
+  if (normalizedName === "all") {
+    if (type === "bundle") {
+      const bundles = await listBundles(context.homeDir);
+      const skillNames = uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+      for (const skillName of skillNames) {
+        if (!(await skillExists(context.homeDir, skillName))) {
+          throw new Error(`A bundle in "all" references unknown skill: ${skillName}`);
+        }
+      }
+      return skillNames;
+    }
+
+    const skills = await listSkills(context.homeDir);
+    return skills.map((skill) => skill.name);
+  }
 
   if (type === "bundle") {
     const bundle = await readBundle(context.homeDir, normalizedName);

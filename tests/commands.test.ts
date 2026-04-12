@@ -287,6 +287,115 @@ describe("commands", () => {
     ).rejects.toThrow();
   });
 
+  it("prints friendly missing-argument hints across commands", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await expect(program.parseAsync(["node", "aweskill", "disable"], { from: "node" })).rejects.toThrow(
+      'Missing required argument <type>. Use "bundle" or "skill".',
+    );
+    await expect(program.parseAsync(["node", "aweskill", "restore"], { from: "node" })).rejects.toThrow(
+      'Missing required argument <archive>. Use a backup archive path, for example "skills-2026-04-12T19-20-00Z.tar.gz".',
+    );
+    await expect(program.parseAsync(["node", "aweskill", "bundle", "add-skill", "research"], { from: "node" })).rejects.toThrow(
+      "Missing required argument <skill>. Use a skill name.",
+    );
+  });
+
+  it("supports enable bundle all as the union of all bundle skills", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
+    await writeSkill(getSkillPath(workspace.homeDir, "pymc"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "science-a"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-a", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-a", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "science-b"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-b", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-b", "pymc"], { from: "node" });
+
+    await program.parseAsync(["node", "aweskill", "enable", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
+
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "scanpy", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "pymc", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+  });
+
+  it("supports disable skill all and only removes managed projections in scope", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "all", "--global", "--agent", "codex"], { from: "node" });
+
+    const unmanagedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "foreign-skill");
+    await mkdir(unmanagedDir, { recursive: true });
+    await writeFile(path.join(unmanagedDir, "SKILL.md"), "# Foreign Skill\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "disable", "skill", "all", "--global", "--agent", "codex"], { from: "node" });
+
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
+    ).rejects.toThrow();
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "scanpy", "SKILL.md"), "utf8"),
+    ).rejects.toThrow();
+    await expect(readFile(path.join(unmanagedDir, "SKILL.md"), "utf8")).resolves.toContain("Foreign Skill");
+  });
+
+  it("supports disable bundle all after bundle-based enable", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "science"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "enable", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
+
+    await program.parseAsync(["node", "aweskill", "disable", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
+
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
+    ).rejects.toThrow();
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "scanpy", "SKILL.md"), "utf8"),
+    ).rejects.toThrow();
+  });
+
   it("fails before creating any projection when a target path is unmanaged", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({

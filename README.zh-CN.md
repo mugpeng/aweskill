@@ -97,14 +97,16 @@ aweskill check
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查 agent 技能目录（`linked` / `duplicate` / `new`），`--update` 可按需归一化 |
 | `aweskill rmdup [--remove] [--delete]` | 检查中央仓库中带数字/版本后缀的重复 skills；可选移动到 `dup_skills/` 或直接删除 |
 | `aweskill recover [--global] [--project [dir]] [--agent <agent>]` | 将 aweskill 托管的 symlink 投影恢复成完整目录 |
-| `aweskill enable bundle/skill …` | 在 agent 目录下创建 symlink或 copy；默认全局 + 所有已检测到的 agent |
-| `aweskill disable bundle/skill … [--force]` | 删除 **托管** 投影；单独 `disable skill` 见下文 |
+| `aweskill enable bundle/skill …` | 在 agent 目录下创建 symlink 或 copy；默认全局 + 所有已检测到的 agent；支持 `all` |
+| `aweskill disable bundle/skill … [--force]` | 删除 **托管** 投影；支持 `all`；单独 `disable skill` 见下文 |
 | `aweskill sync [--project <dir>]` | 中央仓库里 skill 已不存在时，清理仍指向它的托管投影 |
 
 ## `disable skill` 与 bundle
 
 - **`disable bundle <name>`**：把 bundle 展开成多个 skill，对当前命令中的 scope/agent 逐个删除托管投影。
 - **`disable skill <name>`**：只删这一项。若该 skill 出现在某个 bundle 里，且在**同一 scope、同一批 agent** 下 **同一 bundle 里还有其他 skill 仍处于托管投影状态**，命令会 **报错** 并提示使用 **`--force`**，或改用 `disable bundle …` 整包卸载。
+- `enable skill all`：启用 `~/.aweskill/skills/` 下全部 skill；`enable bundle all`：启用所有 bundle 展开后的 skill 并集。
+- `disable skill all`：删除所选 scope/agent 下全部托管 skill 投影；`disable bundle all`：删除所有 bundle 展开后的 skill 并集。
 
 `enable bundle` 只是一次性展开写入磁盘，**没有**单独的「bundle 激活记录」可编辑。
 
@@ -155,8 +157,14 @@ aweskill enable skill pr-review --project /path/to/repo --agent cursor
 # 全局范围内为所有已检测到的 agent 启用 skill
 aweskill enable skill biopython
 
+# 为某个 agent 一次性启用中央仓库全部 skill
+aweskill enable skill all --global --agent codex
+
 # 全局启用整个 bundle
 aweskill enable bundle backend --global --agent all
+
+# 一次性启用所有 bundle 的 skill 并集
+aweskill enable bundle all --global --agent all
 
 # 检查某个全局 agent 目录
 aweskill check --agent codex
@@ -172,6 +180,12 @@ aweskill disable skill pr-review --project /path/to/repo --agent cursor
 
 # 在仍有同 bundle 其他 skill 启用时，强制只卸掉这一项
 aweskill disable skill my-skill --global --agent codex --force
+
+# 删除当前 scope/agent 下全部托管 skill 投影
+aweskill disable skill all --global --agent codex
+
+# 删除所有 bundle 展开后的 skill 并集
+aweskill disable bundle all --global --agent codex
 
 # 中央仓库已删 skill 后，清理 agent 目录里的失效投影
 aweskill sync
