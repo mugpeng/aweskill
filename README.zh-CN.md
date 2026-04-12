@@ -219,7 +219,7 @@ skills:
   - frontend-design
 ```
 
-## 投影模型（以文件系统为准）
+## 投影模型
 
 1. **技能内容**以 `~/.aweskill/skills/<skill-name>/` 为准。
 2. **`enable`** 在指定 scope（全局家目录或项目根）与 agent 下创建 symlink 或 copy。

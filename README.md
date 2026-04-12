@@ -217,7 +217,7 @@ skills:
   - frontend-design
 ```
 
-## Projection model (filesystem-first)
+## Projection model
 
 1. **Central source of truth for skill content**: `~/.aweskill/skills/<skill-name>/`.
 2. **`enable`** creates, for each selected agent and scope:

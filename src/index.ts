@@ -69,7 +69,24 @@ function formatCliErrorMessage(message: string): string {
     if (optionMatch?.[1] === "--agent <agent>") {
       return "Option --agent <agent> argument missing. Use one or more supported agent ids, for example \"codex\" or \"codex,cursor\". Run \"aweskill list agents\" to see the supported agent list.";
     }
-    return message.replace(/^error:\s*/i, "");
+    const normalizedMessage = message.replace(/^error:\s*/i, "");
+    const bundleFileMatch = normalizedMessage.match(/ENOENT: no such file or directory, open '([^']+\/bundles\/([^/'"]+)\.ya?ml)'/i);
+    if (bundleFileMatch) {
+      const bundleName = bundleFileMatch[2]!;
+      if (bundleFileMatch[1]?.includes("/template/bundles/")) {
+        return `Bundle template not found: ${bundleName}. Run "aweskill list bundles-template" to see available bundle templates.`;
+      }
+      return `Bundle not found: ${bundleName}. Run "aweskill list bundles" to see available bundles.`;
+    }
+    const unknownSkillMatch = normalizedMessage.match(/^Unknown skill: (.+)$/);
+    if (unknownSkillMatch) {
+      return `Unknown skill: ${unknownSkillMatch[1]}. Run "aweskill list skills" to see available skills.`;
+    }
+    const bundleNotFoundMatch = normalizedMessage.match(/^Bundle not found: (.+)$/);
+    if (bundleNotFoundMatch) {
+      return `Bundle not found: ${bundleNotFoundMatch[1]}. Run "aweskill list bundles" to see available bundles.`;
+    }
+    return normalizedMessage;
   }
 
   const argName = match[1]!;

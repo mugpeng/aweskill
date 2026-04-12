@@ -1,11 +1,10 @@
 name: global
 skills:
-  - 1password
+  - 1password-1.0.1
   - docx
   - markitdown
   - pdf
-  - plugin-creator
   - rtk
-  - skill-creator
-  - tmux
+  - skill-creator-0.1.0
+  - tmux-1.0.0
   - xlsx

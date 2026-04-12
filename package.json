@@ -13,7 +13,7 @@
     "README.zh-CN.md"
   ],
   "bin": {
-    "aweskill": "./dist/index.js"
+    "aweskill": "dist/index.js"
   },
   "scripts": {
     "build": "tsup",
@@ -45,5 +45,18 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
-  }
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mugpeng/aweskill.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/mugpeng/aweskill/issues"
+  },
+  "homepage": "https://github.com/mugpeng/aweskill#readme"
 }

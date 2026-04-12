@@ -531,7 +531,38 @@ describe("commands", () => {
       }
     }
 
-    expect(errorSpy).toHaveBeenCalledWith("Error: Unknown skill: missing-skill");
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error: Unknown skill: missing-skill. Run "aweskill list skills" to see available skills.',
+    );
+  });
+
+  it("prints bundle lookup hints for missing bundles and templates", async () => {
+    const workspace = await createTempWorkspace();
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "enable", "bundle", "super"]);
+      await main(["node", "aweskill", "bundle", "add-template", "missing-template"]);
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error: Bundle not found: super. Run "aweskill list bundles" to see available bundles.',
+    );
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error: Bundle template not found: missing-template. Run "aweskill list bundles-template" to see available bundle templates.',
+    );
   });
 
   it("checks global agent skills and categorizes linked, duplicate, and new entries", async () => {
