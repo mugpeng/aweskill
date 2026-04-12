@@ -14,8 +14,6 @@ export type MatchType = "exact" | "prefix" | "glob";
 export type ProjectionMode = "symlink" | "copy";
 export type ImportMode = "symlink" | "mv" | "cp";
 export type Scope = "global" | "project";
-export type CommandScope = Scope | "all";
-
 export interface ActivationBase {
   type: ActivationType;
   name: string;

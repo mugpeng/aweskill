@@ -39,8 +39,7 @@ describe("commands", () => {
         "enable",
         "bundle",
         "frontend",
-        "--scope",
-        "global",
+        "--global",
         "--agent",
         "claude-code",
       ],
@@ -109,12 +108,10 @@ describe("commands", () => {
         "enable",
         "skill",
         "frontend-design",
-        "--scope",
-        "project",
-        "--agent",
-        "cursor",
         "--project",
         workspace.projectDir,
+        "--agent",
+        "cursor",
       ],
       { from: "node" },
     );
@@ -128,12 +125,10 @@ describe("commands", () => {
         "disable",
         "skill",
         "frontend-design",
-        "--scope",
-        "project",
-        "--agent",
-        "cursor",
         "--project",
         workspace.projectDir,
+        "--agent",
+        "cursor",
       ],
       { from: "node" },
     );
@@ -187,7 +182,7 @@ describe("commands", () => {
 
     await expect(
       program.parseAsync(
-        ["node", "aweskill", "enable", "skill", "biopython", "--scope", "global", "--agent", "claude-code"],
+        ["node", "aweskill", "enable", "skill", "biopython", "--global", "--agent", "claude-code"],
         { from: "node" },
       ),
     ).rejects.toThrow(`Refusing to overwrite non-symlink target: ${conflictedTarget}`);
@@ -230,7 +225,7 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython", "--scope", "global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython", "--global", "--agent", "codex"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "registry", "show", "codex"], { from: "node" });
 
     const registry = JSON.parse(lines.at(-1) ?? "{}") as { agentId?: string; skills?: Array<{ name: string }> };
@@ -457,7 +452,7 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "aeon"), "Central AEON");
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "aeon", "--scope", "global", "--agent", "claude-code"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "aeon", "--global", "--agent", "claude-code"], { from: "node" });
 
     await expect(readFile(path.join(discoveredDir, "SKILL.md"), "utf8")).resolves.toContain("Central AEON");
     const registry = await readRegistry(workspace.homeDir, "claude-code");
@@ -505,9 +500,9 @@ describe("commands", () => {
       ],
     });
 
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "shared-skill", "--scope", "project", "--agent", "cursor"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "shared-skill", "--project", "--agent", "cursor"], { from: "node" });
     await program.parseAsync(
-      ["node", "aweskill", "enable", "skill", "shared-skill", "--scope", "project", "--agent", "codex", "--project", knownProjectDir],
+      ["node", "aweskill", "enable", "skill", "shared-skill", "--project", knownProjectDir, "--agent", "codex"],
       { from: "node" },
     );
     await rm(path.join(resolveAgentSkillsDir("codex", "project", knownProjectDir), "shared-skill"), {

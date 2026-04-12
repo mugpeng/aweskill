@@ -21,7 +21,7 @@ import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
 import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
-import type { ActivationType, CommandScope, ImportMode, RuntimeContext, Scope } from "./types.js";
+import type { ActivationType, ImportMode, RuntimeContext } from "./types.js";
 
 function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeContext {
   return {
@@ -57,19 +57,6 @@ function getActivationType(value: string): ActivationType {
   throw new Error(`Unsupported activation type: ${value}`);
 }
 
-function getScope(value: string): Scope {
-  if (value === "global" || value === "project") {
-    return value;
-  }
-  throw new Error(`Unsupported scope: ${value}`);
-}
-
-function getCommandScope(value: string): CommandScope {
-  if (value === "all" || value === "global" || value === "project") {
-    return value;
-  }
-  throw new Error(`Unsupported scope: ${value}`);
-}
 
 export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   const context = createRuntimeContext(overrides);
@@ -193,23 +180,24 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
 
   const registerActivationCommand = (name: "enable" | "disable") => {
-    const defaultScope = name === "enable" ? "global" : "all";
-    const scopeDescription = name === "enable" ? "global, project, or all" : "global, project, or all";
     program
       .command(name)
       .description(`${name === "enable" ? "Add" : "Remove"} an activation and reconcile`)
       .argument("<type>", "bundle or skill", getActivationType)
       .argument("<name>")
-      .option("--scope <scope>", scopeDescription, getCommandScope, defaultScope)
+      .option("--global", "apply to global scope (default when no scope flag given)")
+      .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
       .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
-      .option("--project <dir>", "project dir for project scope")
       .action(async (type, targetName, options) => {
+        const isProject = options.project !== undefined;
+        const scope = isProject ? "project" : "global";
+        const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
         const payload = {
           type,
           name: targetName,
-          scope: options.scope,
+          scope,
           agents: options.agent ?? [],
-          projectDir: options.project,
+          projectDir,
         };
         if (name === "enable") {
           await runFramedCommand(" aweskill enable ", async () => runEnable(context, payload));
