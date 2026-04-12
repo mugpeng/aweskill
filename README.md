@@ -84,9 +84,9 @@ aweskill check
 | `aweskill bundle add-skill <bundle> <skill>` | Add an existing central-repo skill to a bundle |
 | `aweskill bundle remove-skill <bundle> <skill>` | Remove a skill from a bundle |
 | `aweskill bundle delete <name>` | Delete a bundle |
-| `aweskill list skills` | List skills in the central repo |
+| `aweskill list skills [--verbose]` | List central skills with totals; defaults to a short preview |
 | `aweskill list bundles` | List bundles |
-| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update]` | Inspect selected agent skill directories and optionally normalize them against the central repo |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | Inspect selected agent skill directories with per-category totals and optionally normalize them against the central repo |
 | `aweskill enable bundle|skill ...` | Add an activation and reconcile; defaults to `--global --agent all` |
 | `aweskill disable bundle|skill ...` | Remove an activation and reconcile; defaults to `--global --agent all` |
 | `aweskill sync [--project <dir>]` | Recompute global scope plus known projects and repair derived projections |
@@ -125,6 +125,9 @@ aweskill enable bundle backend --global --agent all
 
 # Check one global agent directory
 aweskill check --agent codex
+
+# Show all entries instead of the default short preview
+aweskill check --agent codex --verbose
 
 # Check and normalize one project-scoped agent directory
 aweskill check --project /path/to/repo --agent cursor --update
@@ -237,6 +240,13 @@ Import behavior:
 - `--override` overwrites existing files
 - when the source is a symlink, aweskill copies from the resolved real source and prints a warning with both paths
 - if a scanned symlink is broken, batch import reports an error for that skill, continues importing others, and prints a final missing-source count
+
+Display behavior:
+
+- `list skills` shows the total number of central skills and, by default, only a short preview of the first few entries
+- `check` shows per-category totals for `linked`, `duplicate`, and `new`, and also defaults to a short preview of each category
+- use `--verbose` on `list skills` or `check` to show every entry
+- `check --update` ends with a summary of updated and skipped entries
 
 ## Supported Agents
 

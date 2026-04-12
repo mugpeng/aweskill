@@ -1,5 +1,4 @@
 import { importPath, importScannedSkills } from "../lib/import.js";
-import { updateRegistryFromScan } from "../lib/registry.js";
 import { scanSkills } from "../lib/scanner.js";
 import type { ImportMode, RuntimeContext } from "../types.js";
 
@@ -17,7 +16,6 @@ export async function runAdd(
       homeDir: context.homeDir,
       projectDirs: [context.cwd],
     });
-    await updateRegistryFromScan(context.homeDir, candidates);
     const result = await importScannedSkills({
       homeDir: context.homeDir,
       candidates,

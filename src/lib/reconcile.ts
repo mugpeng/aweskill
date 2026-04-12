@@ -13,7 +13,6 @@ import { listBundles, readBundle } from "./bundles.js";
 import { readGlobalConfig, readProjectConfig } from "./config.js";
 import { getMatchingProjectRules } from "./matcher.js";
 import { getAweskillPaths, getProjectConfigPath, sanitizeName, uniqueSorted } from "./path.js";
-import { canTakeOverDiscoveredSkill, collectKnownProjectDirs, updateRegistryForStatus } from "./registry.js";
 import { getSkillPath } from "./skills.js";
 import { createSkillCopy, createSkillSymlink, listManagedSkillNames, removeManagedProjection } from "./symlink.js";
 
@@ -200,17 +199,8 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
     }
 
     for (const projection of projections) {
-      const allowReplaceExisting = await canTakeOverDiscoveredSkill({
-        homeDir,
-        agentId: projection.agentId,
-        scope: projection.scope,
-        projectDir: projection.projectDir,
-        skillName: projection.skillName,
-        targetPath: projection.targetPath,
-      });
-
       if (projection.mode === "symlink") {
-        const result = await createSkillSymlink(projection.sourcePath, projection.targetPath, { allowReplaceExisting });
+        const result = await createSkillSymlink(projection.sourcePath, projection.targetPath);
         changes.push({
           action: result === "created" ? "create" : "skip",
           path: projection.targetPath,
@@ -219,7 +209,7 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
         continue;
       }
 
-      const result = await createSkillCopy(projection.sourcePath, projection.targetPath, { allowReplaceExisting });
+      const result = await createSkillCopy(projection.sourcePath, projection.targetPath);
       changes.push({
         action: result === "created" ? "create" : "skip",
         path: projection.targetPath,
@@ -228,7 +218,6 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
     }
   }
 
-  await updateRegistryForStatus(homeDir, status);
   return { changes, warnings: status.warnings };
 }
 
@@ -263,10 +252,6 @@ export async function syncWorkspace(options: {
       candidateProjects.add(projectRule.path);
     }
   }
-  for (const projectDir of await collectKnownProjectDirs(options.homeDir)) {
-    candidateProjects.add(projectDir);
-  }
-
   for (const projectDir of candidateProjects) {
     if (!(await pathExists(projectDir))) {
       results.push({

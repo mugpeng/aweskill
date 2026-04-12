@@ -58,7 +58,6 @@ export interface AweskillPaths {
   skillsDir: string;
   bundlesDir: string;
   globalConfigPath: string;
-  registryDir: string;
 }
 
 export interface AgentDefinition {
@@ -127,19 +126,4 @@ export interface StatusSnapshot {
   projectDir?: string;
   projections: ProjectionSpec[];
   warnings: string[];
-}
-
-export interface RegistrySkillEntry {
-  name: string;
-  scope: Scope;
-  projectDir?: string;
-  sourcePath: string;
-  managedByAweskill: boolean;
-}
-
-export interface RegistryData {
-  version: 2;
-  agentId: AgentId;
-  lastSynced: string;
-  skills: RegistrySkillEntry[];
 }

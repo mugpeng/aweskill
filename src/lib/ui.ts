@@ -32,7 +32,7 @@ function emitMessage(line: string) {
   }
 
   if (
-    trimmed === "Skills in central repo:"
+    trimmed.startsWith("Skills in central repo:")
     || trimmed === "Bundles:"
     || trimmed.startsWith("Global skills for ")
     || trimmed.startsWith("Project skills for ")
@@ -41,7 +41,7 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (line === "  linked:" || line === "  duplicate:" || line === "  new:") {
+  if (trimmed.startsWith("linked:") || trimmed.startsWith("duplicate:") || trimmed.startsWith("new:")) {
     console.log(pc.dim(trimmed));
     return;
   }
@@ -85,7 +85,12 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (trimmed.startsWith("No skills found ") || trimmed === "No bundles found.") {
+  if (
+    trimmed.startsWith("No skills found ")
+    || trimmed === "No bundles found."
+    || trimmed.startsWith("Showing first ")
+    || trimmed.startsWith("... and ")
+  ) {
     console.log(pc.dim(trimmed));
     return;
   }

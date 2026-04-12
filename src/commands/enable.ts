@@ -3,7 +3,6 @@ import { mkdir } from "node:fs/promises";
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
 import { readBundle } from "../lib/bundles.js";
 import { enableGlobalActivation, enableProjectActivation } from "../lib/config.js";
-import { canTakeOverDiscoveredSkill } from "../lib/registry.js";
 import { reconcileGlobal, reconcileProject } from "../lib/reconcile.js";
 import { getSkillPath, skillExists } from "../lib/skills.js";
 import { assertProjectionTargetSafe } from "../lib/symlink.js";
@@ -76,15 +75,7 @@ async function preflightEnable(options: {
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(options.context.homeDir, skillName);
       const targetPath = `${skillsDir}/${skillName}`;
-      const allowReplaceExisting = await canTakeOverDiscoveredSkill({
-        homeDir: options.context.homeDir,
-        agentId,
-        scope: options.scope,
-        projectDir: options.scope === "project" ? options.projectDir : undefined,
-        skillName,
-        targetPath,
-      });
-      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath, { allowReplaceExisting });
+      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
     }
   }
 

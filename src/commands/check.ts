@@ -5,6 +5,8 @@ import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/sk
 import { listManagedSkillNames, createSkillSymlink } from "../lib/symlink.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
+const DEFAULT_PREVIEW_COUNT = 5;
+
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
 }
@@ -42,27 +44,27 @@ interface CheckedSkill {
   hasSKILLMd: boolean;
 }
 
-function formatSkillBlock(title: string, skills: CheckedSkill[]): string[] {
+function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verbose = false): string[] {
   if (skills.length === 0) {
     return [`No skills found for ${title.replace(/:$/, "").toLowerCase()}.`];
   }
 
   const lines = [title];
   const categories: Array<{ title: string; marker: string; key: CheckCategory }> = [
-    { title: "  linked:", marker: "✓", key: "linked" },
-    { title: "  duplicate:", marker: "!", key: "duplicate" },
-    { title: "  new:", marker: "+", key: "new" },
+    { title: "  linked", marker: "✓", key: "linked" },
+    { title: "  duplicate", marker: "!", key: "duplicate" },
+    { title: "  new", marker: "+", key: "new" },
   ];
 
   for (const category of categories) {
     const entries = skills.filter((skill) => skill.category === category.key);
-    if (entries.length === 0) {
-      continue;
-    }
-
-    lines.push(category.title);
-    for (const skill of entries) {
+    lines.push(`${category.title}: ${entries.length}`);
+    const preview = verbose ? entries : entries.slice(0, DEFAULT_PREVIEW_COUNT);
+    for (const skill of preview) {
       lines.push(`    ${category.marker} ${skill.name} ${skill.path}`);
+    }
+    if (!verbose && entries.length > preview.length) {
+      lines.push(`    ... and ${entries.length - preview.length} more (use --verbose to show all)`);
     }
   }
 
@@ -76,6 +78,7 @@ export async function runCheck(
     agents: string[];
     projectDir?: string;
     update?: boolean;
+    verbose?: boolean;
   },
 ) {
   const lines: string[] = [];
@@ -85,6 +88,7 @@ export async function runCheck(
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
   const updated: string[] = [];
+  const skipped: string[] = [];
   let importedCount = 0;
 
   for (const agentId of agents) {
@@ -116,6 +120,7 @@ export async function runCheck(
 
         if (!skill.hasSKILLMd) {
           context.write(`Warning: Skipping ${agentId}:${skill.name}; missing SKILL.md in ${skill.path}`);
+          skipped.push(`${agentId}:${skill.name}`);
           continue;
         }
 
@@ -140,7 +145,7 @@ export async function runCheck(
       ? `Global skills for ${agentId}:`
       : `Project skills for ${agentId} (${projectDir}):`;
     lines.push("");
-    lines.push(...formatSkillBlock(title, checked));
+    lines.push(...formatSkillBlockWithSummary(title, checked, options.verbose));
   }
 
   if (options.update) {
@@ -149,8 +154,11 @@ export async function runCheck(
     if (importedCount > 0) {
       lines.push(`Imported ${importedCount} new skills into the central repo`);
     }
+    if (skipped.length > 0) {
+      lines.push(`Skipped ${skipped.length} entries: ${skipped.join(", ")}`);
+    }
   }
 
   context.write(lines.join("\n").trim());
-  return { agents, updated, importedCount };
+  return { agents, updated, importedCount, skipped };
 }

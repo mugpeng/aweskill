@@ -80,11 +80,37 @@ describe("commands", () => {
     });
 
     await writeSkill(getSkillPath(workspace.homeDir, "one-password"), "1Password");
+    await writeSkill(getSkillPath(workspace.homeDir, "shell"), "Shell");
+    await writeSkill(getSkillPath(workspace.homeDir, "python"), "Python");
+    await writeSkill(getSkillPath(workspace.homeDir, "git"), "Git");
+    await writeSkill(getSkillPath(workspace.homeDir, "docker"), "Docker");
+    await writeSkill(getSkillPath(workspace.homeDir, "k8s"), "Kubernetes");
     await program.parseAsync(["node", "aweskill", "list", "skills"], { from: "node" });
 
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("Skills in central repo:");
+    expect(lines[0]).toContain("Skills in central repo: 6 total");
+    expect(lines[0]).toContain("Showing first 5 skills");
     expect(lines[0]).toContain(`  ✓ one-password ${getSkillPath(workspace.homeDir, "one-password")}`);
+  });
+
+  it("list skills --verbose shows all skills without preview truncation", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "one-password"), "1Password");
+    await writeSkill(getSkillPath(workspace.homeDir, "shell"), "Shell");
+    await program.parseAsync(["node", "aweskill", "list", "skills", "--verbose"], { from: "node" });
+
+    expect(lines[0]).toContain("Skills in central repo: 2 total");
+    expect(lines[0]).not.toContain("Showing first");
+    expect(lines[0]).toContain(`  ✓ one-password ${getSkillPath(workspace.homeDir, "one-password")}`);
+    expect(lines[0]).toContain(`  ✓ shell ${getSkillPath(workspace.homeDir, "shell")}`);
   });
 
   it("supports project enable and disable flows", async () => {
@@ -235,9 +261,9 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "check", "--agent", "codex"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Global skills for codex:");
-    expect(lines.join("\n")).toContain("  linked:");
-    expect(lines.join("\n")).toContain("  duplicate:");
-    expect(lines.join("\n")).toContain("  new:");
+    expect(lines.join("\n")).toContain("  linked: 1");
+    expect(lines.join("\n")).toContain("  duplicate: 1");
+    expect(lines.join("\n")).toContain("  new: 1");
     expect(lines.join("\n")).toContain(`    ✓ linked-skill ${path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "linked-skill")}`);
     expect(lines.join("\n")).toContain(`    ! duplicate-skill ${duplicateDir}`);
     expect(lines.join("\n")).toContain(`    + new-skill ${newDir}`);
@@ -294,6 +320,29 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Imported 1 new skills into the central repo");
   });
 
+  it("check defaults to category summaries and truncates long categories unless verbose is used", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    for (const name of ["a", "b", "c", "d", "e", "f"]) {
+      const dir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), name);
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, "SKILL.md"), `# ${name}\n`, "utf8");
+    }
+
+    await program.parseAsync(["node", "aweskill", "check", "--agent", "codex"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("  new: 6");
+    expect(lines.join("\n")).toContain("... and 1 more (use --verbose to show all)");
+  });
+
   it("check --update warns and skips entries without SKILL.md instead of aborting", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -311,6 +360,7 @@ describe("commands", () => {
     await expect(program.parseAsync(["node", "aweskill", "check", "--agent", "codex", "--update"], { from: "node" })).resolves.toBeDefined();
 
     expect(lines.join("\n")).toContain(`Warning: Skipping codex:.system; missing SKILL.md in ${systemDir}`);
+    expect(lines.join("\n")).toContain("Skipped 1 entries: codex:.system");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, ".system"), "SKILL.md"), "utf8")).rejects.toThrow();
   });
 

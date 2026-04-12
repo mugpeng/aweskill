@@ -1,5 +1,4 @@
 import { importScannedSkills } from "../lib/import.js";
-import { updateRegistryFromScan } from "../lib/registry.js";
 import { scanSkills } from "../lib/scanner.js";
 import type { ImportMode, RuntimeContext } from "../types.js";
 
@@ -11,7 +10,6 @@ export async function runScan(
     homeDir: context.homeDir,
     projectDirs: [context.cwd],
   });
-  await updateRegistryFromScan(context.homeDir, candidates);
 
   if (options.add) {
     const result = await importScannedSkills({

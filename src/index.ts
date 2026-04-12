@@ -152,8 +152,8 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   });
 
   const list = program.command("list").description("List central skills or bundles");
-  list.command("skills").action(async () => {
-    await runListSkills(context);
+  list.command("skills").option("--verbose", "show all skills instead of a short preview", false).action(async (options) => {
+    await runListSkills(context, { verbose: options.verbose });
   });
   list.command("bundles").action(async () => {
     await runListBundles(context);
@@ -166,6 +166,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
     .option("--update", "import missing skills into the central repo and relink duplicates/new skills", false)
+    .option("--verbose", "show all skills in each category instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -176,6 +177,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           agents: options.agent ?? [],
           projectDir,
           update: options.update,
+          verbose: options.verbose,
         }),
       );
     });

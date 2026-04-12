@@ -84,9 +84,9 @@ aweskill check
 | `aweskill bundle add-skill <bundle> <skill>` | 给 bundle 增加一个中央仓库中已存在的 skill |
 | `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 删除 skill |
 | `aweskill bundle delete <name>` | 删除 bundle |
-| `aweskill list skills` | 列出中央仓库中的 skills |
+| `aweskill list skills [--verbose]` | 列出中央仓库中的 skills，并显示总数；默认只展示简短预览 |
 | `aweskill list bundles` | 列出 bundles |
-| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update]` | 检查选定 agent 技能目录，并可选按中央仓库归一化更新 |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查选定 agent 技能目录，显示各类别统计，并可选按中央仓库归一化更新 |
 | `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill sync [--project <dir>]` | 重算全局范围和已知项目，并修复派生投影 |
@@ -125,6 +125,9 @@ aweskill enable bundle backend --global --agent all
 
 # 检查某个全局 agent 目录
 aweskill check --agent codex
+
+# 显示完整条目，而不是默认的简短预览
+aweskill check --agent codex --verbose
 
 # 检查并归一化某个项目范围的 agent 目录
 aweskill check --project /path/to/repo --agent cursor --update
@@ -237,6 +240,13 @@ Registry 的生命周期规则：
 - `--override` 会覆盖已有文件
 - 当源是 symlink 时，aweskill 会解析到真实源目录进行复制，并在 warning 中打印两条路径
 - 如果扫描到的 symlink 已损坏，批量导入会对该 skill 打印 error，继续处理其他项，并在最后输出缺失源数量
+
+显示行为：
+
+- `list skills` 会显示中央仓库 skill 总数，默认只预览前几个条目
+- `check` 会显示 `linked`、`duplicate`、`new` 各类别的统计，默认每类只预览前几个条目
+- `list skills` 和 `check` 都可以加 `--verbose` 显示完整条目
+- `check --update` 结尾会额外汇总更新了哪些内容，以及跳过了哪些内容
 
 ## 当前支持的 Agent
 
