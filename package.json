@@ -1,6 +1,6 @@
 {
   "name": "aweskill",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local skill orchestration CLI",
   "license": "MIT",
   "type": "module",
