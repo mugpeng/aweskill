@@ -75,9 +75,9 @@ aweskill check
 | Command | Description |
 | --- | --- |
 | `aweskill init [--scan]` | Create `~/.aweskill` layout and optional scan |
-| `aweskill scan [--add] [--mode cp|mv] [--override]` | Scan supported agent skill directories and optionally import them |
-| `aweskill add <path> [--mode cp|mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
-| `aweskill add --scan [--mode cp|mv] [--override]` | Import scanned skills in batch |
+| `aweskill scan [--add] [--mode cp/mv] [--override]` | Scan supported agent skill directories and optionally import them |
+| `aweskill add <path> [--mode cp/mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
+| `aweskill add --scan [--mode cp/mv] [--override]` | Import scanned skills in batch |
 | `aweskill remove <skill> [--force]` | Remove a skill, with reference checks by default |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle show <name>` | Show bundle contents |
@@ -87,8 +87,8 @@ aweskill check
 | `aweskill list skills [--verbose]` | List central skills with totals; defaults to a short preview |
 | `aweskill list bundles` | List bundles |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | Inspect selected agent skill directories with per-category totals and optionally normalize them against the central repo |
-| `aweskill enable bundle|skill ...` | Add an activation and reconcile; defaults to `--global --agent all` |
-| `aweskill disable bundle|skill ...` | Remove an activation and reconcile; defaults to `--global --agent all` |
+| `aweskill enable bundle/skill …` | Add an activation and reconcile; defaults to `--global --agent all` |
+| `aweskill disable bundle/skill …` | Remove an activation and reconcile; defaults to `--global --agent all` |
 | `aweskill sync [--project <dir>]` | Recompute global scope plus known projects and repair derived projections |
 
 ## Examples

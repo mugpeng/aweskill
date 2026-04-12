@@ -75,9 +75,9 @@ aweskill check
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill init [--scan]` | 初始化 `~/.aweskill` 目录，必要时顺带扫描 |
-| `aweskill scan [--add] [--mode cp|mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
-| `aweskill add <path> [--mode cp|mv] [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
-| `aweskill add --scan [--mode cp|mv] [--override]` | 批量导入扫描结果 |
+| `aweskill scan [--add] [--mode cp/mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
+| `aweskill add <path> [--mode cp/mv] [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
+| `aweskill add --scan [--mode cp/mv] [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
@@ -87,8 +87,8 @@ aweskill check
 | `aweskill list skills [--verbose]` | 列出中央仓库中的 skills，并显示总数；默认只展示简短预览 |
 | `aweskill list bundles` | 列出 bundles |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查选定 agent 技能目录，显示各类别统计，并可选按中央仓库归一化更新 |
-| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
-| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
+| `aweskill enable bundle/skill …` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
+| `aweskill disable bundle/skill …` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill sync [--project <dir>]` | 重算全局范围和已知项目，并修复派生投影 |
 
 ## 使用示例
