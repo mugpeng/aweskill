@@ -139,7 +139,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   program
     .name("aweskill")
     .description("Local skill orchestration CLI for AI agents")
-    .version("0.1.5")
+    .version("0.1.6")
     .helpOption("-h, --help", "Display help");
 
   const skill = program.command("skill").description("Manage skills in the central store");

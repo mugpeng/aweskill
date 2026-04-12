@@ -3,7 +3,7 @@
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
   <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.5-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.6-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -27,6 +27,49 @@
 - **多 agent 投影**：同时服务 Codex、Claude Code、Cursor、Gemini CLI 等工具
 - **托管启用/停用模型**：不依赖额外的全局 activation 文件
 - **自带维护能力**：备份、恢复、查重、recover、sync 都在 CLI 内部
+
+## 安装
+
+### 从 npm 安装（推荐）
+
+需要 [Node.js](https://nodejs.org/) 20 及以上。
+
+```bash
+npm install -g aweskill
+aweskill --help
+```
+
+固定到某一版本：
+
+```bash
+npm install -g aweskill@0.1.6
+```
+
+包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
+
+### 直接从当前仓库安装
+
+```bash
+npm install
+npm run build
+npm install -g .
+```
+
+### 本地开发模式
+
+```bash
+npm install
+npm link
+aweskill --help
+```
+
+### 用打包产物安装
+
+```bash
+npm install
+npm pack
+npm install -g ./aweskill-0.1.6.tgz
+```
 
 ## 快速开始
 
@@ -112,49 +155,6 @@ aweskill store backup
 aweskill agent sync
 aweskill agent recover --global --agent codex
 aweskill doctor dedupe --fix
-```
-
-## 安装
-
-### 从 npm 安装（推荐）
-
-需要 [Node.js](https://nodejs.org/) 20 及以上。
-
-```bash
-npm install -g aweskill
-aweskill --help
-```
-
-固定到某一版本：
-
-```bash
-npm install -g aweskill@0.1.5
-```
-
-包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
-
-### 直接从当前仓库安装
-
-```bash
-npm install
-npm run build
-npm install -g .
-```
-
-### 本地开发模式
-
-```bash
-npm install
-npm link
-aweskill --help
-```
-
-### 用打包产物安装
-
-```bash
-npm install
-npm pack
-npm install -g ./aweskill-0.1.5.tgz
 ```
 
 ## 命令面
