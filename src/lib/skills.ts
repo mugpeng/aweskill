@@ -27,7 +27,10 @@ export function getSkillPath(homeDir: string, skillName: string): string {
 
 export async function listSkills(homeDir: string): Promise<SkillEntry[]> {
   const skillsDir = getAweskillPaths(homeDir).skillsDir;
+  return listSkillEntriesInDirectory(skillsDir);
+}
 
+export async function listSkillEntriesInDirectory(skillsDir: string): Promise<SkillEntry[]> {
   if (!(await pathExists(skillsDir))) {
     return [];
   }

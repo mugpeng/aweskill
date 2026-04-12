@@ -15,7 +15,6 @@
 - 中央仓库：`~/.aweskill/skills/`
 - bundle 定义：`~/.aweskill/bundles/*.yaml`
 - 全局配置：`~/.aweskill/config.yaml`
-- 派生注册表：`~/.aweskill/registry/*.json`
 - 项目配置：`<project>/.aweskill.yaml`
 - 当前支持 agent：`amp`、`claude-code`、`cline`、`codex`、`cursor`、`gemini-cli`、`goose`、`opencode`、`roo`、`windsurf`
 
@@ -65,10 +64,10 @@ aweskill bundle create frontend
 aweskill bundle add-skill frontend my-skill
 
 # 4. 为 Claude Code 全局启用这个 bundle
-aweskill enable bundle frontend --scope global --agent claude-code
+aweskill enable bundle frontend --global --agent claude-code
 
-# 5. 查看当前投影状态
-aweskill list status
+# 5. 检查中央仓库和当前全局 agent 技能目录
+aweskill check
 ```
 
 ## 命令概览
@@ -76,9 +75,9 @@ aweskill list status
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill init [--scan]` | 初始化 `~/.aweskill` 目录，必要时顺带扫描 |
-| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | 扫描已支持 agent 的 skill 目录，写入 discovered registry，并可选直接导入 |
+| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
 | `aweskill add <path> --mode symlink|mv|cp [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
-| `aweskill add --scan --mode symlink|mv|cp [--override]` | 批量导入扫描结果，同时刷新 discovered registry |
+| `aweskill add --scan --mode symlink|mv|cp [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
@@ -87,10 +86,9 @@ aweskill list status
 | `aweskill bundle delete <name>` | 删除 bundle |
 | `aweskill list skills` | 列出中央仓库中的 skills |
 | `aweskill list bundles` | 列出 bundles |
-| `aweskill list status [--project <dir>]` | 查看计算后的投影状态 |
-| `aweskill registry show <agent>` | 查看某个 agent 的派生 registry 快照 |
-| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--scope global --agent all` |
-| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--scope all --agent all` |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>]` | 查看中央仓库和选定 agent 目录下当前实际存在的 skills |
+| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
+| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill sync [--project <dir>]` | 重算全局范围和已知项目，并修复派生投影 |
 
 ## 使用示例
@@ -102,7 +100,7 @@ aweskill add ~/Downloads/pr-review --mode cp
 # 一次性导入整个 skills 根目录
 aweskill add ~/.agents/skills
 
-# 扫描当前项目和全局 agent 目录，并刷新 registry
+# 扫描当前项目和全局 agent 目录
 aweskill scan
 
 # 扫描并一步导入
@@ -117,19 +115,22 @@ aweskill bundle add-skill backend api-design
 aweskill bundle add-skill backend db-schema
 
 # 在项目范围内启用单个 skill
-aweskill enable skill pr-review --scope project --project /path/to/repo --agent cursor
+aweskill enable skill pr-review --project /path/to/repo --agent cursor
 
 # 在全局和当前项目范围内为所有 agent 启用 skill
 aweskill enable skill biopython
 
 # 在全局范围内为所有已检测到的 agent 启用 bundle
-aweskill enable bundle backend --scope global --agent all
+aweskill enable bundle backend --global --agent all
 
-# 查看某个 agent 的 registry 快照
-aweskill registry show codex
+# 检查某个全局 agent 目录
+aweskill check --agent codex
+
+# 检查某个项目范围的 agent 目录
+aweskill check --project /path/to/repo --agent cursor
 
 # 禁用项目级 activation
-aweskill disable skill pr-review --scope project --project /path/to/repo --agent cursor
+aweskill disable skill pr-review --project /path/to/repo --agent cursor
 
 # 修复投影
 aweskill sync --project /path/to/repo
@@ -190,11 +191,11 @@ skills:
 
 所以 `enable`、`disable`、`sync` 的本质都是“改配置后 reconcile”，而不是直接对 agent 目录做手工修改。
 
-## Registry 快照
+## 内部 Registry
 
-`aweskill` 还会在 `~/.aweskill/registry/` 下为每个 agent 写一个派生注册表，例如 `~/.aweskill/registry/codex.json`。
+`aweskill` 仍然会在 `~/.aweskill/registry/` 下为每个 agent 写一个内部派生索引，例如 `~/.aweskill/registry/codex.json`。
 
-这个 registry 是索引，不是真相源。真实状态仍然来自 config、bundle、中央 skill 仓库以及 agent 目录本身。
+这个 registry 不再作为面向用户的命令入口，也不是真相源。真实状态仍然来自 config、bundle、中央 skill 仓库以及 agent 目录本身。
 
 ```json
 {
@@ -218,8 +219,6 @@ skills:
   ]
 }
 ```
-
-`list status` 现在也会附带 registry 摘要，便于快速对比“理论投影”和“最后一次写出的快照”。
 
 Registry 的生命周期规则：
 
@@ -270,7 +269,7 @@ Registry 的生命周期规则：
 - 如果传了 `--project`，会重算该项目
 - 如果当前工作目录存在 `.aweskill.yaml`，会重算当前项目
 - 会重算全局配置中声明的 `exact` 项目规则，前提是这些项目目录当前存在
-- 会重算 registry 快照里已经记录过的项目目录
+- 会重算内部 registry 快照里已经记录过的项目目录
 - 不会自动枚举所有可能命中的 `prefix` 或 `glob` 项目
 
 ## 开发

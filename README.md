@@ -15,7 +15,6 @@ The current implementation follows `aweskill-cli-design-v3.1.md` as closely as p
 - Central repository: `~/.aweskill/skills/`
 - Bundle definitions: `~/.aweskill/bundles/*.yaml`
 - Global config: `~/.aweskill/config.yaml`
-- Derived registries: `~/.aweskill/registry/*.json`
 - Project config: `<project>/.aweskill.yaml`
 - Supported agents: `amp`, `claude-code`, `cline`, `codex`, `cursor`, `gemini-cli`, `goose`, `opencode`, `roo`, `windsurf`
 
@@ -65,10 +64,10 @@ aweskill bundle create frontend
 aweskill bundle add-skill frontend my-skill
 
 # 4. Enable it globally for Claude Code
-aweskill enable bundle frontend --scope global --agent claude-code
+aweskill enable bundle frontend --global --agent claude-code
 
-# 5. Inspect projected status
-aweskill list status
+# 5. Check the central repo and current global agent skills
+aweskill check
 ```
 
 ## Command Overview
@@ -76,9 +75,9 @@ aweskill list status
 | Command | Description |
 | --- | --- |
 | `aweskill init [--scan]` | Create `~/.aweskill` layout and optional scan |
-| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | Scan supported agent skill directories, update discovered registry entries, and optionally import them |
+| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | Scan supported agent skill directories and optionally import them |
 | `aweskill add <path> --mode symlink|mv|cp [--override]` | Import one skill directory or one skills root directory into the central repo |
-| `aweskill add --scan --mode symlink|mv|cp [--override]` | Import scanned skills in batch, while also refreshing discovered registry entries |
+| `aweskill add --scan --mode symlink|mv|cp [--override]` | Import scanned skills in batch |
 | `aweskill remove <skill> [--force]` | Remove a skill, with reference checks by default |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle show <name>` | Show bundle contents |
@@ -87,10 +86,9 @@ aweskill list status
 | `aweskill bundle delete <name>` | Delete a bundle |
 | `aweskill list skills` | List skills in the central repo |
 | `aweskill list bundles` | List bundles |
-| `aweskill list status [--project <dir>]` | Show computed projection status |
-| `aweskill registry show <agent>` | Show the derived registry snapshot for one agent |
-| `aweskill enable bundle|skill ...` | Add an activation and reconcile; defaults to `--scope global --agent all` |
-| `aweskill disable bundle|skill ...` | Remove an activation and reconcile; defaults to `--scope all --agent all` |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>]` | Show central skills and the current skills under selected agent directories |
+| `aweskill enable bundle|skill ...` | Add an activation and reconcile; defaults to `--global --agent all` |
+| `aweskill disable bundle|skill ...` | Remove an activation and reconcile; defaults to `--global --agent all` |
 | `aweskill sync [--project <dir>]` | Recompute global scope plus known projects and repair derived projections |
 
 ## Examples
@@ -102,7 +100,7 @@ aweskill add ~/Downloads/pr-review --mode cp
 # Import all skills from a skills root directory
 aweskill add ~/.agents/skills
 
-# Scan current project and global agent directories and refresh registry
+# Scan current project and global agent directories
 aweskill scan
 
 # Scan and import in one step
@@ -117,19 +115,22 @@ aweskill bundle add-skill backend api-design
 aweskill bundle add-skill backend db-schema
 
 # Enable a single skill in project scope
-aweskill enable skill pr-review --scope project --project /path/to/repo --agent cursor
+aweskill enable skill pr-review --project /path/to/repo --agent cursor
 
 # Enable a skill everywhere for all agents
 aweskill enable skill biopython
 
 # Enable a bundle globally for all detected agents
-aweskill enable bundle backend --scope global --agent all
+aweskill enable bundle backend --global --agent all
 
-# Inspect one registry snapshot
-aweskill registry show codex
+# Check one global agent directory
+aweskill check --agent codex
+
+# Check one project-scoped agent directory
+aweskill check --project /path/to/repo --agent cursor
 
 # Disable project-scoped activation
-aweskill disable skill pr-review --scope project --project /path/to/repo --agent cursor
+aweskill disable skill pr-review --project /path/to/repo --agent cursor
 
 # Repair projections
 aweskill sync --project /path/to/repo
@@ -190,11 +191,11 @@ skills:
 
 This is why `enable`, `disable`, and `sync` all reconcile instead of mutating agent directories directly.
 
-## Registry Snapshots
+## Internal Registry
 
-`aweskill` also writes a derived per-agent registry under `~/.aweskill/registry/`, for example `~/.aweskill/registry/codex.json`.
+`aweskill` still writes a derived internal index under `~/.aweskill/registry/`, for example `~/.aweskill/registry/codex.json`.
 
-The registry is an index, not a source of truth. Real state still comes from config, bundles, the central skill repository, and the agent directories themselves.
+The registry is not a user-facing command surface anymore, and it is not a source of truth. Real state still comes from config, bundles, the central skill repository, and the agent directories themselves.
 
 ```json
 {
@@ -218,8 +219,6 @@ The registry is an index, not a source of truth. Real state still comes from con
   ]
 }
 ```
-
-`list status` also includes a registry summary so you can compare computed projections with the last written snapshot quickly.
 
 Registry lifecycle rules:
 
@@ -270,7 +269,7 @@ Current sync behavior:
 - reconciles the explicit `--project` if provided
 - reconciles the current working directory if it has `.aweskill.yaml`
 - reconciles `exact` project rules declared in global config when those project directories exist
-- reconciles project directories already known from registry snapshots
+- reconciles project directories already known from internal registry snapshots
 - does not attempt to enumerate every possible `prefix` or `glob` match automatically
 
 ## Development

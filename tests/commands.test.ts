@@ -45,13 +45,13 @@ describe("commands", () => {
       ],
       { from: "node" },
     );
-    await program.parseAsync(["node", "aweskill", "list", "status"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "check"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
 
     const targetPath = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "pr-review", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
-    expect(lines.join("\n")).toContain("GLOBAL");
-    expect(lines.join("\n")).toContain("REGISTRY");
+    expect(lines.join("\n")).toContain("Skills in central repo:");
+    expect(lines.join("\n")).toContain("Global skills for claude-code:");
   });
 
   it("supports bundle delete", async () => {
@@ -213,7 +213,7 @@ describe("commands", () => {
     expect(errorSpy).toHaveBeenCalledWith("Error: Unknown skill: missing-skill");
   });
 
-  it("shows registry snapshots for an agent", async () => {
+  it("checks global agent skills with aweskill_cc-style summary lines", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -226,11 +226,32 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython", "--global", "--agent", "codex"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "registry", "show", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "check", "--agent", "codex"], { from: "node" });
 
-    const registry = JSON.parse(lines.at(-1) ?? "{}") as { agentId?: string; skills?: Array<{ name: string }> };
-    expect(registry.agentId).toBe("codex");
-    expect(registry.skills?.map((entry) => entry.name)).toEqual(["biopython"]);
+    expect(lines.join("\n")).toContain("Skills in central repo:");
+    expect(lines.join("\n")).toContain("Global skills for codex:");
+    expect(lines.join("\n")).toContain(`  ✓ biopython ${path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython")}`);
+  });
+
+  it("checks project agent skills for the current project by default", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "frontend-design"));
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "frontend-design", "--project", "--agent", "cursor"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "check", "--project", "--agent", "cursor"], { from: "node" });
+
+    expect(lines.join("\n")).toContain(`Project skills for cursor (${workspace.projectDir}):`);
+    expect(lines.join("\n")).toContain(
+      `  ✓ frontend-design ${path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design")}`,
+    );
   });
 
   it("scan writes discovered entries into registry", async () => {

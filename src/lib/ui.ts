@@ -31,7 +31,12 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (trimmed === "Skills in central repo:" || trimmed === "Bundles:") {
+  if (
+    trimmed === "Skills in central repo:"
+    || trimmed === "Bundles:"
+    || trimmed.startsWith("Global skills for ")
+    || trimmed.startsWith("Project skills for ")
+  ) {
     console.log(pc.bold(trimmed));
     return;
   }
@@ -64,7 +69,7 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (trimmed === "No skills found in central repo." || trimmed === "No bundles found.") {
+  if (trimmed.startsWith("No skills found ") || trimmed === "No bundles found.") {
     console.log(pc.dim(trimmed));
     return;
   }

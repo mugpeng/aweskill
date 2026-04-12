@@ -11,17 +11,17 @@ import {
   runBundleRemoveSkill,
   runBundleShow,
 } from "./commands/bundle.js";
+import { runCheck } from "./commands/check.js";
 import { runDisable } from "./commands/disable.js";
 import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
-import { runListBundles, runListSkills, runListStatus } from "./commands/list.js";
-import { getRegistryScope, runRegistryShow } from "./commands/registry.js";
+import { runListBundles, runListSkills } from "./commands/list.js";
 import { runRemove } from "./commands/remove.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
 import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
-import type { ActivationType, ImportMode, RuntimeContext } from "./types.js";
+import type { ActivationType, ImportMode, RuntimeContext, Scope } from "./types.js";
 
 function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeContext {
   return {
@@ -151,32 +151,31 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     await runFramedCommand(" aweskill bundle delete ", async () => runBundleDelete(context, name));
   });
 
-  const list = program.command("list").description("List skills, bundles, or status");
+  const list = program.command("list").description("List central skills or bundles");
   list.command("skills").action(async () => {
     await runListSkills(context);
   });
   list.command("bundles").action(async () => {
     await runListBundles(context);
   });
-  list
-    .command("status")
-    .option("--project <dir>", "project to compute status for")
-    .action(async (options) => {
-      await runListStatus(context, { projectDir: options.project });
-    });
 
-  const registry = program.command("registry").description("Inspect derived registry snapshots");
-  registry
-    .command("show")
-    .argument("<agent>")
-    .option("--scope <scope>", "global or project", getRegistryScope)
-    .option("--project <dir>", "filter project-scoped entries to one project dir")
-    .action(async (agentId, options) => {
-      await runRegistryShow(context, {
-        agentId,
-        scope: options.scope,
-        projectDir: options.project,
-      });
+  program
+    .command("check")
+    .description("Check central skills alongside agent skill directories")
+    .option("--global", "check global scope (default when no scope flag given)")
+    .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
+    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill check ", async () =>
+        runCheck(context, {
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+        }),
+      );
     });
 
   const registerActivationCommand = (name: "enable" | "disable") => {
@@ -190,7 +189,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
       .action(async (type, targetName, options) => {
         const isProject = options.project !== undefined;
-        const scope = isProject ? "project" : "global";
+        const scope: Scope = isProject ? "project" : "global";
         const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
         const payload = {
           type,
