@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parse, stringify } from "yaml";
@@ -6,6 +6,15 @@ import { parse, stringify } from "yaml";
 import type { BundleDefinition } from "../types.js";
 import { getAweskillPaths, sanitizeName, uniqueSorted } from "./path.js";
 import { skillExists } from "./skills.js";
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function bundleFilePath(homeDir: string, bundleName: string): string {
   return path.join(getAweskillPaths(homeDir).bundlesDir, `${sanitizeName(bundleName)}.yaml`);
@@ -68,4 +77,14 @@ export async function removeSkillFromBundle(homeDir: string, bundleName: string,
   const normalizedSkill = sanitizeName(skillName);
   bundle.skills = bundle.skills.filter((skill) => skill !== normalizedSkill);
   return writeBundle(homeDir, bundle);
+}
+
+export async function deleteBundle(homeDir: string, bundleName: string): Promise<boolean> {
+  const filePath = bundleFilePath(homeDir, bundleName);
+  if (!(await pathExists(filePath))) {
+    return false;
+  }
+
+  await rm(filePath, { force: true });
+  return true;
 }

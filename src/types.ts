@@ -12,10 +12,8 @@ export type AgentId =
 export type ActivationType = "bundle" | "skill";
 export type MatchType = "exact" | "prefix" | "glob";
 export type ProjectionMode = "symlink" | "copy";
-export type ImportMode = "symlink" | "mv" | "cp";
+export type ImportMode = "mv" | "cp";
 export type Scope = "global" | "project";
-export type CommandScope = Scope | "all";
-
 export interface ActivationBase {
   type: ActivationType;
   name: string;
@@ -60,7 +58,6 @@ export interface AweskillPaths {
   skillsDir: string;
   bundlesDir: string;
   globalConfigPath: string;
-  registryDir: string;
 }
 
 export interface AgentDefinition {
@@ -118,24 +115,15 @@ export interface ImportResult {
   warnings: string[];
 }
 
+export interface SkillEntry {
+  name: string;
+  path: string;
+  hasSKILLMd: boolean;
+}
+
 export interface StatusSnapshot {
   scope: Scope;
   projectDir?: string;
   projections: ProjectionSpec[];
   warnings: string[];
-}
-
-export interface RegistrySkillEntry {
-  name: string;
-  scope: Scope;
-  projectDir?: string;
-  sourcePath: string;
-  managedByAweskill: boolean;
-}
-
-export interface RegistryData {
-  version: 2;
-  agentId: AgentId;
-  lastSynced: string;
-  skills: RegistrySkillEntry[];
 }

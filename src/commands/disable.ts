@@ -2,7 +2,7 @@ import { detectInstalledAgents, isAgentId, listSupportedAgentIds } from "../lib/
 import { disableGlobalActivation, disableProjectActivation } from "../lib/config.js";
 import { sanitizeName, uniqueSorted } from "../lib/path.js";
 import { reconcileGlobal, reconcileProject } from "../lib/reconcile.js";
-import type { ActivationType, AgentId, CommandScope, RuntimeContext, Scope } from "../types.js";
+import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
@@ -69,29 +69,19 @@ export async function runDisable(
   options: {
     type: ActivationType;
     name: string;
-    scope?: CommandScope;
+    scope: Scope;
     agents: string[];
     projectDir?: string;
   },
 ) {
-  const scope = options.scope ?? "all";
-  const scopes: Scope[] = scope === "all" ? ["global", "project"] : [scope];
-  const results: Awaited<ReturnType<typeof disableInScope>>[] = [];
-
-  for (const targetScope of scopes) {
-    const projectDir = targetScope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-    const agents = await resolveAgentsForScope(context, options.agents, targetScope, projectDir);
-    results.push(
-      await disableInScope({
-        context,
-        type: options.type,
-        name: options.name,
-        scope: targetScope,
-        agents,
-        projectDir,
-      }),
-    );
-  }
-
-  return results;
+  const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
+  const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
+  return disableInScope({
+    context,
+    type: options.type,
+    name: options.name,
+    scope: options.scope,
+    agents,
+    projectDir,
+  });
 }

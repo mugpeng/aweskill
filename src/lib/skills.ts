@@ -1,6 +1,7 @@
 import { access, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 
+import type { SkillEntry } from "../types.js";
 import { getAweskillPaths, sanitizeName } from "./path.js";
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -17,22 +18,37 @@ export async function ensureHomeLayout(homeDir: string): Promise<void> {
   await mkdir(paths.rootDir, { recursive: true });
   await mkdir(paths.skillsDir, { recursive: true });
   await mkdir(paths.bundlesDir, { recursive: true });
-  await mkdir(paths.registryDir, { recursive: true });
 }
 
 export function getSkillPath(homeDir: string, skillName: string): string {
   return path.join(getAweskillPaths(homeDir).skillsDir, sanitizeName(skillName));
 }
 
-export async function listSkills(homeDir: string): Promise<string[]> {
+export async function listSkills(homeDir: string): Promise<SkillEntry[]> {
   const skillsDir = getAweskillPaths(homeDir).skillsDir;
+  return listSkillEntriesInDirectory(skillsDir);
+}
 
+export async function listSkillEntriesInDirectory(skillsDir: string): Promise<SkillEntry[]> {
   if (!(await pathExists(skillsDir))) {
     return [];
   }
 
   const entries = await readdir(skillsDir, { withFileTypes: true });
-  return entries.filter((entry) => entry.isDirectory() || entry.isSymbolicLink()).map((entry) => entry.name).sort();
+  const skills = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
+      .map(async (entry) => {
+        const skillPath = path.join(skillsDir, entry.name);
+        return {
+          name: entry.name,
+          path: skillPath,
+          hasSKILLMd: await pathExists(path.join(skillPath, "SKILL.md")),
+        } satisfies SkillEntry;
+      }),
+  );
+
+  return skills.sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export async function assertSkillSource(sourcePath: string): Promise<void> {

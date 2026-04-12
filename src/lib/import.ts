@@ -1,9 +1,9 @@
-import { access, cp, lstat, mkdir, readlink, readdir, rename, rm, stat, symlink } from "node:fs/promises";
+import { access, cp, lstat, mkdir, readlink, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { ImportMode, ImportResult, ScanCandidate } from "../types.js";
 import { sanitizeName } from "./path.js";
-import { assertSkillSource, getSkillPath } from "./skills.js";
+import { assertSkillSource, getSkillPath, skillExists } from "./skills.js";
 
 class MissingSymlinkSourceError extends Error {
   sourcePath: string;
@@ -26,15 +26,15 @@ async function pathExists(targetPath: string): Promise<boolean> {
   }
 }
 
-async function resolveImportSource(sourcePath: string, mode: ImportMode): Promise<{
+async function resolveImportSource(sourcePath: string): Promise<{
   effectiveSourcePath: string;
   isSymlinkSource: boolean;
 }> {
   const statResult = await lstat(sourcePath);
-  if (!statResult.isSymbolicLink() || mode === "symlink") {
+  if (!statResult.isSymbolicLink()) {
     return {
       effectiveSourcePath: sourcePath,
-      isSymlinkSource: statResult.isSymbolicLink(),
+      isSymlinkSource: false,
     };
   }
 
@@ -104,10 +104,11 @@ async function importBatchSources(options: {
   sources: BatchImportSource[];
   mode: ImportMode;
   override?: boolean;
-}): Promise<{ imported: string[]; skipped: string[]; warnings: string[]; errors: string[]; missingSources: number }> {
+}): Promise<{ imported: string[]; skipped: string[]; overwritten: string[]; warnings: string[]; errors: string[]; missingSources: number }> {
   const seen = new Set<string>();
   const imported: string[] = [];
   const skipped: string[] = [];
+  const overwritten: string[] = [];
   const warnings: string[] = [];
   const errors: string[] = [];
   let missingSources = 0;
@@ -119,6 +120,12 @@ async function importBatchSources(options: {
     }
     seen.add(source.name);
 
+    const alreadyExists = await skillExists(options.homeDir, source.name);
+    if (alreadyExists && !options.override) {
+      skipped.push(source.name);
+      continue;
+    }
+
     try {
       const result = await importSkill({
         homeDir: options.homeDir,
@@ -127,7 +134,11 @@ async function importBatchSources(options: {
         override: options.override,
       });
       warnings.push(...result.warnings);
-      imported.push(source.name);
+      if (alreadyExists) {
+        overwritten.push(source.name);
+      } else {
+        imported.push(source.name);
+      }
     } catch (error) {
       if (error instanceof MissingSymlinkSourceError) {
         missingSources += 1;
@@ -144,7 +155,7 @@ async function importBatchSources(options: {
     }
   }
 
-  return { imported, skipped, warnings, errors, missingSources };
+  return { imported, skipped, overwritten, warnings, errors, missingSources };
 }
 
 async function listImportableChildren(sourceRoot: string): Promise<BatchImportSource[]> {
@@ -182,7 +193,7 @@ export async function importSkill(options: {
   mode: ImportMode;
   override?: boolean;
 }): Promise<ImportResult> {
-  const { effectiveSourcePath, isSymlinkSource } = await resolveImportSource(options.sourcePath, options.mode);
+  const { effectiveSourcePath, isSymlinkSource } = await resolveImportSource(options.sourcePath);
   await assertSkillSource(effectiveSourcePath);
 
   const skillName = sanitizeName(path.basename(options.sourcePath));
@@ -194,17 +205,14 @@ export async function importSkill(options: {
   await mkdir(path.dirname(destination), { recursive: true });
 
   const warnings: string[] = [];
-  if (isSymlinkSource && (options.mode === "cp" || options.mode === "mv")) {
+  if (isSymlinkSource) {
     warnings.push(`Source ${options.sourcePath} is a symlink; copied from ${effectiveSourcePath} to ${destination}`);
   }
 
   if (options.mode === "mv" && !isSymlinkSource) {
     await moveIntoDestination(effectiveSourcePath, destination, options.override ?? false);
-  } else if (options.mode === "cp" || (options.mode === "mv" && isSymlinkSource)) {
-    await copyIntoDestination(effectiveSourcePath, destination, options.override ?? false);
   } else {
-    const linkTarget = path.relative(path.dirname(destination), effectiveSourcePath) || ".";
-    await symlink(linkTarget, destination, "dir");
+    await copyIntoDestination(effectiveSourcePath, destination, options.override ?? false);
   }
 
   return { name: skillName, destination, warnings };
@@ -215,7 +223,7 @@ export async function importScannedSkills(options: {
   candidates: ScanCandidate[];
   mode: ImportMode;
   override?: boolean;
-}): Promise<{ imported: string[]; skipped: string[]; warnings: string[]; errors: string[]; missingSources: number }> {
+}): Promise<{ imported: string[]; skipped: string[]; overwritten: string[]; warnings: string[]; errors: string[]; missingSources: number }> {
   return importBatchSources({
     homeDir: options.homeDir,
     sources: options.candidates.map((candidate) => ({
@@ -233,19 +241,33 @@ export async function importPath(options: {
   mode: ImportMode;
   override?: boolean;
 }): Promise<
-  | ({ kind: "single" } & ImportResult)
+  | ({ kind: "single"; alreadyExisted: boolean } & ImportResult)
   | {
       kind: "batch";
       imported: string[];
       skipped: string[];
+      overwritten: string[];
       warnings: string[];
       errors: string[];
       missingSources: number;
     }
 > {
   if (await pathExists(path.join(options.sourcePath, "SKILL.md"))) {
+    const skillName = sanitizeName(path.basename(options.sourcePath));
+    const alreadyExisted = skillName ? await skillExists(options.homeDir, skillName) : false;
+
+    if (alreadyExisted && !options.override) {
+      return {
+        kind: "single",
+        alreadyExisted: true,
+        name: skillName,
+        destination: getSkillPath(options.homeDir, skillName),
+        warnings: [],
+      };
+    }
+
     const result = await importSkill(options);
-    return { kind: "single", ...result };
+    return { kind: "single", alreadyExisted, ...result };
   }
 
   const sources = await listImportableChildren(options.sourcePath);
@@ -253,11 +275,11 @@ export async function importPath(options: {
     throw new Error(`Path is neither a skill directory nor a skills directory: ${options.sourcePath}`);
   }
 
-  const result = await importBatchSources({
+  const batchResult = await importBatchSources({
     homeDir: options.homeDir,
     sources,
     mode: options.mode,
     override: options.override,
   });
-  return { kind: "batch", ...result };
+  return { kind: "batch", ...batchResult };
 }

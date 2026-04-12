@@ -1,4 +1,4 @@
-import { addSkillToBundle, createBundle, readBundle, removeSkillFromBundle } from "../lib/bundles.js";
+import { addSkillToBundle, createBundle, deleteBundle, readBundle, removeSkillFromBundle } from "../lib/bundles.js";
 import type { RuntimeContext } from "../types.js";
 
 export async function runBundleCreate(context: RuntimeContext, bundleName: string) {
@@ -23,4 +23,14 @@ export async function runBundleRemoveSkill(context: RuntimeContext, bundleName: 
   const bundle = await removeSkillFromBundle(context.homeDir, bundleName, skillName);
   context.write(`Bundle ${bundle.name}: ${bundle.skills.join(", ") || "(empty)"}`);
   return bundle;
+}
+
+export async function runBundleDelete(context: RuntimeContext, bundleName: string) {
+  const deleted = await deleteBundle(context.homeDir, bundleName);
+  if (!deleted) {
+    throw new Error(`Bundle not found: ${bundleName}`);
+  }
+
+  context.write(`Deleted bundle ${bundleName}`);
+  return deleted;
 }

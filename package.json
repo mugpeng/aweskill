@@ -1,6 +1,6 @@
 {
   "name": "aweskill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local skill orchestration CLI",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,9 @@
     "cursor"
   ],
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
     "commander": "^14.0.1",
+    "picocolors": "^1.1.1",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

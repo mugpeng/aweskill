@@ -3,12 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
 import { readBundle } from "../lib/bundles.js";
 import { enableGlobalActivation, enableProjectActivation } from "../lib/config.js";
-import { canTakeOverDiscoveredSkill } from "../lib/registry.js";
 import { reconcileGlobal, reconcileProject } from "../lib/reconcile.js";
 import { getSkillPath, skillExists } from "../lib/skills.js";
 import { assertProjectionTargetSafe } from "../lib/symlink.js";
 import { sanitizeName, uniqueSorted } from "../lib/path.js";
-import type { ActivationType, AgentId, CommandScope, RuntimeContext, Scope } from "../types.js";
+import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
@@ -76,15 +75,7 @@ async function preflightEnable(options: {
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(options.context.homeDir, skillName);
       const targetPath = `${skillsDir}/${skillName}`;
-      const allowReplaceExisting = await canTakeOverDiscoveredSkill({
-        homeDir: options.context.homeDir,
-        agentId,
-        scope: options.scope,
-        projectDir: options.scope === "project" ? options.projectDir : undefined,
-        skillName,
-        targetPath,
-      });
-      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath, { allowReplaceExisting });
+      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
     }
   }
 
@@ -129,29 +120,19 @@ export async function runEnable(
   options: {
     type: ActivationType;
     name: string;
-    scope?: CommandScope;
+    scope: Scope;
     agents: string[];
     projectDir?: string;
   },
 ) {
-  const scope = options.scope ?? "global";
-  const scopes: Scope[] = scope === "all" ? ["global", "project"] : [scope];
-  const results: Awaited<ReturnType<typeof enableInScope>>[] = [];
-
-  for (const targetScope of scopes) {
-    const projectDir = targetScope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-    const agents = await resolveAgentsForScope(context, options.agents, targetScope, projectDir);
-    results.push(
-      await enableInScope({
-        context,
-        type: options.type,
-        name: options.name,
-        scope: targetScope,
-        agents,
-        projectDir,
-      }),
-    );
-  }
-
-  return results;
+  const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
+  const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
+  return enableInScope({
+    context,
+    type: options.type,
+    name: options.name,
+    scope: options.scope,
+    agents,
+    projectDir,
+  });
 }

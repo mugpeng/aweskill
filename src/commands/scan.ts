@@ -1,5 +1,4 @@
 import { importScannedSkills } from "../lib/import.js";
-import { updateRegistryFromScan } from "../lib/registry.js";
 import { scanSkills } from "../lib/scanner.js";
 import type { ImportMode, RuntimeContext } from "../types.js";
 
@@ -11,7 +10,6 @@ export async function runScan(
     homeDir: context.homeDir,
     projectDirs: [context.cwd],
   });
-  await updateRegistryFromScan(context.homeDir, candidates);
 
   if (options.add) {
     const result = await importScannedSkills({
@@ -27,6 +25,12 @@ export async function runScan(
       context.error(`Error: ${error}`);
     }
     context.write(`Imported ${result.imported.length} skills`);
+    if (result.overwritten.length > 0) {
+      context.write(`Overwritten ${result.overwritten.length} existing skills: ${result.overwritten.join(", ")}`);
+    }
+    if (result.skipped.length > 0) {
+      context.write(`Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`);
+    }
     if (result.missingSources > 0) {
       context.write(`Missing source files: ${result.missingSources}`);
     }

@@ -8,12 +8,13 @@
 
 `aweskill` 用一个统一的中央仓库 `~/.aweskill` 管理 Skills，通过 YAML 配置定义 bundle 和 activation，再把技能以 `symlink` 或 `copy` 的方式投影到不同 agent 的技能目录里。
 
+当前 CLI 仍然保留现有的 `runXxx + RuntimeContext` 分层结构，但终端 UX 已尽量向 `aweskill_cc` 靠拢，使用了 `@clack/prompts` 和 `picocolors`。
+
 当前实现尽量遵从 `aweskill-cli-design-v3.1.md` 的 MVP 范围：
 
 - 中央仓库：`~/.aweskill/skills/`
 - bundle 定义：`~/.aweskill/bundles/*.yaml`
 - 全局配置：`~/.aweskill/config.yaml`
-- 派生注册表：`~/.aweskill/registry/*.json`
 - 项目配置：`<project>/.aweskill.yaml`
 - 当前支持 agent：`amp`、`claude-code`、`cline`、`codex`、`cursor`、`gemini-cli`、`goose`、`opencode`、`roo`、`windsurf`
 
@@ -63,10 +64,10 @@ aweskill bundle create frontend
 aweskill bundle add-skill frontend my-skill
 
 # 4. 为 Claude Code 全局启用这个 bundle
-aweskill enable bundle frontend --scope global --agent claude-code
+aweskill enable bundle frontend --global --agent claude-code
 
-# 5. 查看当前投影状态
-aweskill list status
+# 5. 检查当前全局 agent 技能目录
+aweskill check
 ```
 
 ## 命令概览
@@ -74,20 +75,20 @@ aweskill list status
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill init [--scan]` | 初始化 `~/.aweskill` 目录，必要时顺带扫描 |
-| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | 扫描已支持 agent 的 skill 目录，写入 discovered registry，并可选直接导入 |
-| `aweskill add <path> --mode symlink|mv|cp [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
-| `aweskill add --scan --mode symlink|mv|cp [--override]` | 批量导入扫描结果，同时刷新 discovered registry |
+| `aweskill scan [--add] [--mode cp|mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
+| `aweskill add <path> [--mode cp|mv] [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
+| `aweskill add --scan [--mode cp|mv] [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
 | `aweskill bundle add-skill <bundle> <skill>` | 给 bundle 增加一个中央仓库中已存在的 skill |
 | `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 删除 skill |
-| `aweskill list skills` | 列出中央仓库中的 skills |
+| `aweskill bundle delete <name>` | 删除 bundle |
+| `aweskill list skills [--verbose]` | 列出中央仓库中的 skills，并显示总数；默认只展示简短预览 |
 | `aweskill list bundles` | 列出 bundles |
-| `aweskill list status [--project <dir>]` | 查看计算后的投影状态 |
-| `aweskill registry show <agent>` | 查看某个 agent 的派生 registry 快照 |
-| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--scope global --agent all` |
-| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--scope all --agent all` |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查选定 agent 技能目录，显示各类别统计，并可选按中央仓库归一化更新 |
+| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
+| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill sync [--project <dir>]` | 重算全局范围和已知项目，并修复派生投影 |
 
 ## 使用示例
@@ -99,7 +100,7 @@ aweskill add ~/Downloads/pr-review --mode cp
 # 一次性导入整个 skills 根目录
 aweskill add ~/.agents/skills
 
-# 扫描当前项目和全局 agent 目录，并刷新 registry
+# 扫描当前项目和全局 agent 目录
 aweskill scan
 
 # 扫描并一步导入
@@ -114,19 +115,28 @@ aweskill bundle add-skill backend api-design
 aweskill bundle add-skill backend db-schema
 
 # 在项目范围内启用单个 skill
-aweskill enable skill pr-review --scope project --project /path/to/repo --agent cursor
+aweskill enable skill pr-review --project /path/to/repo --agent cursor
 
 # 在全局和当前项目范围内为所有 agent 启用 skill
 aweskill enable skill biopython
 
 # 在全局范围内为所有已检测到的 agent 启用 bundle
-aweskill enable bundle backend --scope global --agent all
+aweskill enable bundle backend --global --agent all
 
-# 查看某个 agent 的 registry 快照
-aweskill registry show codex
+# 检查某个全局 agent 目录
+aweskill check --agent codex
+
+# 显示完整条目，而不是默认的简短预览
+aweskill check --agent codex --verbose
+
+# 检查并归一化某个项目范围的 agent 目录
+aweskill check --project /path/to/repo --agent cursor --update
+
+# 仅检查某个项目范围的 agent 目录
+aweskill check --project /path/to/repo --agent cursor
 
 # 禁用项目级 activation
-aweskill disable skill pr-review --scope project --project /path/to/repo --agent cursor
+aweskill disable skill pr-review --project /path/to/repo --agent cursor
 
 # 修复投影
 aweskill sync --project /path/to/repo
@@ -187,51 +197,19 @@ skills:
 
 所以 `enable`、`disable`、`sync` 的本质都是“改配置后 reconcile”，而不是直接对 agent 目录做手工修改。
 
-## Registry 快照
-
-`aweskill` 还会在 `~/.aweskill/registry/` 下为每个 agent 写一个派生注册表，例如 `~/.aweskill/registry/codex.json`。
-
-这个 registry 是索引，不是真相源。真实状态仍然来自 config、bundle、中央 skill 仓库以及 agent 目录本身。
-
-```json
-{
-  "version": 2,
-  "agentId": "codex",
-  "lastSynced": "2026-04-12T03:00:00.000Z",
-  "skills": [
-    {
-      "name": "my-skill",
-      "scope": "global",
-      "sourcePath": "/Users/peng/.codex/skills/my-skill",
-      "managedByAweskill": false
-    },
-    {
-      "name": "project-skill",
-      "scope": "project",
-      "projectDir": "/path/to/project",
-      "sourcePath": "/Users/peng/.aweskill/skills/project-skill",
-      "managedByAweskill": true
-    }
-  ]
-}
-```
-
-`list status` 现在也会附带 registry 摘要，便于快速对比“理论投影”和“最后一次写出的快照”。
-
-Registry 的生命周期规则：
-
-- `scan` 会把 agent 目录里的技能写成 `discovered`
-- `scan --add` 和 `add --scan` 可以把这些 discovered skills 导入中央仓库
-- `enable` 会在 reconcile 接管目标目录后，把匹配条目标记为 `managedByAweskill: true`
-- `disable` 会删除 managed 投影和对应的 managed registry 条目
-- `disable` 不会恢复 enable 之前被替换掉的 agent 本地副本
-
 导入行为：
 
 - 默认的 `scan --add` 和 `add --scan` 在中央仓库已存在同名 skill 时，只补缺失文件，不覆盖已有文件
 - `--override` 会覆盖已有文件
-- 当 `mode=cp|mv` 且源是 symlink 时，aweskill 会解析到真实源目录进行复制，并在 warning 中打印两条路径
+- 当源是 symlink 时，aweskill 会解析到真实源目录进行复制，并在 warning 中打印两条路径
 - 如果扫描到的 symlink 已损坏，批量导入会对该 skill 打印 error，继续处理其他项，并在最后输出缺失源数量
+
+显示行为：
+
+- `list skills` 会显示中央仓库 skill 总数，默认只预览前几个条目
+- `check` 会显示 `linked`、`duplicate`、`new` 各类别的统计，默认每类只预览前几个条目
+- `list skills` 和 `check` 都可以加 `--verbose` 显示完整条目
+- `check --update` 结尾会额外汇总更新了哪些内容，以及跳过了哪些内容
 
 ## 当前支持的 Agent
 
@@ -267,7 +245,6 @@ Registry 的生命周期规则：
 - 如果传了 `--project`，会重算该项目
 - 如果当前工作目录存在 `.aweskill.yaml`，会重算当前项目
 - 会重算全局配置中声明的 `exact` 项目规则，前提是这些项目目录当前存在
-- 会重算 registry 快照里已经记录过的项目目录
 - 不会自动枚举所有可能命中的 `prefix` 或 `glob` 项目
 
 ## 开发
