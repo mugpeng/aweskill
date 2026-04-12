@@ -20,6 +20,10 @@ function bundleFilePath(homeDir: string, bundleName: string): string {
   return path.join(getAweskillPaths(homeDir).bundlesDir, `${sanitizeName(bundleName)}.yaml`);
 }
 
+function bundleFilePathInDirectory(bundlesDir: string, bundleName: string): string {
+  return path.join(bundlesDir, `${sanitizeName(bundleName)}.yaml`);
+}
+
 function normalizeBundle(raw: unknown, fallbackName: string): BundleDefinition {
   const data = (raw ?? {}) as Partial<BundleDefinition>;
   return {
@@ -30,13 +34,17 @@ function normalizeBundle(raw: unknown, fallbackName: string): BundleDefinition {
 
 export async function listBundles(homeDir: string): Promise<BundleDefinition[]> {
   const bundlesDir = getAweskillPaths(homeDir).bundlesDir;
+  return listBundlesInDirectory(bundlesDir);
+}
+
+export async function listBundlesInDirectory(bundlesDir: string): Promise<BundleDefinition[]> {
   await mkdir(bundlesDir, { recursive: true });
   const entries = await readdir(bundlesDir, { withFileTypes: true });
 
   const bundles = await Promise.all(
     entries
       .filter((entry) => entry.isFile() && entry.name.endsWith(".yaml"))
-      .map(async (entry) => readBundle(homeDir, entry.name.replace(/\.yaml$/, ""))),
+      .map(async (entry) => readBundleFromDirectory(bundlesDir, entry.name.replace(/\.yaml$/, ""))),
   );
 
   return bundles.sort((left, right) => left.name.localeCompare(right.name));
@@ -44,6 +52,12 @@ export async function listBundles(homeDir: string): Promise<BundleDefinition[]> 
 
 export async function readBundle(homeDir: string, bundleName: string): Promise<BundleDefinition> {
   const filePath = bundleFilePath(homeDir, bundleName);
+  const content = await readFile(filePath, "utf8");
+  return normalizeBundle(parse(content), bundleName);
+}
+
+export async function readBundleFromDirectory(bundlesDir: string, bundleName: string): Promise<BundleDefinition> {
+  const filePath = bundleFilePathInDirectory(bundlesDir, bundleName);
   const content = await readFile(filePath, "utf8");
   return normalizeBundle(parse(content), bundleName);
 }

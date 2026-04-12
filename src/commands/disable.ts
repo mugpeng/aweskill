@@ -1,7 +1,8 @@
-import { detectInstalledAgents, isAgentId, listSupportedAgentIds } from "../lib/agents.js";
-import { disableGlobalActivation, disableProjectActivation } from "../lib/config.js";
-import { sanitizeName, uniqueSorted } from "../lib/path.js";
-import { reconcileGlobal, reconcileProject } from "../lib/reconcile.js";
+import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
+import { listBundles, readBundle } from "../lib/bundles.js";
+import { getAweskillPaths, sanitizeName, uniqueSorted } from "../lib/path.js";
+import { skillExists } from "../lib/skills.js";
+import { listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
@@ -32,36 +33,82 @@ async function resolveAgentsForScope(
   );
 }
 
-async function disableInScope(options: {
-  context: RuntimeContext;
-  type: ActivationType;
-  name: string;
-  agents: AgentId[];
-  scope: Scope;
-  projectDir?: string;
-}) {
-  const normalizedName = sanitizeName(options.name);
+async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
+  const normalizedName = sanitizeName(name);
 
-  if (options.scope === "global") {
-    await disableGlobalActivation(options.context.homeDir, {
-      type: options.type,
-      name: normalizedName,
-      agents: options.agents,
+  if (normalizedName === "all") {
+    if (type === "bundle") {
+      const bundles = await listBundles(context.homeDir);
+      return uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+    }
+
+    const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
+    const detected = await detectInstalledAgents({
+      homeDir: context.homeDir,
     });
-    const result = await reconcileGlobal(options.context.homeDir);
-    options.context.write(`Disabled ${options.type} ${normalizedName} for ${options.agents.join(", ")} in global scope`);
-    return result;
+    const globalManaged = await Promise.all(
+      detected.map(async (agentId) => {
+        const agentSkillsDir = resolveAgentSkillsDir(agentId, "global", context.homeDir);
+        return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
+      }),
+    );
+    const managedSkillNames = uniqueSorted(
+      globalManaged.flatMap((managed) => [...managed.keys()]),
+    );
+
+    return managedSkillNames;
   }
 
-  const projectDir = getProjectDir(options.context, options.projectDir);
-  await disableProjectActivation(projectDir, {
-    type: options.type,
-    name: normalizedName,
-    agents: options.agents,
-  });
-  const result = await reconcileProject(options.context.homeDir, projectDir);
-  options.context.write(`Disabled ${options.type} ${normalizedName} for ${options.agents.join(", ")} in ${projectDir}`);
-  return result;
+  if (type === "bundle") {
+    const bundle = await readBundle(context.homeDir, normalizedName);
+    return bundle.skills;
+  }
+
+  // For disable we don't require the skill to still exist in central repo
+  if (!(await skillExists(context.homeDir, normalizedName))) {
+    return [normalizedName];
+  }
+
+  return [normalizedName];
+}
+
+/**
+ * True when `skillName` appears in a bundle and at least one other skill from that bundle
+ * still has an aweskill-managed projection under the same scope/agents — typical after
+ * `enable bundle` while the user tries `disable skill` for one member only.
+ */
+async function bundlesWithCoEnabledSiblings(options: {
+  homeDir: string;
+  skillName: string;
+  agents: AgentId[];
+  scope: Scope;
+  baseDir: string;
+}): Promise<string[]> {
+  const { skillsDir: centralSkillsDir } = getAweskillPaths(options.homeDir);
+  const bundles = await listBundles(options.homeDir);
+  const normalized = sanitizeName(options.skillName);
+  const hit = new Set<string>();
+
+  for (const bundle of bundles) {
+    if (!bundle.skills.includes(normalized)) {
+      continue;
+    }
+    const siblings = bundle.skills.filter((s) => s !== normalized);
+    if (siblings.length === 0) {
+      continue;
+    }
+
+    for (const agentId of options.agents) {
+      const agentSkillsDir = resolveAgentSkillsDir(agentId, options.scope, options.baseDir);
+      const managed = await listManagedSkillNames(agentSkillsDir, centralSkillsDir);
+      if (siblings.some((s) => managed.has(s))) {
+        hit.add(bundle.name);
+        break;
+      }
+    }
+  }
+
+  return [...hit].sort();
 }
 
 export async function runDisable(
@@ -72,16 +119,58 @@ export async function runDisable(
     scope: Scope;
     agents: string[];
     projectDir?: string;
+    force?: boolean;
   },
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
-  return disableInScope({
-    context,
-    type: options.type,
-    name: options.name,
-    scope: options.scope,
-    agents,
-    projectDir,
-  });
+  const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
+  const skillNames = await resolveSkillNames(context, options.type, options.name);
+
+  if (sanitizeName(options.name) === "all" && options.type === "skill") {
+    const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
+    const scopedManaged = await Promise.all(
+      agents.map(async (agentId) => {
+        const agentSkillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+        return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
+      }),
+    );
+    const managedSkillNames = uniqueSorted(
+      scopedManaged.flatMap((managed) => [...managed.keys()]),
+    );
+    skillNames.splice(0, skillNames.length, ...managedSkillNames);
+  }
+
+  if (options.type === "skill" && skillNames.length === 1 && !options.force) {
+    const bundleNames = await bundlesWithCoEnabledSiblings({
+      homeDir: context.homeDir,
+      skillName: skillNames[0]!,
+      agents,
+      scope: options.scope,
+      baseDir,
+    });
+    if (bundleNames.length > 0) {
+      throw new Error(
+        `Skill "${skillNames[0]}" is listed in bundle(s): ${bundleNames.join(", ")}. ` +
+          `Other skills from those bundle(s) are still enabled in this scope. ` +
+          `Use --force to remove only this skill's projection, or run "aweskill disable bundle <name>" to drop the whole bundle.`,
+      );
+    }
+  }
+
+  const removed: string[] = [];
+  for (const agentId of agents) {
+    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+    for (const skillName of skillNames) {
+      const targetPath = `${skillsDir}/${skillName}`;
+      const wasRemoved = await removeManagedProjection(targetPath);
+      if (wasRemoved) {
+        removed.push(`${agentId}:${skillName}`);
+      }
+    }
+  }
+
+  const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
+  context.write(`Disabled ${options.type} ${sanitizeName(options.name)} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`);
+  return { agents, skillNames, removed };
 }

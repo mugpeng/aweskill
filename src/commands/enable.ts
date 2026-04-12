@@ -1,11 +1,9 @@
 import { mkdir } from "node:fs/promises";
 
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
-import { readBundle } from "../lib/bundles.js";
-import { enableGlobalActivation, enableProjectActivation } from "../lib/config.js";
-import { reconcileGlobal, reconcileProject } from "../lib/reconcile.js";
-import { getSkillPath, skillExists } from "../lib/skills.js";
-import { assertProjectionTargetSafe } from "../lib/symlink.js";
+import { listBundles, readBundle } from "../lib/bundles.js";
+import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
+import { assertProjectionTargetSafe, createSkillCopy, createSkillSymlink } from "../lib/symlink.js";
 import { sanitizeName, uniqueSorted } from "../lib/path.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 
@@ -40,6 +38,22 @@ async function resolveAgentsForScope(
 async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
   const normalizedName = sanitizeName(name);
 
+  if (normalizedName === "all") {
+    if (type === "bundle") {
+      const bundles = await listBundles(context.homeDir);
+      const skillNames = uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+      for (const skillName of skillNames) {
+        if (!(await skillExists(context.homeDir, skillName))) {
+          throw new Error(`A bundle in "all" references unknown skill: ${skillName}`);
+        }
+      }
+      return skillNames;
+    }
+
+    const skills = await listSkills(context.homeDir);
+    return skills.map((skill) => skill.name);
+  }
+
   if (type === "bundle") {
     const bundle = await readBundle(context.homeDir, normalizedName);
     for (const skillName of bundle.skills) {
@@ -57,64 +71,6 @@ async function resolveSkillNames(context: RuntimeContext, type: ActivationType, 
   return [normalizedName];
 }
 
-async function preflightEnable(options: {
-  context: RuntimeContext;
-  type: ActivationType;
-  name: string;
-  agents: AgentId[];
-  scope: Scope;
-  projectDir?: string;
-}): Promise<string[]> {
-  const skillNames = await resolveSkillNames(options.context, options.type, options.name);
-  const baseDir = options.scope === "global" ? options.context.homeDir : getProjectDir(options.context, options.projectDir);
-
-  for (const agentId of options.agents) {
-    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
-    await mkdir(skillsDir, { recursive: true });
-
-    for (const skillName of skillNames) {
-      const sourcePath = getSkillPath(options.context.homeDir, skillName);
-      const targetPath = `${skillsDir}/${skillName}`;
-      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
-    }
-  }
-
-  return skillNames;
-}
-
-async function enableInScope(options: {
-  context: RuntimeContext;
-  type: ActivationType;
-  name: string;
-  agents: AgentId[];
-  scope: Scope;
-  projectDir?: string;
-}) {
-  await preflightEnable(options);
-  const normalizedName = sanitizeName(options.name);
-
-  if (options.scope === "global") {
-    await enableGlobalActivation(options.context.homeDir, {
-      type: options.type,
-      name: normalizedName,
-      agents: options.agents,
-    });
-    const result = await reconcileGlobal(options.context.homeDir);
-    options.context.write(`Enabled ${options.type} ${normalizedName} for ${options.agents.join(", ")} in global scope`);
-    return result;
-  }
-
-  const projectDir = getProjectDir(options.context, options.projectDir);
-  await enableProjectActivation(projectDir, {
-    type: options.type,
-    name: normalizedName,
-    agents: options.agents,
-  });
-  const result = await reconcileProject(options.context.homeDir, projectDir);
-  options.context.write(`Enabled ${options.type} ${normalizedName} for ${options.agents.join(", ")} in ${projectDir}`);
-  return result;
-}
-
 export async function runEnable(
   context: RuntimeContext,
   options: {
@@ -127,12 +83,38 @@ export async function runEnable(
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
-  return enableInScope({
-    context,
-    type: options.type,
-    name: options.name,
-    scope: options.scope,
-    agents,
-    projectDir,
-  });
+  const skillNames = await resolveSkillNames(context, options.type, options.name);
+  const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
+
+  // Preflight: check all targets are safe before touching any
+  for (const agentId of agents) {
+    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+    await mkdir(skillsDir, { recursive: true });
+    for (const skillName of skillNames) {
+      const sourcePath = getSkillPath(context.homeDir, skillName);
+      const targetPath = `${skillsDir}/${skillName}`;
+      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
+    }
+  }
+
+  // Apply projections directly
+  const created: string[] = [];
+  for (const agentId of agents) {
+    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+    const mode = getProjectionMode(agentId);
+    for (const skillName of skillNames) {
+      const sourcePath = getSkillPath(context.homeDir, skillName);
+      const targetPath = `${skillsDir}/${skillName}`;
+      const result = mode === "symlink"
+        ? await createSkillSymlink(sourcePath, targetPath)
+        : await createSkillCopy(sourcePath, targetPath);
+      if (result === "created") {
+        created.push(`${agentId}:${skillName}`);
+      }
+    }
+  }
+
+  const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
+  context.write(`Enabled ${options.type} ${sanitizeName(options.name)} for ${agents.join(", ")} in ${scopeLabel}${created.length > 0 ? ` (${created.length} created)` : ""}`);
+  return { agents, skillNames, created };
 }

@@ -1,4 +1,5 @@
-import { addSkillToBundle, createBundle, deleteBundle, readBundle, removeSkillFromBundle } from "../lib/bundles.js";
+import { addSkillToBundle, createBundle, deleteBundle, readBundle, readBundleFromDirectory, removeSkillFromBundle, writeBundle } from "../lib/bundles.js";
+import { getTemplateBundlesDir } from "../lib/templates.js";
 import type { RuntimeContext } from "../types.js";
 
 export async function runBundleCreate(context: RuntimeContext, bundleName: string) {
@@ -33,4 +34,25 @@ export async function runBundleDelete(context: RuntimeContext, bundleName: strin
 
   context.write(`Deleted bundle ${bundleName}`);
   return deleted;
+}
+
+export async function runBundleAddTemplate(context: RuntimeContext, bundleName: string) {
+  const templateBundlesDir = await getTemplateBundlesDir();
+  const templateBundle = await readBundleFromDirectory(templateBundlesDir, bundleName);
+
+  try {
+    await readBundle(context.homeDir, templateBundle.name);
+    throw new Error(`Bundle already exists: ${templateBundle.name}`);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes("ENOENT")) {
+      if (error instanceof Error && error.message.startsWith("Bundle already exists:")) {
+        throw error;
+      }
+      throw error;
+    }
+  }
+
+  const bundle = await writeBundle(context.homeDir, templateBundle);
+  context.write(`Added bundle ${bundle.name} from template`);
+  return bundle;
 }
