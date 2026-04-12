@@ -41,6 +41,11 @@ function emitMessage(line: string) {
     return;
   }
 
+  if (line === "  linked:" || line === "  duplicate:" || line === "  new:") {
+    console.log(pc.dim(trimmed));
+    return;
+  }
+
   if (line.startsWith("  ✓ ")) {
     const rest = line.slice(4);
     const firstSpace = rest.indexOf(" ");
@@ -66,6 +71,17 @@ function emitMessage(line: string) {
     const name = rest.slice(0, firstSpace);
     const location = rest.slice(firstSpace + 1);
     console.log(`  ${pc.yellow("!")} ${pc.cyan(name)} ${pc.dim(location)}`);
+    return;
+  }
+
+  if (line.startsWith("    ✓ ") || line.startsWith("    ! ") || line.startsWith("    + ")) {
+    const marker = line.slice(4, 5);
+    const rest = line.slice(6);
+    const firstSpace = rest.indexOf(" ");
+    const name = firstSpace === -1 ? rest : rest.slice(0, firstSpace);
+    const location = firstSpace === -1 ? "" : rest.slice(firstSpace + 1);
+    const coloredMarker = marker === "✓" ? pc.green("✓") : marker === "!" ? pc.yellow("!") : pc.cyan("+");
+    console.log(`    ${coloredMarker} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
     return;
   }
 

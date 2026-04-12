@@ -50,7 +50,6 @@ describe("commands", () => {
 
     const targetPath = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "pr-review", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
-    expect(lines.join("\n")).toContain("Skills in central repo:");
     expect(lines.join("\n")).toContain("Global skills for claude-code:");
   });
 
@@ -213,7 +212,7 @@ describe("commands", () => {
     expect(errorSpy).toHaveBeenCalledWith("Error: Unknown skill: missing-skill");
   });
 
-  it("checks global agent skills with aweskill_cc-style summary lines", async () => {
+  it("checks global agent skills and categorizes linked, duplicate, and new entries", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -224,13 +223,24 @@ describe("commands", () => {
     });
 
     await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
-    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython", "--global", "--agent", "codex"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "linked-skill"), "Linked Skill");
+    await writeSkill(getSkillPath(workspace.homeDir, "duplicate-skill"), "Duplicate Skill");
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "linked-skill", "--global", "--agent", "codex"], { from: "node" });
+    const duplicateDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill");
+    const newDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "new-skill");
+    await mkdir(duplicateDir, { recursive: true });
+    await mkdir(newDir, { recursive: true });
+    await writeFile(path.join(duplicateDir, "SKILL.md"), "# Duplicate Skill\n", "utf8");
+    await writeFile(path.join(newDir, "SKILL.md"), "# New Skill\n", "utf8");
     await program.parseAsync(["node", "aweskill", "check", "--agent", "codex"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("Skills in central repo:");
     expect(lines.join("\n")).toContain("Global skills for codex:");
-    expect(lines.join("\n")).toContain(`  ✓ biopython ${path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython")}`);
+    expect(lines.join("\n")).toContain("  linked:");
+    expect(lines.join("\n")).toContain("  duplicate:");
+    expect(lines.join("\n")).toContain("  new:");
+    expect(lines.join("\n")).toContain(`    ✓ linked-skill ${path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "linked-skill")}`);
+    expect(lines.join("\n")).toContain(`    ! duplicate-skill ${duplicateDir}`);
+    expect(lines.join("\n")).toContain(`    + new-skill ${newDir}`);
   });
 
   it("checks project agent skills for the current project by default", async () => {
@@ -252,6 +262,36 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(
       `  ✓ frontend-design ${path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design")}`,
     );
+  });
+
+  it("check --update imports new skills and relinks duplicate and new entries to the central repo", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "duplicate-skill"), "Central Duplicate");
+
+    const skillsDir = resolveAgentSkillsDir("codex", "global", workspace.homeDir);
+    const duplicateDir = path.join(skillsDir, "duplicate-skill");
+    const newDir = path.join(skillsDir, "new-skill");
+    await mkdir(duplicateDir, { recursive: true });
+    await mkdir(newDir, { recursive: true });
+    await writeFile(path.join(duplicateDir, "SKILL.md"), "# Agent Duplicate\n", "utf8");
+    await writeFile(path.join(newDir, "SKILL.md"), "# Brand New\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "check", "--agent", "codex", "--update"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "new-skill"), "SKILL.md"), "utf8")).resolves.toContain("Brand New");
+    await expect(readFile(path.join(duplicateDir, "SKILL.md"), "utf8")).resolves.toContain("Central Duplicate");
+    await expect(readFile(path.join(newDir, "SKILL.md"), "utf8")).resolves.toContain("Brand New");
+    expect(lines.join("\n")).toContain("Updated 2 skills");
+    expect(lines.join("\n")).toContain("Imported 1 new skills into the central repo");
   });
 
   it("scan writes discovered entries into registry", async () => {

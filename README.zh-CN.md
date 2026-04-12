@@ -66,7 +66,7 @@ aweskill bundle add-skill frontend my-skill
 # 4. 为 Claude Code 全局启用这个 bundle
 aweskill enable bundle frontend --global --agent claude-code
 
-# 5. 检查中央仓库和当前全局 agent 技能目录
+# 5. 检查当前全局 agent 技能目录
 aweskill check
 ```
 
@@ -75,9 +75,9 @@ aweskill check
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill init [--scan]` | 初始化 `~/.aweskill` 目录，必要时顺带扫描 |
-| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
-| `aweskill add <path> --mode symlink|mv|cp [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
-| `aweskill add --scan --mode symlink|mv|cp [--override]` | 批量导入扫描结果 |
+| `aweskill scan [--add] [--mode cp|mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
+| `aweskill add <path> [--mode cp|mv] [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
+| `aweskill add --scan [--mode cp|mv] [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
@@ -86,7 +86,7 @@ aweskill check
 | `aweskill bundle delete <name>` | 删除 bundle |
 | `aweskill list skills` | 列出中央仓库中的 skills |
 | `aweskill list bundles` | 列出 bundles |
-| `aweskill check [--global] [--project [dir]] [--agent <agent>]` | 查看中央仓库和选定 agent 目录下当前实际存在的 skills |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update]` | 检查选定 agent 技能目录，并可选按中央仓库归一化更新 |
 | `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
 | `aweskill sync [--project <dir>]` | 重算全局范围和已知项目，并修复派生投影 |
@@ -126,7 +126,10 @@ aweskill enable bundle backend --global --agent all
 # 检查某个全局 agent 目录
 aweskill check --agent codex
 
-# 检查某个项目范围的 agent 目录
+# 检查并归一化某个项目范围的 agent 目录
+aweskill check --project /path/to/repo --agent cursor --update
+
+# 仅检查某个项目范围的 agent 目录
 aweskill check --project /path/to/repo --agent cursor
 
 # 禁用项目级 activation
@@ -232,7 +235,7 @@ Registry 的生命周期规则：
 
 - 默认的 `scan --add` 和 `add --scan` 在中央仓库已存在同名 skill 时，只补缺失文件，不覆盖已有文件
 - `--override` 会覆盖已有文件
-- 当 `mode=cp|mv` 且源是 symlink 时，aweskill 会解析到真实源目录进行复制，并在 warning 中打印两条路径
+- 当源是 symlink 时，aweskill 会解析到真实源目录进行复制，并在 warning 中打印两条路径
 - 如果扫描到的 symlink 已损坏，批量导入会对该 skill 打印 error，继续处理其他项，并在最后输出缺失源数量
 
 ## 当前支持的 Agent

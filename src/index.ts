@@ -44,10 +44,10 @@ function collectAgents(value: string, previous?: string[]): string[] {
 }
 
 function getMode(value: string): ImportMode {
-  if (value === "symlink" || value === "mv" || value === "cp") {
+  if (value === "mv" || value === "cp") {
     return value;
   }
-  throw new Error(`Unsupported import mode: ${value}`);
+  throw new Error(`Unsupported import mode: ${value}. Use "cp" or "mv".`);
 }
 
 function getActivationType(value: string): ActivationType {
@@ -80,7 +80,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("scan")
     .description("Scan supported agent skill directories")
     .option("--add", "import scanned skills into the central repository", false)
-    .option("--mode <mode>", "import mode when used with --add", getMode, "cp")
+    .option("--mode <mode>", "import mode when used with --add: cp (default) or mv", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill scan ", async () =>
@@ -97,7 +97,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("[path]")
     .description("Import one skill or a skills root directory")
     .option("--scan", "import scanned skills", false)
-    .option("--mode <mode>", "import mode", getMode, "cp")
+    .option("--mode <mode>", "import mode: cp (default) or mv", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
     .action(async (sourcePath, options) => {
       await runFramedCommand(" aweskill add ", async () =>
@@ -165,6 +165,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .option("--update", "import missing skills into the central repo and relink duplicates/new skills", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -174,6 +175,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          update: options.update,
         }),
       );
     });

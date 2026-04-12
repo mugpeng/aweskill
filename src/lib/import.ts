@@ -1,4 +1,4 @@
-import { access, cp, lstat, mkdir, readlink, readdir, rename, rm, stat, symlink } from "node:fs/promises";
+import { access, cp, lstat, mkdir, readlink, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { ImportMode, ImportResult, ScanCandidate } from "../types.js";
@@ -26,15 +26,15 @@ async function pathExists(targetPath: string): Promise<boolean> {
   }
 }
 
-async function resolveImportSource(sourcePath: string, mode: ImportMode): Promise<{
+async function resolveImportSource(sourcePath: string): Promise<{
   effectiveSourcePath: string;
   isSymlinkSource: boolean;
 }> {
   const statResult = await lstat(sourcePath);
-  if (!statResult.isSymbolicLink() || mode === "symlink") {
+  if (!statResult.isSymbolicLink()) {
     return {
       effectiveSourcePath: sourcePath,
-      isSymlinkSource: statResult.isSymbolicLink(),
+      isSymlinkSource: false,
     };
   }
 
@@ -193,7 +193,7 @@ export async function importSkill(options: {
   mode: ImportMode;
   override?: boolean;
 }): Promise<ImportResult> {
-  const { effectiveSourcePath, isSymlinkSource } = await resolveImportSource(options.sourcePath, options.mode);
+  const { effectiveSourcePath, isSymlinkSource } = await resolveImportSource(options.sourcePath);
   await assertSkillSource(effectiveSourcePath);
 
   const skillName = sanitizeName(path.basename(options.sourcePath));
@@ -205,17 +205,14 @@ export async function importSkill(options: {
   await mkdir(path.dirname(destination), { recursive: true });
 
   const warnings: string[] = [];
-  if (isSymlinkSource && (options.mode === "cp" || options.mode === "mv")) {
+  if (isSymlinkSource) {
     warnings.push(`Source ${options.sourcePath} is a symlink; copied from ${effectiveSourcePath} to ${destination}`);
   }
 
   if (options.mode === "mv" && !isSymlinkSource) {
     await moveIntoDestination(effectiveSourcePath, destination, options.override ?? false);
-  } else if (options.mode === "cp" || (options.mode === "mv" && isSymlinkSource)) {
-    await copyIntoDestination(effectiveSourcePath, destination, options.override ?? false);
   } else {
-    const linkTarget = path.relative(path.dirname(destination), effectiveSourcePath) || ".";
-    await symlink(linkTarget, destination, "dir");
+    await copyIntoDestination(effectiveSourcePath, destination, options.override ?? false);
   }
 
   return { name: skillName, destination, warnings };

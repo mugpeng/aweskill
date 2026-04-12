@@ -12,7 +12,7 @@ export type AgentId =
 export type ActivationType = "bundle" | "skill";
 export type MatchType = "exact" | "prefix" | "glob";
 export type ProjectionMode = "symlink" | "copy";
-export type ImportMode = "symlink" | "mv" | "cp";
+export type ImportMode = "mv" | "cp";
 export type Scope = "global" | "project";
 export interface ActivationBase {
   type: ActivationType;

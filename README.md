@@ -66,7 +66,7 @@ aweskill bundle add-skill frontend my-skill
 # 4. Enable it globally for Claude Code
 aweskill enable bundle frontend --global --agent claude-code
 
-# 5. Check the central repo and current global agent skills
+# 5. Check current global agent skills
 aweskill check
 ```
 
@@ -75,9 +75,9 @@ aweskill check
 | Command | Description |
 | --- | --- |
 | `aweskill init [--scan]` | Create `~/.aweskill` layout and optional scan |
-| `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | Scan supported agent skill directories and optionally import them |
-| `aweskill add <path> --mode symlink|mv|cp [--override]` | Import one skill directory or one skills root directory into the central repo |
-| `aweskill add --scan --mode symlink|mv|cp [--override]` | Import scanned skills in batch |
+| `aweskill scan [--add] [--mode cp|mv] [--override]` | Scan supported agent skill directories and optionally import them |
+| `aweskill add <path> [--mode cp|mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
+| `aweskill add --scan [--mode cp|mv] [--override]` | Import scanned skills in batch |
 | `aweskill remove <skill> [--force]` | Remove a skill, with reference checks by default |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle show <name>` | Show bundle contents |
@@ -86,7 +86,7 @@ aweskill check
 | `aweskill bundle delete <name>` | Delete a bundle |
 | `aweskill list skills` | List skills in the central repo |
 | `aweskill list bundles` | List bundles |
-| `aweskill check [--global] [--project [dir]] [--agent <agent>]` | Show central skills and the current skills under selected agent directories |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update]` | Inspect selected agent skill directories and optionally normalize them against the central repo |
 | `aweskill enable bundle|skill ...` | Add an activation and reconcile; defaults to `--global --agent all` |
 | `aweskill disable bundle|skill ...` | Remove an activation and reconcile; defaults to `--global --agent all` |
 | `aweskill sync [--project <dir>]` | Recompute global scope plus known projects and repair derived projections |
@@ -126,7 +126,10 @@ aweskill enable bundle backend --global --agent all
 # Check one global agent directory
 aweskill check --agent codex
 
-# Check one project-scoped agent directory
+# Check and normalize one project-scoped agent directory
+aweskill check --project /path/to/repo --agent cursor --update
+
+# Check one project-scoped agent directory without changing anything
 aweskill check --project /path/to/repo --agent cursor
 
 # Disable project-scoped activation
@@ -232,7 +235,7 @@ Import behavior:
 
 - default `scan --add` and `add --scan` merge only missing files when the central skill already exists
 - `--override` overwrites existing files
-- when `mode=cp|mv` and the source is a symlink, aweskill copies from the resolved source and prints a warning with both paths
+- when the source is a symlink, aweskill copies from the resolved real source and prints a warning with both paths
 - if a scanned symlink is broken, batch import reports an error for that skill, continues importing others, and prints a final missing-source count
 
 ## Supported Agents
