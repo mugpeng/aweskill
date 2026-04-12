@@ -104,6 +104,7 @@ aweskill check
 - **`disable bundle <name>`** expands the bundle to skill names and removes managed projections for each (same scope/agents as you pass).
 - **`disable skill <name>`** removes only that skill’s projection. If that skill appears in a bundle and **another member of the same bundle is still projected** in the same scope and agent set, the command **fails** with a hint unless you pass **`--force`**. Use `--force` to drop only that skill, or use `disable bundle …` to remove the whole set.
 - `enable skill all` enables every skill in `~/.aweskill/skills/`; `enable bundle all` enables the union of all bundle members.
+- `aweskill enable <type> <name>` accepts `all` as `<name>`; the help text and missing-argument hint now mention it explicitly.
 - `disable skill all` removes all managed skill projections in the selected scope/agents; `disable bundle all` removes the union of all bundle members.
 
 `enable bundle` is a one-time expansion: there is no stored “bundle activation” to edit later beyond what’s on disk.

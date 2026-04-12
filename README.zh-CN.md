@@ -106,6 +106,7 @@ aweskill check
 - **`disable bundle <name>`**：把 bundle 展开成多个 skill，对当前命令中的 scope/agent 逐个删除托管投影。
 - **`disable skill <name>`**：只删这一项。若该 skill 出现在某个 bundle 里，且在**同一 scope、同一批 agent** 下 **同一 bundle 里还有其他 skill 仍处于托管投影状态**，命令会 **报错** 并提示使用 **`--force`**，或改用 `disable bundle …` 整包卸载。
 - `enable skill all`：启用 `~/.aweskill/skills/` 下全部 skill；`enable bundle all`：启用所有 bundle 展开后的 skill 并集。
+- `aweskill enable <type> <name>` 的 `<name>` 现在明确支持 `all`，帮助信息和缺失参数提示都已同步。
 - `disable skill all`：删除所选 scope/agent 下全部托管 skill 投影；`disable bundle all`：删除所有 bundle 展开后的 skill 并集。
 
 `enable bundle` 只是一次性展开写入磁盘，**没有**单独的「bundle 激活记录」可编辑。

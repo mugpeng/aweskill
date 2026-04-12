@@ -71,7 +71,7 @@ function formatCliErrorMessage(message: string): string {
   const hints: Record<string, string> = {
     archive: 'Use a backup archive path, for example "skills-2026-04-12T19-20-00Z.tar.gz".',
     bundle: "Use a bundle name.",
-    name: 'Use a bundle or skill name, for example "my-bundle" or "biopython".',
+    name: 'Use a bundle or skill name, for example "my-bundle", "biopython", or "all".',
     skill: "Use a skill name.",
     type: 'Use "bundle" or "skill".',
   };
@@ -243,7 +243,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("enable")
     .description("Create skill projections (symlinks/copies) in agent directories")
     .argument("<type>", "bundle or skill", getActivationType)
-    .argument("<name>")
+    .argument("<name>", 'bundle or skill name, or "all"')
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)

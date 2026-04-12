@@ -305,6 +305,9 @@ describe("commands", () => {
     await expect(program.parseAsync(["node", "aweskill", "bundle", "add-skill", "research"], { from: "node" })).rejects.toThrow(
       "Missing required argument <skill>. Use a skill name.",
     );
+    await expect(program.parseAsync(["node", "aweskill", "enable", "skill"], { from: "node" })).rejects.toThrow(
+      'Missing required argument <name>. Use a bundle or skill name, for example "my-bundle", "biopython", or "all".',
+    );
   });
 
   it("supports enable bundle all as the union of all bundle skills", async () => {
