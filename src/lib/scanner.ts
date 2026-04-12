@@ -1,4 +1,4 @@
-import { access, readdir } from "node:fs/promises";
+import { access, lstat, readdir, readlink } from "node:fs/promises";
 import path from "node:path";
 
 import type { ScanCandidate } from "../types.js";
@@ -14,6 +14,38 @@ async function hasSkillReadme(skillDir: string): Promise<boolean> {
   }
 }
 
+async function isSymlinkPath(targetPath: string): Promise<boolean> {
+  try {
+    return (await lstat(targetPath)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+async function pathExists(targetPath: string): Promise<boolean> {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveSymlinkSource(targetPath: string): Promise<{ sourcePath?: string; isBroken: boolean }> {
+  try {
+    const linkTarget = await readlink(targetPath);
+    const sourcePath = path.resolve(path.dirname(targetPath), linkTarget);
+    return {
+      sourcePath,
+      isBroken: !(await pathExists(sourcePath)),
+    };
+  } catch {
+    return {
+      isBroken: true,
+    };
+  }
+}
+
 async function scanDirectory(baseDir: string, agentId: ScanCandidate["agentId"], scope: ScanCandidate["scope"], projectDir?: string) {
   try {
     const entries = await readdir(baseDir, { withFileTypes: true });
@@ -23,7 +55,10 @@ async function scanDirectory(baseDir: string, agentId: ScanCandidate["agentId"],
         continue;
       }
       const fullPath = path.join(baseDir, entry.name);
-      if (!(await hasSkillReadme(fullPath))) {
+      const isSymlink = await isSymlinkPath(fullPath);
+      const symlinkInfo = isSymlink ? await resolveSymlinkSource(fullPath) : { isBroken: false };
+
+      if (!(await hasSkillReadme(fullPath)) && !symlinkInfo.isBroken) {
         continue;
       }
       candidates.push({
@@ -32,6 +67,9 @@ async function scanDirectory(baseDir: string, agentId: ScanCandidate["agentId"],
         path: fullPath,
         scope,
         projectDir,
+        isSymlink,
+        symlinkSourcePath: symlinkInfo.sourcePath,
+        isBrokenSymlink: symlinkInfo.isBroken,
       });
     }
     return candidates;

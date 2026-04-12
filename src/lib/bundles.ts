@@ -5,6 +5,7 @@ import { parse, stringify } from "yaml";
 
 import type { BundleDefinition } from "../types.js";
 import { getAweskillPaths, sanitizeName, uniqueSorted } from "./path.js";
+import { skillExists } from "./skills.js";
 
 function bundleFilePath(homeDir: string, bundleName: string): string {
   return path.join(getAweskillPaths(homeDir).bundlesDir, `${sanitizeName(bundleName)}.yaml`);
@@ -52,8 +53,13 @@ export async function createBundle(homeDir: string, bundleName: string): Promise
 }
 
 export async function addSkillToBundle(homeDir: string, bundleName: string, skillName: string): Promise<BundleDefinition> {
+  const normalizedSkill = sanitizeName(skillName);
+  if (!(await skillExists(homeDir, normalizedSkill))) {
+    throw new Error(`Unknown skill: ${normalizedSkill}`);
+  }
+
   const bundle = await readBundle(homeDir, bundleName);
-  bundle.skills = uniqueSorted([...bundle.skills, sanitizeName(skillName)].filter(Boolean));
+  bundle.skills = uniqueSorted([...bundle.skills, normalizedSkill].filter(Boolean));
   return writeBundle(homeDir, bundle);
 }
 

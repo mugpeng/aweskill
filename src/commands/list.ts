@@ -1,4 +1,5 @@
 import { listBundles } from "../lib/bundles.js";
+import { filterRegistrySkills, listRegistries } from "../lib/registry.js";
 import { computeGlobalStatus, computeProjectStatus } from "../lib/reconcile.js";
 import { listSkills } from "../lib/skills.js";
 import type { RuntimeContext } from "../types.js";
@@ -29,6 +30,22 @@ export async function runListStatus(context: RuntimeContext, options: { projectD
     sections.push(`PROJECT ${projectDir}`);
     for (const projection of projectStatus.projections) {
       sections.push(`${projection.agentId}: ${projection.skillName}`);
+    }
+  }
+
+  const registries = await listRegistries(context.homeDir);
+  sections.push("REGISTRY");
+  for (const registry of registries) {
+    const entries = filterRegistrySkills(registry, {
+      projectDir: projectDir,
+    });
+    if (entries.length === 0) {
+      sections.push(`${registry.agentId}: (empty)`);
+      continue;
+    }
+    for (const entry of entries) {
+      const projectSuffix = entry.projectDir ? ` ${entry.projectDir}` : "";
+      sections.push(`${registry.agentId}: ${entry.managedByAweskill ? "managed" : "discovered"} ${entry.scope} ${entry.name}${projectSuffix}`);
     }
   }
 

@@ -26,7 +26,51 @@ async function readCopyMarker(targetPath: string): Promise<CopyMarker | null> {
   }
 }
 
-export async function createSkillSymlink(sourcePath: string, targetPath: string): Promise<"created" | "skipped"> {
+export async function assertProjectionTargetSafe(
+  mode: "symlink" | "copy",
+  sourcePath: string,
+  targetPath: string,
+  options: { allowReplaceExisting?: boolean } = {},
+): Promise<void> {
+  const existing = await tryLstat(targetPath);
+  if (!existing) {
+    return;
+  }
+
+  if (mode === "symlink") {
+    if (!existing.isSymbolicLink()) {
+      if (options.allowReplaceExisting) {
+        return;
+      }
+      throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
+    }
+
+    const currentTarget = await readlink(targetPath);
+    const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
+    if (resolvedCurrent === path.resolve(sourcePath)) {
+      return;
+    }
+    return;
+  }
+
+  if (existing.isSymbolicLink()) {
+    return;
+  }
+
+  const marker = await readCopyMarker(targetPath);
+  if (!marker) {
+    if (options.allowReplaceExisting) {
+      return;
+    }
+    throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
+  }
+}
+
+export async function createSkillSymlink(
+  sourcePath: string,
+  targetPath: string,
+  options: { allowReplaceExisting?: boolean } = {},
+): Promise<"created" | "skipped"> {
   await mkdir(path.dirname(targetPath), { recursive: true });
   const existing = await tryLstat(targetPath);
 
@@ -38,7 +82,11 @@ export async function createSkillSymlink(sourcePath: string, targetPath: string)
     }
     await unlink(targetPath);
   } else if (existing) {
-    throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
+    if (options.allowReplaceExisting) {
+      await rm(targetPath, { force: true, recursive: true });
+    } else {
+      throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
+    }
   }
 
   const linkTarget = path.relative(path.dirname(targetPath), sourcePath) || ".";
@@ -46,7 +94,11 @@ export async function createSkillSymlink(sourcePath: string, targetPath: string)
   return "created";
 }
 
-export async function createSkillCopy(sourcePath: string, targetPath: string): Promise<"created" | "skipped"> {
+export async function createSkillCopy(
+  sourcePath: string,
+  targetPath: string,
+  options: { allowReplaceExisting?: boolean } = {},
+): Promise<"created" | "skipped"> {
   await mkdir(path.dirname(targetPath), { recursive: true });
   const existing = await tryLstat(targetPath);
 
@@ -55,13 +107,11 @@ export async function createSkillCopy(sourcePath: string, targetPath: string): P
   } else if (existing) {
     const marker = await readCopyMarker(targetPath);
     if (!marker) {
-      throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
+      if (!options.allowReplaceExisting) {
+        throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
+      }
     }
-    if (path.resolve(marker.sourcePath) === path.resolve(sourcePath)) {
-      await rm(targetPath, { force: true, recursive: true });
-    } else {
-      await rm(targetPath, { force: true, recursive: true });
-    }
+    await rm(targetPath, { force: true, recursive: true });
   }
 
   await cp(sourcePath, targetPath, { recursive: true });

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { createBundle, addSkillToBundle } from "../src/lib/bundles.js";
 import { enableGlobalActivation, enableProjectActivation } from "../src/lib/config.js";
 import { reconcileGlobal, reconcileProject } from "../src/lib/reconcile.js";
+import { readRegistry } from "../src/lib/registry.js";
 import { ensureHomeLayout } from "../src/lib/skills.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
@@ -40,6 +41,34 @@ describe("reconcile", () => {
     expect(await readFile(path.join(copiedTarget, "SKILL.md"), "utf8")).toContain("Example Skill");
     expect((await readFile(path.join(copiedTarget, ".aweskill-projection.json"), "utf8"))).toContain("\"managedBy\"");
     await expect(readFile(path.join(globalTarget, "SKILL.md"), "utf8")).resolves.toContain("Example Skill");
+
+    const claudeRegistry = await readRegistry(workspace.homeDir, "claude-code");
+    const cursorRegistry = await readRegistry(workspace.homeDir, "cursor");
+
+    expect(claudeRegistry?.skills).toEqual([
+      expect.objectContaining({
+        name: "pr-review",
+        scope: "global",
+        sourcePath: getSkillPath(workspace.homeDir, "pr-review"),
+        managedByAweskill: true,
+      }),
+    ]);
+    expect(cursorRegistry?.skills).toEqual([
+      expect.objectContaining({
+        name: "frontend-design",
+        scope: "project",
+        projectDir: workspace.projectDir,
+        sourcePath: getSkillPath(workspace.homeDir, "frontend-design"),
+        managedByAweskill: true,
+      }),
+      expect.objectContaining({
+        name: "pr-review",
+        scope: "project",
+        projectDir: workspace.projectDir,
+        sourcePath: getSkillPath(workspace.homeDir, "pr-review"),
+        managedByAweskill: true,
+      }),
+    ]);
   });
 
   it("removes stale managed projections", async () => {
@@ -63,5 +92,42 @@ describe("reconcile", () => {
 
     const staleTarget = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "frontend-design");
     await expect(readFile(path.join(staleTarget, "SKILL.md"), "utf8")).resolves.toContain("Example Skill");
+  });
+
+  it("preserves project registry entries when global scope is reconciled again", async () => {
+    const workspace = await createTempWorkspace();
+    await ensureHomeLayout(workspace.homeDir);
+    await writeSkill(getSkillPath(workspace.homeDir, "global-skill"));
+    await writeSkill(getSkillPath(workspace.homeDir, "project-skill"));
+
+    await enableGlobalActivation(workspace.homeDir, {
+      type: "skill",
+      name: "global-skill",
+      agents: ["codex"],
+    });
+    await enableProjectActivation(workspace.projectDir, {
+      type: "skill",
+      name: "project-skill",
+      agents: ["codex"],
+    });
+
+    await reconcileGlobal(workspace.homeDir);
+    await reconcileProject(workspace.homeDir, workspace.projectDir);
+    await reconcileGlobal(workspace.homeDir);
+
+    const registry = await readRegistry(workspace.homeDir, "codex");
+    expect(registry?.skills).toEqual([
+      expect.objectContaining({
+        name: "global-skill",
+        scope: "global",
+        managedByAweskill: true,
+      }),
+      expect.objectContaining({
+        name: "project-skill",
+        scope: "project",
+        projectDir: workspace.projectDir,
+        managedByAweskill: true,
+      }),
+    ]);
   });
 });

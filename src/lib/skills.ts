@@ -17,6 +17,7 @@ export async function ensureHomeLayout(homeDir: string): Promise<void> {
   await mkdir(paths.rootDir, { recursive: true });
   await mkdir(paths.skillsDir, { recursive: true });
   await mkdir(paths.bundlesDir, { recursive: true });
+  await mkdir(paths.registryDir, { recursive: true });
 }
 
 export function getSkillPath(homeDir: string, skillName: string): string {

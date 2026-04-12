@@ -1,9 +1,20 @@
-export type AgentId = "claude-code" | "codex" | "cursor";
+export type AgentId =
+  | "amp"
+  | "claude-code"
+  | "cline"
+  | "codex"
+  | "cursor"
+  | "gemini-cli"
+  | "goose"
+  | "opencode"
+  | "roo"
+  | "windsurf";
 export type ActivationType = "bundle" | "skill";
 export type MatchType = "exact" | "prefix" | "glob";
 export type ProjectionMode = "symlink" | "copy";
 export type ImportMode = "symlink" | "mv" | "cp";
 export type Scope = "global" | "project";
+export type CommandScope = Scope | "all";
 
 export interface ActivationBase {
   type: ActivationType;
@@ -49,12 +60,14 @@ export interface AweskillPaths {
   skillsDir: string;
   bundlesDir: string;
   globalConfigPath: string;
+  registryDir: string;
 }
 
 export interface AgentDefinition {
   id: AgentId;
   displayName: string;
   defaultProjectionMode: ProjectionMode;
+  rootDir: (homeDir: string) => string;
   globalSkillsDir: (homeDir: string) => string;
   projectSkillsDir: (projectDir: string) => string;
 }
@@ -72,6 +85,7 @@ export interface ProjectionSpec {
   sourcePath: string;
   targetPath: string;
   scope: Scope;
+  projectDir?: string;
   mode: ProjectionMode;
   locationDir: string;
 }
@@ -93,6 +107,15 @@ export interface ScanCandidate {
   path: string;
   scope: Scope;
   projectDir?: string;
+  isSymlink: boolean;
+  symlinkSourcePath?: string;
+  isBrokenSymlink?: boolean;
+}
+
+export interface ImportResult {
+  name: string;
+  destination: string;
+  warnings: string[];
 }
 
 export interface StatusSnapshot {
@@ -100,4 +123,19 @@ export interface StatusSnapshot {
   projectDir?: string;
   projections: ProjectionSpec[];
   warnings: string[];
+}
+
+export interface RegistrySkillEntry {
+  name: string;
+  scope: Scope;
+  projectDir?: string;
+  sourcePath: string;
+  managedByAweskill: boolean;
+}
+
+export interface RegistryData {
+  version: 2;
+  agentId: AgentId;
+  lastSynced: string;
+  skills: RegistrySkillEntry[];
 }
