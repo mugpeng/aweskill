@@ -40,6 +40,10 @@ export function listSupportedAgents(): AgentDefinition[] {
   return Object.values(AGENTS);
 }
 
+export function listSupportedAgentIds(): AgentId[] {
+  return listSupportedAgents().map((agent) => agent.id).sort();
+}
+
 export function isAgentId(value: string): value is AgentId {
   return value in AGENTS;
 }

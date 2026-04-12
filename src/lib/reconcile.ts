@@ -15,6 +15,8 @@ import { getMatchingProjectRules } from "./matcher.js";
 import { getAweskillPaths, getProjectConfigPath, sanitizeName, uniqueSorted } from "./path.js";
 import { getSkillPath } from "./skills.js";
 import { createSkillCopy, createSkillSymlink, listManagedSkillNames, removeManagedProjection } from "./symlink.js";
+import { writeRegistry } from "./registry.js";
+import type { AgentId } from "../types.js";
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -178,7 +180,16 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
 
   for (const locationDir of knownLocations) {
     const projections = byLocation.get(locationDir) ?? [];
-    const managed = await listManagedSkillNames(locationDir, paths.skillsDir);
+    // Try to infer agentId from locationDir based on known patterns
+    let agentId: AgentId | undefined;
+    for (const agent of listSupportedAgents()) {
+      if (locationDir === resolveAgentSkillsDir(agent.id, "global", homeDir) ||
+          (status.projectDir && locationDir === resolveAgentSkillsDir(agent.id, "project", status.projectDir))) {
+        agentId = agent.id;
+        break;
+      }
+    }
+    const managed = await listManagedSkillNames(locationDir, paths.skillsDir, homeDir, agentId);
     const expectedNames = new Set(projections.map((projection) => projection.skillName));
 
     for (const [skillName] of managed) {
@@ -209,6 +220,10 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
         path: projection.targetPath,
         detail: result === "created" ? "created copy" : "copy already correct",
       });
+    }
+
+    if (agentId) {
+      await writeRegistry(homeDir, agentId, projections);
     }
   }
 

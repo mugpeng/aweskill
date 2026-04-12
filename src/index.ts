@@ -18,7 +18,7 @@ import { runRemove } from "./commands/remove.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
-import type { ActivationType, ImportMode, RuntimeContext, Scope } from "./types.js";
+import type { ActivationType, CommandScope, ImportMode, RuntimeContext, Scope } from "./types.js";
 
 function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeContext {
   return {
@@ -29,8 +29,8 @@ function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeC
   };
 }
 
-function collectAgents(value: string, previous: string[] = []): string[] {
-  return [...previous, ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
+function collectAgents(value: string, previous?: string[]): string[] {
+  return [...(previous ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
 }
 
 function getMode(value: string): ImportMode {
@@ -49,6 +49,13 @@ function getActivationType(value: string): ActivationType {
 
 function getScope(value: string): Scope {
   if (value === "global" || value === "project") {
+    return value;
+  }
+  throw new Error(`Unsupported scope: ${value}`);
+}
+
+function getCommandScope(value: string): CommandScope {
+  if (value === "all" || value === "global" || value === "project") {
     return value;
   }
   throw new Error(`Unsupported scope: ${value}`);
@@ -145,15 +152,15 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       .command(name)
       .argument("<type>", "bundle or skill", getActivationType)
       .argument("<name>")
-      .requiredOption("--scope <scope>", "global or project", getScope)
-      .requiredOption("--agent <agent>", "repeat or use comma list; use all for detected agents", collectAgents, [])
+      .option("--scope <scope>", "global, project, or all", getCommandScope, "all")
+      .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
       .option("--project <dir>", "project dir for project scope")
       .action(async (type, targetName, options) => {
         const payload = {
           type,
           name: targetName,
           scope: options.scope,
-          agents: options.agent,
+          agents: options.agent ?? [],
           projectDir: options.project,
         };
         if (name === "enable") {
@@ -180,7 +187,13 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 
 export async function main(argv = process.argv) {
   const program = createProgram();
-  await program.parseAsync(argv);
+  try {
+    await program.parseAsync(argv);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Error: ${message}`);
+    process.exitCode = 1;
+  }
 }
 
 if (isDirectCliEntry(import.meta.url, process.argv[1])) {

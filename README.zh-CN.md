@@ -79,13 +79,13 @@ aweskill list status
 | `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
-| `aweskill bundle add-skill <bundle> <skill>` | 给 bundle 增加 skill |
+| `aweskill bundle add-skill <bundle> <skill>` | 给 bundle 增加一个中央仓库中已存在的 skill |
 | `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 删除 skill |
 | `aweskill list skills` | 列出中央仓库中的 skills |
 | `aweskill list bundles` | 列出 bundles |
 | `aweskill list status [--project <dir>]` | 查看计算后的投影状态 |
-| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile |
-| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile |
+| `aweskill enable bundle|skill ...` | 写入 activation 并自动 reconcile；默认等价于 `--scope all --agent all` |
+| `aweskill disable bundle|skill ...` | 删除 activation 并自动 reconcile；默认等价于 `--scope all --agent all` |
 | `aweskill sync [--project <dir>]` | 按当前配置重算并修复投影 |
 
 ## 使用示例
@@ -104,6 +104,9 @@ aweskill bundle add-skill backend db-schema
 
 # 在项目范围内启用单个 skill
 aweskill enable skill pr-review --scope project --project /path/to/repo --agent cursor
+
+# 在全局和当前项目范围内为所有 agent 启用 skill
+aweskill enable skill biopython
 
 # 在全局范围内为所有已检测到的 agent 启用 bundle
 aweskill enable bundle backend --scope global --agent all

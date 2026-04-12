@@ -79,13 +79,13 @@ aweskill list status
 | `aweskill remove <skill> [--force]` | Remove a skill, with reference checks by default |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle show <name>` | Show bundle contents |
-| `aweskill bundle add-skill <bundle> <skill>` | Add a skill to a bundle |
+| `aweskill bundle add-skill <bundle> <skill>` | Add an existing central-repo skill to a bundle |
 | `aweskill bundle remove-skill <bundle> <skill>` | Remove a skill from a bundle |
 | `aweskill list skills` | List skills in the central repo |
 | `aweskill list bundles` | List bundles |
 | `aweskill list status [--project <dir>]` | Show computed projection status |
-| `aweskill enable bundle|skill ...` | Add an activation and reconcile |
-| `aweskill disable bundle|skill ...` | Remove an activation and reconcile |
+| `aweskill enable bundle|skill ...` | Add an activation and reconcile; defaults to `--scope all --agent all` |
+| `aweskill disable bundle|skill ...` | Remove an activation and reconcile; defaults to `--scope all --agent all` |
 | `aweskill sync [--project <dir>]` | Recompute and repair derived projections |
 
 ## Examples
@@ -104,6 +104,9 @@ aweskill bundle add-skill backend db-schema
 
 # Enable a single skill in project scope
 aweskill enable skill pr-review --scope project --project /path/to/repo --agent cursor
+
+# Enable a skill everywhere for all agents
+aweskill enable skill biopython
 
 # Enable a bundle globally for all detected agents
 aweskill enable bundle backend --scope global --agent all

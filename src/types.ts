@@ -4,6 +4,7 @@ export type MatchType = "exact" | "prefix" | "glob";
 export type ProjectionMode = "symlink" | "copy";
 export type ImportMode = "symlink" | "mv" | "cp";
 export type Scope = "global" | "project";
+export type CommandScope = Scope | "all";
 
 export interface ActivationBase {
   type: ActivationType;
@@ -49,6 +50,7 @@ export interface AweskillPaths {
   skillsDir: string;
   bundlesDir: string;
   globalConfigPath: string;
+  registryDir: string;
 }
 
 export interface AgentDefinition {
@@ -100,4 +102,17 @@ export interface StatusSnapshot {
   projectDir?: string;
   projections: ProjectionSpec[];
   warnings: string[];
+}
+
+export interface RegistrySkillEntry {
+  name: string;
+  mode: ProjectionMode;
+  scope: Scope;
+  source: string;
+}
+
+export interface RegistryData {
+  managedBy: "aweskill";
+  updatedAt: string;
+  skills: RegistrySkillEntry[];
 }

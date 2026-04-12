@@ -1,39 +1,118 @@
-import { detectInstalledAgents, isAgentId } from "../lib/agents.js";
+import { mkdir } from "node:fs/promises";
+
+import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
 import { readBundle } from "../lib/bundles.js";
 import { enableGlobalActivation, enableProjectActivation } from "../lib/config.js";
 import { reconcileGlobal, reconcileProject } from "../lib/reconcile.js";
-import { skillExists } from "../lib/skills.js";
-import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
+import { getSkillPath, skillExists } from "../lib/skills.js";
+import { assertProjectionTargetSafe } from "../lib/symlink.js";
+import { sanitizeName, uniqueSorted } from "../lib/path.js";
+import type { ActivationType, AgentId, CommandScope, RuntimeContext, Scope } from "../types.js";
 
-async function resolveAgents(context: RuntimeContext, agents: string[], scope: Scope, projectDir?: string): Promise<AgentId[]> {
-  if (agents.length === 1 && agents[0] === "all") {
+function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
+  return explicitProjectDir ?? context.cwd;
+}
+
+async function resolveAgentsForScope(
+  context: RuntimeContext,
+  requestedAgents: string[],
+  scope: Scope,
+  projectDir?: string,
+): Promise<AgentId[]> {
+  if (requestedAgents.length === 0 || requestedAgents.includes("all")) {
     const detected = await detectInstalledAgents({
       homeDir: context.homeDir,
       projectDir: scope === "project" ? projectDir : undefined,
     });
-    if (detected.length === 0) {
-      throw new Error("No installed agents detected for --agent all");
-    }
-    return detected;
+    return detected.length > 0 ? detected : listSupportedAgentIds();
   }
 
-  return agents.map((agent) => {
-    if (!isAgentId(agent)) {
-      throw new Error(`Unsupported agent: ${agent}`);
-    }
-    return agent;
-  });
+  return uniqueSorted(
+    requestedAgents.map((agent) => {
+      if (!isAgentId(agent)) {
+        throw new Error(`Unsupported agent: ${agent}`);
+      }
+      return agent;
+    }),
+  );
 }
 
-async function assertActivationTarget(context: RuntimeContext, type: ActivationType, name: string) {
+async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
+  const normalizedName = sanitizeName(name);
+
   if (type === "bundle") {
-    await readBundle(context.homeDir, name);
-    return;
+    const bundle = await readBundle(context.homeDir, normalizedName);
+    for (const skillName of bundle.skills) {
+      if (!(await skillExists(context.homeDir, skillName))) {
+        throw new Error(`Bundle ${bundle.name} references unknown skill: ${skillName}`);
+      }
+    }
+    return bundle.skills;
   }
 
-  if (!(await skillExists(context.homeDir, name))) {
-    throw new Error(`Unknown skill: ${name}`);
+  if (!(await skillExists(context.homeDir, normalizedName))) {
+    throw new Error(`Unknown skill: ${normalizedName}`);
   }
+
+  return [normalizedName];
+}
+
+async function preflightEnable(options: {
+  context: RuntimeContext;
+  type: ActivationType;
+  name: string;
+  agents: AgentId[];
+  scope: Scope;
+  projectDir?: string;
+}): Promise<string[]> {
+  const skillNames = await resolveSkillNames(options.context, options.type, options.name);
+  const baseDir = options.scope === "global" ? options.context.homeDir : getProjectDir(options.context, options.projectDir);
+
+  for (const agentId of options.agents) {
+    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+    await mkdir(skillsDir, { recursive: true });
+
+    for (const skillName of skillNames) {
+      const sourcePath = getSkillPath(options.context.homeDir, skillName);
+      const targetPath = `${skillsDir}/${skillName}`;
+      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
+    }
+  }
+
+  return skillNames;
+}
+
+async function enableInScope(options: {
+  context: RuntimeContext;
+  type: ActivationType;
+  name: string;
+  agents: AgentId[];
+  scope: Scope;
+  projectDir?: string;
+}) {
+  await preflightEnable(options);
+  const normalizedName = sanitizeName(options.name);
+
+  if (options.scope === "global") {
+    await enableGlobalActivation(options.context.homeDir, {
+      type: options.type,
+      name: normalizedName,
+      agents: options.agents,
+    });
+    const result = await reconcileGlobal(options.context.homeDir);
+    options.context.write(`Enabled ${options.type} ${normalizedName} for ${options.agents.join(", ")} in global scope`);
+    return result;
+  }
+
+  const projectDir = getProjectDir(options.context, options.projectDir);
+  await enableProjectActivation(projectDir, {
+    type: options.type,
+    name: normalizedName,
+    agents: options.agents,
+  });
+  const result = await reconcileProject(options.context.homeDir, projectDir);
+  options.context.write(`Enabled ${options.type} ${normalizedName} for ${options.agents.join(", ")} in ${projectDir}`);
+  return result;
 }
 
 export async function runEnable(
@@ -41,32 +120,29 @@ export async function runEnable(
   options: {
     type: ActivationType;
     name: string;
-    scope: Scope;
+    scope?: CommandScope;
     agents: string[];
     projectDir?: string;
   },
 ) {
-  await assertActivationTarget(context, options.type, options.name);
-  const agents = await resolveAgents(context, options.agents, options.scope, options.projectDir);
+  const scope = options.scope ?? "all";
+  const scopes: Scope[] = scope === "all" ? ["global", "project"] : [scope];
+  const results: Awaited<ReturnType<typeof enableInScope>>[] = [];
 
-  if (options.scope === "global") {
-    await enableGlobalActivation(context.homeDir, {
-      type: options.type,
-      name: options.name,
-      agents,
-    });
-    const result = await reconcileGlobal(context.homeDir);
-    context.write(`Enabled ${options.type} ${options.name} for ${agents.join(", ")} in global scope`);
-    return result;
+  for (const targetScope of scopes) {
+    const projectDir = targetScope === "project" ? getProjectDir(context, options.projectDir) : undefined;
+    const agents = await resolveAgentsForScope(context, options.agents, targetScope, projectDir);
+    results.push(
+      await enableInScope({
+        context,
+        type: options.type,
+        name: options.name,
+        scope: targetScope,
+        agents,
+        projectDir,
+      }),
+    );
   }
 
-  const projectDir = options.projectDir ?? context.cwd;
-  await enableProjectActivation(projectDir, {
-    type: options.type,
-    name: options.name,
-    agents,
-  });
-  const result = await reconcileProject(context.homeDir, projectDir);
-  context.write(`Enabled ${options.type} ${options.name} for ${agents.join(", ")} in ${projectDir}`);
-  return result;
+  return results;
 }
