@@ -80,13 +80,11 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--add", "import scanned skills into the central repository", false)
     .option("--mode <mode>", "import mode when used with --add", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
-    .option("--project <dir>", "scan an explicit project dir", collectAgents, [])
     .action(async (options) => {
       await runScan(context, {
         add: options.add,
         mode: options.mode,
         override: options.override,
-        projectDirs: options.project.length > 0 ? options.project : undefined,
       });
     });
 
@@ -96,14 +94,12 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--scan", "import scanned skills", false)
     .option("--mode <mode>", "import mode", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
-    .option("--project <dir>", "scan an explicit project dir", collectAgents, [])
     .action(async (sourcePath, options) => {
       await runAdd(context, {
         sourcePath,
         scan: options.scan,
         mode: options.mode,
         override: options.override,
-        projectDirs: options.project.length > 0 ? options.project : undefined,
       });
     });
 

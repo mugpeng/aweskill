@@ -75,7 +75,7 @@ aweskill list status
 | --- | --- |
 | `aweskill init [--scan]` | 初始化 `~/.aweskill` 目录，必要时顺带扫描 |
 | `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | 扫描已支持 agent 的 skill 目录，写入 discovered registry，并可选直接导入 |
-| `aweskill add <path> --mode symlink|mv|cp [--override]` | 导入单个 skill 到中央仓库 |
+| `aweskill add <path> --mode symlink|mv|cp [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
 | `aweskill add --scan --mode symlink|mv|cp [--override]` | 批量导入扫描结果，同时刷新 discovered registry |
 | `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
 | `aweskill bundle create <name>` | 创建 bundle |
@@ -95,6 +95,9 @@ aweskill list status
 ```bash
 # 复制导入一个 skill
 aweskill add ~/Downloads/pr-review --mode cp
+
+# 一次性导入整个 skills 根目录
+aweskill add ~/.agents/skills
 
 # 扫描当前项目和全局 agent 目录，并刷新 registry
 aweskill scan

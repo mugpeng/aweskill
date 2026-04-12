@@ -94,6 +94,88 @@ async function moveIntoDestination(sourcePath: string, destination: string, over
   await mergeMissingEntries(sourcePath, destination);
 }
 
+interface BatchImportSource {
+  name: string;
+  path: string;
+}
+
+async function importBatchSources(options: {
+  homeDir: string;
+  sources: BatchImportSource[];
+  mode: ImportMode;
+  override?: boolean;
+}): Promise<{ imported: string[]; skipped: string[]; warnings: string[]; errors: string[]; missingSources: number }> {
+  const seen = new Set<string>();
+  const imported: string[] = [];
+  const skipped: string[] = [];
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  let missingSources = 0;
+
+  for (const source of options.sources) {
+    if (seen.has(source.name)) {
+      skipped.push(source.name);
+      continue;
+    }
+    seen.add(source.name);
+
+    try {
+      const result = await importSkill({
+        homeDir: options.homeDir,
+        sourcePath: source.path,
+        mode: options.mode,
+        override: options.override,
+      });
+      warnings.push(...result.warnings);
+      imported.push(source.name);
+    } catch (error) {
+      if (error instanceof MissingSymlinkSourceError) {
+        missingSources += 1;
+        errors.push(`Broken symlink for ${source.name}: ${source.path}; source not found: ${error.resolvedSourcePath}`);
+        continue;
+      }
+
+      if (error instanceof Error && error.message.startsWith("Skill source must contain SKILL.md:")) {
+        skipped.push(source.name);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  return { imported, skipped, warnings, errors, missingSources };
+}
+
+async function listImportableChildren(sourceRoot: string): Promise<BatchImportSource[]> {
+  const entries = await readdir(sourceRoot, { withFileTypes: true });
+  const sources: BatchImportSource[] = [];
+
+  for (const entry of entries) {
+    if (!(entry.isDirectory() || entry.isSymbolicLink())) {
+      continue;
+    }
+
+    const childPath = path.join(sourceRoot, entry.name);
+    if (await pathExists(path.join(childPath, "SKILL.md"))) {
+      sources.push({
+        name: sanitizeName(entry.name),
+        path: childPath,
+      });
+      continue;
+    }
+
+    if (entry.isSymbolicLink()) {
+      sources.push({
+        name: sanitizeName(entry.name),
+        path: childPath,
+      });
+    }
+  }
+
+  return sources.sort((left, right) => left.name.localeCompare(right.name));
+}
+
 export async function importSkill(options: {
   homeDir: string;
   sourcePath: string;
@@ -134,38 +216,48 @@ export async function importScannedSkills(options: {
   mode: ImportMode;
   override?: boolean;
 }): Promise<{ imported: string[]; skipped: string[]; warnings: string[]; errors: string[]; missingSources: number }> {
-  const seen = new Set<string>();
-  const imported: string[] = [];
-  const skipped: string[] = [];
-  const warnings: string[] = [];
-  const errors: string[] = [];
-  let missingSources = 0;
+  return importBatchSources({
+    homeDir: options.homeDir,
+    sources: options.candidates.map((candidate) => ({
+      name: candidate.name,
+      path: candidate.path,
+    })),
+    mode: options.mode,
+    override: options.override,
+  });
+}
 
-  for (const candidate of options.candidates) {
-    if (seen.has(candidate.name)) {
-      skipped.push(candidate.name);
-      continue;
+export async function importPath(options: {
+  homeDir: string;
+  sourcePath: string;
+  mode: ImportMode;
+  override?: boolean;
+}): Promise<
+  | ({ kind: "single" } & ImportResult)
+  | {
+      kind: "batch";
+      imported: string[];
+      skipped: string[];
+      warnings: string[];
+      errors: string[];
+      missingSources: number;
     }
-    seen.add(candidate.name);
-
-    try {
-      const result = await importSkill({
-        homeDir: options.homeDir,
-        sourcePath: candidate.path,
-        mode: options.mode,
-        override: options.override,
-      });
-      warnings.push(...result.warnings);
-      imported.push(candidate.name);
-    } catch (error) {
-      if (error instanceof MissingSymlinkSourceError) {
-        missingSources += 1;
-        errors.push(`Broken symlink for ${candidate.name}: ${candidate.path}; source not found: ${error.resolvedSourcePath}`);
-        continue;
-      }
-      throw error;
-    }
+> {
+  if (await pathExists(path.join(options.sourcePath, "SKILL.md"))) {
+    const result = await importSkill(options);
+    return { kind: "single", ...result };
   }
 
-  return { imported, skipped, warnings, errors, missingSources };
+  const sources = await listImportableChildren(options.sourcePath);
+  if (sources.length === 0) {
+    throw new Error(`Path is neither a skill directory nor a skills directory: ${options.sourcePath}`);
+  }
+
+  const result = await importBatchSources({
+    homeDir: options.homeDir,
+    sources,
+    mode: options.mode,
+    override: options.override,
+  });
+  return { kind: "batch", ...result };
 }

@@ -5,11 +5,11 @@ import type { ImportMode, RuntimeContext } from "../types.js";
 
 export async function runScan(
   context: RuntimeContext,
-  options: { projectDirs?: string[]; add?: boolean; mode?: ImportMode; override?: boolean },
+  options: { add?: boolean; mode?: ImportMode; override?: boolean },
 ) {
   const candidates = await scanSkills({
     homeDir: context.homeDir,
-    projectDirs: options.projectDirs ?? [context.cwd],
+    projectDirs: [context.cwd],
   });
   await updateRegistryFromScan(context.homeDir, candidates);
 

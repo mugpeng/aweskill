@@ -75,7 +75,7 @@ aweskill list status
 | --- | --- |
 | `aweskill init [--scan]` | Create `~/.aweskill` layout and optional scan |
 | `aweskill scan [--add] [--mode symlink|mv|cp] [--override]` | Scan supported agent skill directories, update discovered registry entries, and optionally import them |
-| `aweskill add <path> --mode symlink|mv|cp [--override]` | Import a single skill into the central repo |
+| `aweskill add <path> --mode symlink|mv|cp [--override]` | Import one skill directory or one skills root directory into the central repo |
 | `aweskill add --scan --mode symlink|mv|cp [--override]` | Import scanned skills in batch, while also refreshing discovered registry entries |
 | `aweskill remove <skill> [--force]` | Remove a skill, with reference checks by default |
 | `aweskill bundle create <name>` | Create a bundle |
@@ -95,6 +95,9 @@ aweskill list status
 ```bash
 # Import a skill by copying it into the central repo
 aweskill add ~/Downloads/pr-review --mode cp
+
+# Import all skills from a skills root directory
+aweskill add ~/.agents/skills
 
 # Scan current project and global agent directories and refresh registry
 aweskill scan

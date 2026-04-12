@@ -332,6 +332,55 @@ describe("commands", () => {
     await expect(readFile(path.join(workspace.rootDir, "other-home", ".aweskill", "skills", "linked-aeon", "SKILL.md"), "utf8")).resolves.toContain("AEON");
   });
 
+  it("add imports all skills from a skills root directory", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const skillsRoot = path.join(workspace.rootDir, "external-skills");
+    await writeSkill(path.join(skillsRoot, "shell"), "Shell Skill");
+    await writeSkill(path.join(skillsRoot, "python"), "Python Skill");
+
+    await program.parseAsync(["node", "aweskill", "add", skillsRoot], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Imported 2 skills");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "python"), "SKILL.md"), "utf8")).resolves.toContain("Python Skill");
+  });
+
+  it("add from a skills root reports broken symlinks and continues", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const errors: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: (message) => errors.push(message),
+    });
+
+    const skillsRoot = path.join(workspace.rootDir, "external-skills");
+    const validDir = path.join(workspace.rootDir, "valid-shell");
+    const validLink = path.join(skillsRoot, "shell");
+    const brokenLink = path.join(skillsRoot, "broken-skill");
+    await mkdir(skillsRoot, { recursive: true });
+    await writeSkill(validDir, "Shell Skill");
+    await symlink(validDir, validLink);
+    await symlink(path.join(workspace.rootDir, "missing", "broken-skill"), brokenLink);
+
+    await program.parseAsync(["node", "aweskill", "add", skillsRoot], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Imported 1 skills");
+    expect(lines.join("\n")).toContain("Missing source files: 1");
+    expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill: ${brokenLink}; source not found: ${path.join(workspace.rootDir, "missing", "broken-skill")}`);
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
+  });
+
   it("scan --add reports broken symlink sources and finishes with a missing count", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
