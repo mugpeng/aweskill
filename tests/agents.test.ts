@@ -6,7 +6,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
 describe("agents", () => {
-  it("defines the full supported agent registry", () => {
+  it("defines the full supported agent list", () => {
     expect(listSupportedAgentIds()).toEqual([
       "amp",
       "claude-code",

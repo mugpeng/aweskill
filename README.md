@@ -197,43 +197,6 @@ skills:
 
 This is why `enable`, `disable`, and `sync` all reconcile instead of mutating agent directories directly.
 
-## Internal Registry
-
-`aweskill` still writes a derived internal index under `~/.aweskill/registry/`, for example `~/.aweskill/registry/codex.json`.
-
-The registry is not a user-facing command surface anymore, and it is not a source of truth. Real state still comes from config, bundles, the central skill repository, and the agent directories themselves.
-
-```json
-{
-  "version": 2,
-  "agentId": "codex",
-  "lastSynced": "2026-04-12T03:00:00.000Z",
-  "skills": [
-    {
-      "name": "my-skill",
-      "scope": "global",
-      "sourcePath": "/Users/peng/.codex/skills/my-skill",
-      "managedByAweskill": false
-    },
-    {
-      "name": "project-skill",
-      "scope": "project",
-      "projectDir": "/path/to/project",
-      "sourcePath": "/Users/peng/.aweskill/skills/project-skill",
-      "managedByAweskill": true
-    }
-  ]
-}
-```
-
-Registry lifecycle rules:
-
-- `scan` writes `discovered` entries from agent directories
-- `scan --add` and `add --scan` can import those discovered skills into the central repo
-- `enable` flips matching entries to `managedByAweskill: true` once reconcile takes over the target
-- `disable` removes the managed projection and the matching managed registry entry
-- `disable` does not restore any pre-existing agent-local copy that was replaced during takeover
-
 Import behavior:
 
 - default `scan --add` and `add --scan` merge only missing files when the central skill already exists
@@ -282,7 +245,6 @@ Current sync behavior:
 - reconciles the explicit `--project` if provided
 - reconciles the current working directory if it has `.aweskill.yaml`
 - reconciles `exact` project rules declared in global config when those project directories exist
-- reconciles project directories already known from internal registry snapshots
 - does not attempt to enumerate every possible `prefix` or `glob` match automatically
 
 ## Development

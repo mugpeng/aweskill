@@ -197,43 +197,6 @@ skills:
 
 所以 `enable`、`disable`、`sync` 的本质都是“改配置后 reconcile”，而不是直接对 agent 目录做手工修改。
 
-## 内部 Registry
-
-`aweskill` 仍然会在 `~/.aweskill/registry/` 下为每个 agent 写一个内部派生索引，例如 `~/.aweskill/registry/codex.json`。
-
-这个 registry 不再作为面向用户的命令入口，也不是真相源。真实状态仍然来自 config、bundle、中央 skill 仓库以及 agent 目录本身。
-
-```json
-{
-  "version": 2,
-  "agentId": "codex",
-  "lastSynced": "2026-04-12T03:00:00.000Z",
-  "skills": [
-    {
-      "name": "my-skill",
-      "scope": "global",
-      "sourcePath": "/Users/peng/.codex/skills/my-skill",
-      "managedByAweskill": false
-    },
-    {
-      "name": "project-skill",
-      "scope": "project",
-      "projectDir": "/path/to/project",
-      "sourcePath": "/Users/peng/.aweskill/skills/project-skill",
-      "managedByAweskill": true
-    }
-  ]
-}
-```
-
-Registry 的生命周期规则：
-
-- `scan` 会把 agent 目录里的技能写成 `discovered`
-- `scan --add` 和 `add --scan` 可以把这些 discovered skills 导入中央仓库
-- `enable` 会在 reconcile 接管目标目录后，把匹配条目标记为 `managedByAweskill: true`
-- `disable` 会删除 managed 投影和对应的 managed registry 条目
-- `disable` 不会恢复 enable 之前被替换掉的 agent 本地副本
-
 导入行为：
 
 - 默认的 `scan --add` 和 `add --scan` 在中央仓库已存在同名 skill 时，只补缺失文件，不覆盖已有文件
@@ -282,7 +245,6 @@ Registry 的生命周期规则：
 - 如果传了 `--project`，会重算该项目
 - 如果当前工作目录存在 `.aweskill.yaml`，会重算当前项目
 - 会重算全局配置中声明的 `exact` 项目规则，前提是这些项目目录当前存在
-- 会重算内部 registry 快照里已经记录过的项目目录
 - 不会自动枚举所有可能命中的 `prefix` 或 `glob` 项目
 
 ## 开发
