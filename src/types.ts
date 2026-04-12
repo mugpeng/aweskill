@@ -118,6 +118,12 @@ export interface ImportResult {
   warnings: string[];
 }
 
+export interface SkillEntry {
+  name: string;
+  path: string;
+  hasSKILLMd: boolean;
+}
+
 export interface StatusSnapshot {
   scope: Scope;
   projectDir?: string;

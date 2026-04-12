@@ -27,6 +27,12 @@ export async function runScan(
       context.error(`Error: ${error}`);
     }
     context.write(`Imported ${result.imported.length} skills`);
+    if (result.overwritten.length > 0) {
+      context.write(`Overwritten ${result.overwritten.length} existing skills: ${result.overwritten.join(", ")}`);
+    }
+    if (result.skipped.length > 0) {
+      context.write(`Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`);
+    }
     if (result.missingSources > 0) {
       context.write(`Missing source files: ${result.missingSources}`);
     }

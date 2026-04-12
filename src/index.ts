@@ -7,6 +7,7 @@ import { runAdd } from "./commands/add.js";
 import {
   runBundleAddSkill,
   runBundleCreate,
+  runBundleDelete,
   runBundleRemoveSkill,
   runBundleShow,
 } from "./commands/bundle.js";
@@ -19,15 +20,23 @@ import { runRemove } from "./commands/remove.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
+import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
 import type { ActivationType, CommandScope, ImportMode, RuntimeContext, Scope } from "./types.js";
 
 function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeContext {
   return {
     cwd: overrides.cwd ?? process.cwd(),
     homeDir: overrides.homeDir ?? process.env.AWESKILL_HOME ?? homedir(),
-    write: overrides.write ?? ((message) => console.log(message)),
-    error: overrides.error ?? ((message) => console.error(message)),
+    write: overrides.write ?? writeCliMessage,
+    error: overrides.error ?? writeCliError,
   };
+}
+
+async function runFramedCommand<T>(title: string, action: () => Promise<T>): Promise<T> {
+  introCommand(title);
+  const result = await action();
+  outroCommand();
+  return result;
 }
 
 function collectAgents(value: string, previous?: string[]): string[] {
@@ -66,59 +75,73 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   const context = createRuntimeContext(overrides);
   const program = new Command();
 
-  program.name("aweskill").description("Local skill orchestration CLI");
+  program
+    .name("aweskill")
+    .description("Local skill orchestration CLI for AI agents")
+    .version("0.1.0")
+    .helpOption("-h, --help", "Display help");
 
   program
     .command("init")
+    .description("Create ~/.aweskill layout")
     .option("--scan", "scan existing agent directories after init", false)
     .action(async (options) => {
-      await runInit(context, options);
+      await runFramedCommand(" aweskill init ", async () => runInit(context, options));
     });
 
   program
     .command("scan")
+    .description("Scan supported agent skill directories")
     .option("--add", "import scanned skills into the central repository", false)
     .option("--mode <mode>", "import mode when used with --add", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
     .action(async (options) => {
-      await runScan(context, {
-        add: options.add,
-        mode: options.mode,
-        override: options.override,
-      });
+      await runFramedCommand(" aweskill scan ", async () =>
+        runScan(context, {
+          add: options.add,
+          mode: options.mode,
+          override: options.override,
+        }),
+      );
     });
 
   program
     .command("add")
     .argument("[path]")
+    .description("Import one skill or a skills root directory")
     .option("--scan", "import scanned skills", false)
     .option("--mode <mode>", "import mode", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
     .action(async (sourcePath, options) => {
-      await runAdd(context, {
-        sourcePath,
-        scan: options.scan,
-        mode: options.mode,
-        override: options.override,
-      });
+      await runFramedCommand(" aweskill add ", async () =>
+        runAdd(context, {
+          sourcePath,
+          scan: options.scan,
+          mode: options.mode,
+          override: options.override,
+        }),
+      );
     });
 
   program
     .command("remove")
     .argument("<skill>")
+    .description("Remove a skill from the central repo")
     .option("--force", "remove and clean references", false)
     .option("--project <dir>", "project config to inspect")
     .action(async (skillName, options) => {
-      await runRemove(context, {
-        skillName,
-        force: options.force,
-        projectDir: options.project,
-      });
+      await runFramedCommand(" aweskill remove ", async () =>
+        runRemove(context, {
+          skillName,
+          force: options.force,
+          projectDir: options.project,
+        }),
+      );
     });
 
-  const bundle = program.command("bundle");
+  const bundle = program.command("bundle").description("Manage skill bundles");
   bundle.command("create").argument("<name>").action(async (name) => {
-    await runBundleCreate(context, name);
+    await runFramedCommand(" aweskill bundle create ", async () => runBundleCreate(context, name));
   });
   bundle.command("show").argument("<name>").action(async (name) => {
     await runBundleShow(context, name);
@@ -128,17 +151,20 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("<bundle>")
     .argument("<skill>")
     .action(async (bundleName, skillName) => {
-      await runBundleAddSkill(context, bundleName, skillName);
+      await runFramedCommand(" aweskill bundle add-skill ", async () => runBundleAddSkill(context, bundleName, skillName));
     });
   bundle
     .command("remove-skill")
     .argument("<bundle>")
     .argument("<skill>")
     .action(async (bundleName, skillName) => {
-      await runBundleRemoveSkill(context, bundleName, skillName);
+      await runFramedCommand(" aweskill bundle remove-skill ", async () => runBundleRemoveSkill(context, bundleName, skillName));
     });
+  bundle.command("delete").argument("<name>").action(async (name) => {
+    await runFramedCommand(" aweskill bundle delete ", async () => runBundleDelete(context, name));
+  });
 
-  const list = program.command("list");
+  const list = program.command("list").description("List skills, bundles, or status");
   list.command("skills").action(async () => {
     await runListSkills(context);
   });
@@ -152,7 +178,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       await runListStatus(context, { projectDir: options.project });
     });
 
-  const registry = program.command("registry");
+  const registry = program.command("registry").description("Inspect derived registry snapshots");
   registry
     .command("show")
     .argument("<agent>")
@@ -171,6 +197,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     const scopeDescription = name === "enable" ? "global, project, or all" : "global, project, or all";
     program
       .command(name)
+      .description(`${name === "enable" ? "Add" : "Remove"} an activation and reconcile`)
       .argument("<type>", "bundle or skill", getActivationType)
       .argument("<name>")
       .option("--scope <scope>", scopeDescription, getCommandScope, defaultScope)
@@ -185,10 +212,10 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           projectDir: options.project,
         };
         if (name === "enable") {
-          await runEnable(context, payload);
+          await runFramedCommand(" aweskill enable ", async () => runEnable(context, payload));
           return;
         }
-        await runDisable(context, payload);
+        await runFramedCommand(" aweskill disable ", async () => runDisable(context, payload));
       });
   };
 
@@ -197,9 +224,10 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 
   program
     .command("sync")
+    .description("Recompute global scope plus known projects")
     .option("--project <dir>", "project dir to reconcile")
     .action(async (options) => {
-      await runSync(context, { projectDir: options.project });
+      await runFramedCommand(" aweskill sync ", async () => runSync(context, { projectDir: options.project }));
     });
 
   program.showHelpAfterError();

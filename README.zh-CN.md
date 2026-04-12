@@ -8,6 +8,8 @@
 
 `aweskill` 用一个统一的中央仓库 `~/.aweskill` 管理 Skills，通过 YAML 配置定义 bundle 和 activation，再把技能以 `symlink` 或 `copy` 的方式投影到不同 agent 的技能目录里。
 
+当前 CLI 仍然保留现有的 `runXxx + RuntimeContext` 分层结构，但终端 UX 已尽量向 `aweskill_cc` 靠拢，使用了 `@clack/prompts` 和 `picocolors`。
+
 当前实现尽量遵从 `aweskill-cli-design-v3.1.md` 的 MVP 范围：
 
 - 中央仓库：`~/.aweskill/skills/`
@@ -82,6 +84,7 @@ aweskill list status
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
 | `aweskill bundle add-skill <bundle> <skill>` | 给 bundle 增加一个中央仓库中已存在的 skill |
 | `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 删除 skill |
+| `aweskill bundle delete <name>` | 删除 bundle |
 | `aweskill list skills` | 列出中央仓库中的 skills |
 | `aweskill list bundles` | 列出 bundles |
 | `aweskill list status [--project <dir>]` | 查看计算后的投影状态 |

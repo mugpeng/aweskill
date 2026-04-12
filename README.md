@@ -8,6 +8,8 @@ Local skill orchestration CLI for AI coding agents.
 
 `aweskill` manages a single central skill repository at `~/.aweskill`, stores bundle and activation config in YAML, and projects skills into agent directories with `symlink` or `copy`.
 
+The current CLI keeps the existing `runXxx + RuntimeContext` application structure, but the terminal UX now follows the `aweskill_cc` style more closely with `@clack/prompts` and `picocolors`.
+
 The current implementation follows `aweskill-cli-design-v3.1.md` as closely as possible for the MVP:
 
 - Central repository: `~/.aweskill/skills/`
@@ -82,6 +84,7 @@ aweskill list status
 | `aweskill bundle show <name>` | Show bundle contents |
 | `aweskill bundle add-skill <bundle> <skill>` | Add an existing central-repo skill to a bundle |
 | `aweskill bundle remove-skill <bundle> <skill>` | Remove a skill from a bundle |
+| `aweskill bundle delete <name>` | Delete a bundle |
 | `aweskill list skills` | List skills in the central repo |
 | `aweskill list bundles` | List bundles |
 | `aweskill list status [--project <dir>]` | Show computed projection status |

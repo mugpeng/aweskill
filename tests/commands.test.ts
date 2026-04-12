@@ -55,6 +55,40 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("REGISTRY");
   });
 
+  it("supports bundle delete", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "frontend"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "delete", "frontend"], { from: "node" });
+
+    await expect(program.parseAsync(["node", "aweskill", "bundle", "show", "frontend"], { from: "node" })).rejects.toThrow();
+  });
+
+  it("lists skills with aweskill_cc-style summary lines", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "one-password"), "1Password");
+    await program.parseAsync(["node", "aweskill", "list", "skills"], { from: "node" });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("Skills in central repo:");
+    expect(lines[0]).toContain(`  ✓ one-password ${getSkillPath(workspace.homeDir, "one-password")}`);
+  });
+
   it("supports project enable and disable flows", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
@@ -253,30 +287,30 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
   });
 
-  it("scan --add merges missing files by default without overwriting existing ones", async () => {
+  it("scan --add skips existing skills by default and reports them", async () => {
     const workspace = await createTempWorkspace();
+    const lines: string[] = [];
     const program = createProgram({
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
-      write: () => undefined,
+      write: (message) => lines.push(message),
       error: () => undefined,
     });
 
     const existingSkillDir = getSkillPath(workspace.homeDir, "aeon");
     const scannedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
-    await mkdir(path.join(existingSkillDir, "references"), { recursive: true });
-    await mkdir(path.join(scannedDir, "references"), { recursive: true });
+    await mkdir(existingSkillDir, { recursive: true });
+    await mkdir(scannedDir, { recursive: true });
     await writeFile(path.join(existingSkillDir, "SKILL.md"), "# Existing AEON\n", "utf8");
-    await writeFile(path.join(existingSkillDir, "references", "old.md"), "old\n", "utf8");
     await writeFile(path.join(scannedDir, "SKILL.md"), "# New AEON\n", "utf8");
-    await writeFile(path.join(scannedDir, "references", "old.md"), "new-should-not-overwrite\n", "utf8");
-    await writeFile(path.join(scannedDir, "references", "new.md"), "new-file\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
 
+    // existing skill is untouched
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Existing AEON");
-    await expect(readFile(path.join(existingSkillDir, "references", "old.md"), "utf8")).resolves.toContain("old");
-    await expect(readFile(path.join(existingSkillDir, "references", "new.md"), "utf8")).resolves.toContain("new-file");
+    // user is informed of the skip
+    expect(lines.join("\n")).toContain("Skipped 1 existing skills");
+    expect(lines.join("\n")).toContain("aeon");
   });
 
   it("scan --add --override overwrites existing files", async () => {
