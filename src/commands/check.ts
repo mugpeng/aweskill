@@ -39,6 +39,7 @@ interface CheckedSkill {
   name: string;
   path: string;
   category: CheckCategory;
+  hasSKILLMd: boolean;
 }
 
 function formatSkillBlock(title: string, skills: CheckedSkill[]): string[] {
@@ -103,12 +104,18 @@ export async function runCheck(
         name: skill.name,
         path: skill.path,
         category,
+        hasSKILLMd: skill.hasSKILLMd,
       } satisfies CheckedSkill;
     });
 
     if (options.update) {
       for (const skill of checked) {
         if (skill.category === "linked") {
+          continue;
+        }
+
+        if (!skill.hasSKILLMd) {
+          context.write(`Warning: Skipping ${agentId}:${skill.name}; missing SKILL.md in ${skill.path}`);
           continue;
         }
 

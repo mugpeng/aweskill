@@ -294,6 +294,26 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Imported 1 new skills into the central repo");
   });
 
+  it("check --update warns and skips entries without SKILL.md instead of aborting", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    const systemDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    await mkdir(systemDir, { recursive: true });
+
+    await expect(program.parseAsync(["node", "aweskill", "check", "--agent", "codex", "--update"], { from: "node" })).resolves.toBeDefined();
+
+    expect(lines.join("\n")).toContain(`Warning: Skipping codex:.system; missing SKILL.md in ${systemDir}`);
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, ".system"), "SKILL.md"), "utf8")).rejects.toThrow();
+  });
+
   it("scan writes discovered entries into registry", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
