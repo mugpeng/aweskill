@@ -3,7 +3,7 @@
   <h1>aweskill: One Skill Store for All Your Coding Agents</h1>
   <p><strong>Local skill orchestration CLI for AI coding agents.</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.5-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.6-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
@@ -27,6 +27,49 @@ Instead of copying the same skill folders into every tool by hand, `aweskill` ke
 - **Multi-agent projection** across Codex, Claude Code, Cursor, Gemini CLI, and more
 - **Managed enable/disable model** without a separate global activation file
 - **Backup, restore, dedupe, and recovery** built into the CLI
+
+## Install
+
+### Install from npm (recommended)
+
+Requires [Node.js](https://nodejs.org/) 20 or later.
+
+```bash
+npm install -g aweskill
+aweskill --help
+```
+
+To pin a specific release:
+
+```bash
+npm install -g aweskill@0.1.6
+```
+
+Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
+
+### Install from this repository
+
+```bash
+npm install
+npm run build
+npm install -g .
+```
+
+### Local development link
+
+```bash
+npm install
+npm link
+aweskill --help
+```
+
+### Install from packed tarball
+
+```bash
+npm install
+npm pack
+npm install -g ./aweskill-0.1.6.tgz
+```
 
 ## Quick Start
 
@@ -112,49 +155,6 @@ aweskill store backup
 aweskill agent sync
 aweskill agent recover --global --agent codex
 aweskill doctor dedupe --fix
-```
-
-## Install
-
-### Install from npm (recommended)
-
-Requires [Node.js](https://nodejs.org/) 20 or later.
-
-```bash
-npm install -g aweskill
-aweskill --help
-```
-
-To pin a specific release:
-
-```bash
-npm install -g aweskill@0.1.5
-```
-
-Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
-
-### Install from this repository
-
-```bash
-npm install
-npm run build
-npm install -g .
-```
-
-### Local development link
-
-```bash
-npm install
-npm link
-aweskill --help
-```
-
-### Install from packed tarball
-
-```bash
-npm install
-npm pack
-npm install -g ./aweskill-0.1.5.tgz
 ```
 
 ## Command Surface
