@@ -387,8 +387,12 @@ export async function main(argv = process.argv) {
   try {
     await program.parseAsync(argv);
   } catch (error) {
-    const message = formatCliErrorMessage(error instanceof Error ? error.message : String(error));
-    console.error(`Error: ${message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === "(outputHelp)" || message === "outputHelp") {
+      return;
+    }
+
+    console.error(`Error: ${formatCliErrorMessage(message)}`);
     process.exitCode = 1;
   }
 }

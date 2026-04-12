@@ -51,7 +51,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.1.tgz
+npm install -g ./aweskill-0.1.2.tgz
 ```
 
 （若 `package.json` 里版本号不同，请以实际打出来的 `.tgz` 文件名为准。）
@@ -62,17 +62,23 @@ npm install -g ./aweskill-0.1.1.tgz
 # 1. 初始化 aweskill 家目录
 aweskill init
 
-# 2. 导入一个本地 skill 到中央仓库
+# 2. 扫描已有 agent 的 skill 目录
+aweskill scan
+
+# 3. 一次性导入整个 skills 根目录
+aweskill import ~/.agents/skills
+
+# 4. 导入一个本地 skill 到中央仓库
 aweskill import /path/to/my-skill --mode cp
 
-# 3. 创建 bundle
+# 5. 创建 bundle
 aweskill bundle create frontend
 aweskill bundle add-skill frontend my-skill
 
-# 4. 为 Claude Code 全局启用这个 bundle
+# 6. 为 Claude Code 全局启用这个 bundle
 aweskill enable bundle frontend --global --agent claude-code
 
-# 5. 检查当前全局 agent 技能目录
+# 7. 检查当前全局 agent 技能目录
 aweskill check
 ```
 
@@ -103,6 +109,137 @@ aweskill check
 | `aweskill disable bundle/skill … [--force]` | 删除 **托管** 投影；支持 `all`；单独 `disable skill` 见下文 |
 | `aweskill sync [--project <dir>]` | 中央仓库里 skill 已不存在时，清理仍指向它的托管投影 |
 
+## 命令示例
+
+### `init`
+
+```bash
+# 创建 ~/.aweskill 基础布局
+aweskill init
+
+# 创建布局后立即输出扫描摘要
+aweskill init --scan
+```
+
+### `scan`
+
+```bash
+# 扫描当前项目和全局 agent 目录
+aweskill scan
+
+# 展示所有扫描到的 skill，而不只是每个 agent 的数量
+aweskill scan --verbose
+
+# 扫描并一步导入中央仓库
+aweskill scan --add
+```
+
+### `import`
+
+```bash
+# 复制导入一个 skill
+aweskill import ~/Downloads/pr-review --mode cp
+
+# 一次性导入整个 skills 根目录
+aweskill import ~/.agents/skills
+
+# 覆盖已有 skill，而不是只补缺失项
+aweskill import ~/.agents/skills --override
+```
+
+### `bundle`
+
+```bash
+# 创建并查看 bundle
+aweskill bundle create backend
+aweskill bundle show backend
+
+# 向 bundle 增加多个已存在 skill
+aweskill bundle add-skill backend api-design,db-schema
+
+# 从内置模板生成 bundle
+aweskill bundle add-template K-Dense-AI-scientific-skills
+```
+
+### `list`
+
+```bash
+# 查看中央仓库 skills 和 bundles
+aweskill list skills
+aweskill list bundles
+
+# 展示完整列表
+aweskill list skills --verbose
+aweskill list bundles --verbose
+
+# 查看内置 bundle 模板
+aweskill list bundles-template
+```
+
+### `enable`
+
+```bash
+# 全局启用一个 skill
+aweskill enable skill biopython
+
+# 一次性启用多个 skill
+aweskill enable skill biopython,scanpy --global --agent codex
+
+# 全局启用一个 bundle
+aweskill enable bundle backend --global --agent all
+```
+
+### `disable`
+
+```bash
+# 在项目范围禁用一个 skill
+aweskill disable skill pr-review --project /path/to/repo --agent cursor
+
+# 即使同 bundle 还有其他成员启用，也强制删除这一项
+aweskill disable skill my-skill --global --agent codex --force
+
+# 删除某个 scope/agent 下全部托管投影
+aweskill disable skill all --global --agent codex
+```
+
+### `check`
+
+```bash
+# 检查一个全局 agent 目录
+aweskill check --agent codex
+
+# 展示完整分类条目
+aweskill check --agent codex --verbose
+
+# 检查并归一化项目范围目录
+aweskill check --project /path/to/repo --agent cursor --update
+```
+
+### `backup` 和 `restore`
+
+```bash
+# 创建 skills 备份
+aweskill backup
+
+# 从归档恢复，并自动先备份当前状态
+aweskill restore ~/.aweskill/backup/skills-2026-04-12T19-20-00Z.tar.gz --override
+```
+
+### `rmdup`、`recover`、`sync`
+
+```bash
+# 检查或移除中央仓库重复 skill
+aweskill rmdup
+aweskill rmdup --remove
+
+# 将托管 symlink 恢复成完整目录
+aweskill recover
+
+# 清理失效投影
+aweskill sync
+aweskill sync --project /path/to/repo
+```
+
 ## `disable skill` 与 bundle
 
 - **`disable bundle <name>`**：把 bundle 展开成多个 skill，对当前命令中的 scope/agent 逐个删除托管投影。
@@ -113,100 +250,6 @@ aweskill check
 - 这类批量命令也支持逗号分隔，并按“并集”处理，例如 `enable skill biopython,scanpy`、`bundle add-template foo,bar`。
 
 `enable bundle` 只是一次性展开写入磁盘，**没有**单独的「bundle 激活记录」可编辑。
-
-## 使用示例
-
-```bash
-# 复制导入一个 skill
-aweskill import ~/Downloads/pr-review --mode cp
-
-# 一次性导入整个 skills 根目录
-aweskill import ~/.agents/skills
-
-# 列出内置 bundle 模板
-aweskill list bundles-template
-
-# 把一个内置模板复制到 ~/.aweskill/bundles
-aweskill bundle add-template K-Dense-AI-scientific-skills
-
-# 一次性复制多个内置模板
-aweskill bundle add-template K-Dense-AI-scientific-skills,temporary-science
-
-# 扫描当前项目和全局 agent 目录
-aweskill scan
-
-# 显示具体扫描到的 skill，而不仅是每个 agent 的总数
-aweskill scan --verbose
-
-# 扫描并一步导入
-aweskill scan --add
-
-# 为 ~/.aweskill/skills 创建时间戳备份
-aweskill backup
-
-# 从归档恢复，并在恢复前自动备份当前 skills
-aweskill restore ~/.aweskill/backup/skills-2026-04-12T19-20-00Z.tar.gz --override
-
-# 检查中央仓库中的版本/数字后缀重复 skill
-aweskill rmdup
-
-# 将重复项移动到 ~/.aweskill/dup_skills
-aweskill rmdup --remove
-
-# 将托管 symlink 恢复成完整目录
-aweskill recover
-
-# 覆盖已有文件，而不是只补缺失文件
-aweskill scan --add --override
-
-# 创建 backend bundle
-aweskill bundle create backend
-aweskill bundle add-skill backend api-design
-aweskill bundle add-skill backend db-schema
-
-# 在项目范围内启用单个 skill
-aweskill enable skill pr-review --project /path/to/repo --agent cursor
-
-# 全局范围内为所有已检测到的 agent 启用 skill
-aweskill enable skill biopython
-
-# 一次性启用多个 skill
-aweskill enable skill biopython,scanpy --global --agent codex
-
-# 为某个 agent 一次性启用中央仓库全部 skill
-aweskill enable skill all --global --agent codex
-
-# 全局启用整个 bundle
-aweskill enable bundle backend --global --agent all
-
-# 一次性启用所有 bundle 的 skill 并集
-aweskill enable bundle all --global --agent all
-
-# 检查某个全局 agent 目录
-aweskill check --agent codex
-
-# 显示完整条目
-aweskill check --agent codex --verbose
-
-# 检查并归一化某个项目范围的 agent 目录
-aweskill check --project /path/to/repo --agent cursor --update
-
-# 禁用项目下的单个 skill（若与仍启用的 bundle 成员冲突，需加 --force）
-aweskill disable skill pr-review --project /path/to/repo --agent cursor
-
-# 在仍有同 bundle 其他 skill 启用时，强制只卸掉这一项
-aweskill disable skill my-skill --global --agent codex --force
-
-# 删除当前 scope/agent 下全部托管 skill 投影
-aweskill disable skill all --global --agent codex
-
-# 删除所有 bundle 展开后的 skill 并集
-aweskill disable bundle all --global --agent codex
-
-# 中央仓库已删 skill 后，清理 agent 目录里的失效投影
-aweskill sync
-aweskill sync --project /path/to/repo
-```
 
 ## Bundle 文件格式
 
@@ -228,7 +271,33 @@ skills:
 
 **不再**根据某个全局 YAML 里的 activation 列表做 reconcile。
 
-导入与展示行为与英文 README 中「Import behavior」「Display behavior」一致：合并/覆盖规则、`scan --verbose`、`check --update` 的汇总说明、`rmdup` 的重复判定与处理规则，以及 `restore` 的自动备份与覆盖规则等。
+补充说明：
+
+- 默认 `scan --add` 和批量 `import` 只补缺失文件；`--override` 才覆盖。
+- 如果导入源是 symlink，aweskill 会从其真实路径复制，并在需要时给出 warning。
+- 批量导入遇到坏掉的 symlink 会继续处理其他项，并在最后汇总缺失数量。
+- `restore` 在恢复前会自动备份当前 `skills/`；默认拒绝覆盖同名 skill，需显式传 `--override`。
+- `list skills` / `list bundles` 默认只显示预览；`--verbose` 展示全部条目。
+- `scan` 默认显示每个 agent 的统计；`--verbose` 才列出具体扫描到的 skill。
+- `check` 会把条目分成 `linked`、`duplicate`、`new` 三类；`--update` 会按既有规则导入和重建投影。
+- `rmdup` 会把 `name`、`name-2`、`name-1.2.3` 视为同一族；只有传 `--remove` 才会真正改文件。
+
+投影示例：
+
+```bash
+# 全局范围为一个 agent 建立投影
+aweskill enable skill biopython --global --agent codex
+
+# 项目范围为一个 agent 建立投影
+aweskill enable skill pr-review --project /path/to/repo --agent cursor
+
+# bundle 启用/禁用本质上都是展开成多个 skill 投影
+aweskill enable bundle backend --global --agent codex
+aweskill disable bundle backend --global --agent codex
+
+# 把 symlink 投影恢复成完整目录
+aweskill recover --global --agent codex
+```
 
 ## 模板
 
@@ -260,4 +329,4 @@ node dist/index.js --help
 
 ## 许可证
 
-MIT
+Mozilla Public License Version 2.0

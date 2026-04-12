@@ -536,6 +536,29 @@ describe("commands", () => {
     );
   });
 
+  it("prints help without an error suffix", async () => {
+    const workspace = await createTempWorkspace();
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "-h"]);
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
   it("prints bundle lookup hints for missing bundles and templates", async () => {
     const workspace = await createTempWorkspace();
     const previousCwd = process.cwd();

@@ -49,7 +49,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.1.tgz
+npm install -g ./aweskill-0.1.2.tgz
 ```
 
 (Replace the version in the filename with the one from `package.json` if it differs.)
@@ -60,17 +60,23 @@ npm install -g ./aweskill-0.1.1.tgz
 # 1. Initialize the aweskill home
 aweskill init
 
-# 2. Import a local skill into the central repository
+# 2. Scan existing agent skill directories
+aweskill scan
+
+# 3. Import every skill from an existing skills root directory
+aweskill import ~/.agents/skills
+
+# 4. Import one local skill into the central repository
 aweskill import /path/to/my-skill --mode cp
 
-# 3. Create a bundle
+# 5. Create a bundle
 aweskill bundle create frontend
 aweskill bundle add-skill frontend my-skill
 
-# 4. Enable it globally for Claude Code
+# 6. Enable it globally for Claude Code
 aweskill enable bundle frontend --global --agent claude-code
 
-# 5. Check current global agent skills
+# 7. Check current global agent skills
 aweskill check
 ```
 
@@ -101,6 +107,137 @@ aweskill check
 | `aweskill disable bundle\|skill … [--force]` | Remove **aweskill-managed** projections only; supports `all`; see **Disable skill and bundles** below |
 | `aweskill sync [--project <dir>]` | Remove stale managed projections whose central skill directory no longer exists |
 
+## Command Examples
+
+### `init`
+
+```bash
+# Create ~/.aweskill layout
+aweskill init
+
+# Create layout and immediately show a scan summary
+aweskill init --scan
+```
+
+### `scan`
+
+```bash
+# Scan current project and global agent directories
+aweskill scan
+
+# Show every discovered skill instead of only per-agent totals
+aweskill scan --verbose
+
+# Scan and import in one step
+aweskill scan --add
+```
+
+### `import`
+
+```bash
+# Import one skill by copying it into the central repo
+aweskill import ~/Downloads/pr-review --mode cp
+
+# Import all skills from a skills root directory
+aweskill import ~/.agents/skills
+
+# Overwrite existing central skills instead of only filling missing ones
+aweskill import ~/.agents/skills --override
+```
+
+### `bundle`
+
+```bash
+# Create and inspect a bundle
+aweskill bundle create backend
+aweskill bundle show backend
+
+# Add existing skills into a bundle
+aweskill bundle add-skill backend api-design,db-schema
+
+# Copy a built-in template bundle into ~/.aweskill/bundles
+aweskill bundle add-template K-Dense-AI-scientific-skills
+```
+
+### `list`
+
+```bash
+# List central skills and bundles
+aweskill list skills
+aweskill list bundles
+
+# Show all entries instead of the default preview
+aweskill list skills --verbose
+aweskill list bundles --verbose
+
+# List built-in bundle templates
+aweskill list bundles-template
+```
+
+### `enable`
+
+```bash
+# Enable one skill globally for all detected agents
+aweskill enable skill biopython
+
+# Enable multiple skills at once
+aweskill enable skill biopython,scanpy --global --agent codex
+
+# Enable a bundle globally for all detected agents
+aweskill enable bundle backend --global --agent all
+```
+
+### `disable`
+
+```bash
+# Disable one skill in project scope
+aweskill disable skill pr-review --project /path/to/repo --agent cursor
+
+# Force-remove one skill even when bundle siblings are still enabled
+aweskill disable skill my-skill --global --agent codex --force
+
+# Remove all managed projections in one scope/agent selection
+aweskill disable skill all --global --agent codex
+```
+
+### `check`
+
+```bash
+# Check one global agent directory
+aweskill check --agent codex
+
+# Show all entries instead of the default short preview
+aweskill check --agent codex --verbose
+
+# Check and normalize one project-scoped agent directory
+aweskill check --project /path/to/repo --agent cursor --update
+```
+
+### `backup` and `restore`
+
+```bash
+# Create a timestamped backup of ~/.aweskill/skills
+aweskill backup
+
+# Restore from an archive after automatically backing up the current skills
+aweskill restore ~/.aweskill/backup/skills-2026-04-12T19-20-00Z.tar.gz --override
+```
+
+### `rmdup`, `recover`, `sync`
+
+```bash
+# Find or remove duplicate central skills
+aweskill rmdup
+aweskill rmdup --remove
+
+# Convert managed symlinks into full directories
+aweskill recover
+
+# Remove stale managed projections
+aweskill sync
+aweskill sync --project /path/to/repo
+```
+
 ## Disable `skill` vs bundle
 
 - **`disable bundle <name>`** expands the bundle to skill names and removes managed projections for each (same scope/agents as you pass).
@@ -111,100 +248,6 @@ aweskill check
 - Batch-oriented commands also accept comma-separated names and treat them as a union, for example `enable skill biopython,scanpy` or `bundle add-template foo,bar`.
 
 `enable bundle` is a one-time expansion: there is no stored “bundle activation” to edit later beyond what’s on disk.
-
-## Examples
-
-```bash
-# Import a skill by copying it into the central repo
-aweskill import ~/Downloads/pr-review --mode cp
-
-# Import all skills from a skills root directory
-aweskill import ~/.agents/skills
-
-# List built-in bundle templates
-aweskill list bundles-template
-
-# Copy a built-in template bundle into ~/.aweskill/bundles
-aweskill bundle add-template K-Dense-AI-scientific-skills
-
-# Copy multiple template bundles at once
-aweskill bundle add-template K-Dense-AI-scientific-skills,temporary-science
-
-# Scan current project and global agent directories
-aweskill scan
-
-# Show concrete scanned skills instead of only per-agent totals
-aweskill scan --verbose
-
-# Scan and import in one step
-aweskill scan --add
-
-# Create a timestamped backup of ~/.aweskill/skills
-aweskill backup
-
-# Restore from an archive after automatically backing up the current skills
-aweskill restore ~/.aweskill/backup/skills-2026-04-12T19-20-00Z.tar.gz --override
-
-# Find duplicate central skills by versioned/numeric suffix
-aweskill rmdup
-
-# Move duplicate central skills into ~/.aweskill/dup_skills
-aweskill rmdup --remove
-
-# Convert global managed symlinks into full directories
-aweskill recover
-
-# Overwrite existing files instead of only merging missing ones
-aweskill scan --add --override
-
-# Create a backend bundle
-aweskill bundle create backend
-aweskill bundle add-skill backend api-design
-aweskill bundle add-skill backend db-schema
-
-# Enable a single skill in project scope
-aweskill enable skill pr-review --project /path/to/repo --agent cursor
-
-# Enable a skill globally for all detected agents
-aweskill enable skill biopython
-
-# Enable multiple skills at once
-aweskill enable skill biopython,scanpy --global --agent codex
-
-# Enable every central-repo skill for one agent
-aweskill enable skill all --global --agent codex
-
-# Enable a bundle globally for all detected agents
-aweskill enable bundle backend --global --agent all
-
-# Enable every bundle member across all bundles
-aweskill enable bundle all --global --agent all
-
-# Check one global agent directory
-aweskill check --agent codex
-
-# Show all entries instead of the default short preview
-aweskill check --agent codex --verbose
-
-# Check and normalize one project-scoped agent directory
-aweskill check --project /path/to/repo --agent cursor --update
-
-# Disable one skill in project scope (see --force if it shares a bundle with still-enabled skills)
-aweskill disable skill pr-review --project /path/to/repo --agent cursor
-
-# Force-remove one skill even when bundle siblings are still enabled
-aweskill disable skill my-skill --global --agent codex --force
-
-# Remove every managed projection in one scope/agent selection
-aweskill disable skill all --global --agent codex
-
-# Remove the union of all bundle members
-aweskill disable bundle all --global --agent codex
-
-# Remove broken projections after deleting a skill from the central repo
-aweskill sync
-aweskill sync --project /path/to/repo
-```
 
 ## Bundle file format
 
@@ -230,7 +273,7 @@ There is **no** reconcile pass driven by a global YAML activation list.
 
 Import behavior:
 
-- Default `scan --add` and batch `add` merge only missing files when the central skill already exists; `--override` overwrites.
+- Default `scan --add` and batch `import` merge only missing files when the central skill already exists; `--override` overwrites.
 - When the source is a symlink, aweskill copies from the resolved real path and may print a warning.
 - Broken symlinks during batch import are reported; other items continue.
 - `restore` automatically creates a fresh backup of the current `skills/` tree before applying the archive. By default it refuses to overwrite existing skill names; use `--override` to replace the current tree with the archive contents.
@@ -241,6 +284,23 @@ Display behavior:
 - `scan` shows per-agent totals by default; `--verbose` lists concrete scanned skills.
 - `check` categorizes `linked` (managed), `duplicate` (central exists but not managed here), `new` (not in central); `--verbose` lists all; `--update` imports/links per its implementation and prints a summary.
 - `rmdup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family, keeps the numerically largest versioned entry by default, and only modifies files when `--remove` is passed.
+
+Projection examples:
+
+```bash
+# Global projection for one agent
+aweskill enable skill biopython --global --agent codex
+
+# Project-scoped projection for one agent
+aweskill enable skill pr-review --project /path/to/repo --agent cursor
+
+# Bundle expansion writes individual managed projections
+aweskill enable bundle backend --global --agent codex
+aweskill disable bundle backend --global --agent codex
+
+# Convert symlink projections into copied directories
+aweskill recover --global --agent codex
+```
 
 ## Templates
 
@@ -272,4 +332,4 @@ node dist/index.js --help
 
 ## License
 
-MIT
+Mozilla Public License Version 2.0
