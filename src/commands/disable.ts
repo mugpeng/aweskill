@@ -157,7 +157,7 @@ export async function runDisable(
       throw new Error(
         `Skill "${skillNames[0]}" is listed in bundle(s): ${bundleNames.join(", ")}. ` +
           `Other skills from those bundle(s) are still enabled in this scope. ` +
-          `Use --force to remove only this skill's projection, or run "aweskill disable bundle <name>" to drop the whole bundle.`,
+          `Use --force to remove only this skill's projection, or run "aweskill agent remove bundle <name>" to drop the whole bundle.`,
       );
     }
   }

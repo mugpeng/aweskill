@@ -15,7 +15,7 @@ describe("commands", () => {
     vi.restoreAllMocks();
   });
 
-  it("runs init, bundle, enable, check and sync", async () => {
+  it("runs store init, bundle, agent add, agent list and agent sync", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -25,24 +25,24 @@ describe("commands", () => {
       error: (message) => lines.push(`ERR:${message}`),
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "pr-review"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "frontend"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "frontend", "pr-review"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "frontend", "pr-review"], { from: "node" });
 
     await mkdir(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), { recursive: true });
     await program.parseAsync(
-      ["node", "aweskill", "enable", "bundle", "frontend", "--global", "--agent", "claude-code"],
+      ["node", "aweskill", "agent", "add", "bundle", "frontend", "--global", "--agent", "claude-code"],
       { from: "node" },
     );
 
     const targetPath = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "pr-review", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
 
-    await program.parseAsync(["node", "aweskill", "check"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "list"], { from: "node" });
     expect(lines.join("\n")).toContain("Global skills for claude-code:");
 
-    await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "sync"], { from: "node" });
     expect(lines.join("\n")).toContain("Sync complete");
   });
 
@@ -55,7 +55,7 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "bundle", "create", "frontend"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "bundle", "delete", "frontend"], { from: "node" });
 
@@ -72,9 +72,9 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "backup-skill"), "Backup Skill");
-    await program.parseAsync(["node", "aweskill", "backup"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
     const entries = await readdir(backupDir);
@@ -92,16 +92,16 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
-    await program.parseAsync(["node", "aweskill", "backup"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
     const [archive] = await readdir(backupDir);
     await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
 
     await expect(
-      program.parseAsync(["node", "aweskill", "restore", path.join(backupDir, archive!)], { from: "node" }),
+      program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!)], { from: "node" }),
     ).rejects.toThrow("Restore would overwrite existing skills");
   });
 
@@ -115,9 +115,9 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
-    await program.parseAsync(["node", "aweskill", "backup"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
     const [archive] = await readdir(backupDir);
@@ -125,7 +125,7 @@ describe("commands", () => {
     await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
     await writeSkill(getSkillPath(workspace.homeDir, "new-current-skill"), "Current Only");
 
-    await program.parseAsync(["node", "aweskill", "restore", path.join(backupDir, archive!), "--override"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--override"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "utf8")).resolves.toContain("Original");
     await expect(access(path.join(getSkillPath(workspace.homeDir, "new-current-skill"), "SKILL.md"))).rejects.toThrow();
@@ -152,7 +152,7 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "git"), "Git");
     await writeSkill(getSkillPath(workspace.homeDir, "docker"), "Docker");
     await writeSkill(getSkillPath(workspace.homeDir, "k8s"), "Kubernetes");
-    await program.parseAsync(["node", "aweskill", "list", "skills"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "list"], { from: "node" });
 
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain("Skills in central repo: 6 total");
@@ -170,21 +170,21 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
     await writeSkill(getSkillPath(workspace.homeDir, "pymc"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "science"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "biopython"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "scanpy"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "pymc"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science", "pymc"], { from: "node" });
 
-    await program.parseAsync(["node", "aweskill", "list", "bundles"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "list"], { from: "node" });
     expect(lines.join("\n")).toContain("Bundles in central repo: 1 total");
     expect(lines.join("\n")).toContain("science: 3 skills -> biopython, pymc, scanpy");
 
     lines.length = 0;
-    await program.parseAsync(["node", "aweskill", "list", "bundles", "--verbose"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "list", "--verbose"], { from: "node" });
     expect(lines.join("\n")).toContain("Bundles in central repo: 1 total");
     expect(lines.join("\n")).toContain("science: 3 skills -> biopython, pymc, scanpy");
   });
@@ -199,7 +199,7 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "list", "bundles-template"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "template", "list"], { from: "node" });
     expect(lines.join("\n")).toContain("Bundle templates:");
     expect(lines.join("\n")).toContain("k-dense-ai-scientific-skills");
   });
@@ -216,7 +216,7 @@ describe("commands", () => {
 
     await writeSkill(getSkillPath(workspace.homeDir, "one-password"), "1Password");
     await writeSkill(getSkillPath(workspace.homeDir, "shell"), "Shell");
-    await program.parseAsync(["node", "aweskill", "list", "skills", "--verbose"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "list", "--verbose"], { from: "node" });
 
     expect(lines[0]).toContain("Skills in central repo: 2 total");
     expect(lines[0]).not.toContain("Showing first");
@@ -233,21 +233,21 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "skill-a"));
     await writeSkill(getSkillPath(workspace.homeDir, "skill-b"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "pair"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "skill-a"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "skill-b"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "pair", "skill-a"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "pair", "skill-b"], { from: "node" });
     await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
-    await program.parseAsync(["node", "aweskill", "enable", "bundle", "pair", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "bundle", "pair", "--global", "--agent", "codex"], { from: "node" });
 
     await expect(
-      program.parseAsync(["node", "aweskill", "disable", "skill", "skill-a", "--global", "--agent", "codex"], { from: "node" }),
+      program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "skill-a", "--global", "--agent", "codex"], { from: "node" }),
     ).rejects.toThrow("bundle(s): pair");
 
     await program.parseAsync(
-      ["node", "aweskill", "disable", "skill", "skill-a", "--global", "--agent", "codex", "--force"],
+      ["node", "aweskill", "agent", "remove", "skill", "skill-a", "--global", "--agent", "codex", "--force"],
       { from: "node" },
     );
 
@@ -266,16 +266,16 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "solo"));
     await writeSkill(getSkillPath(workspace.homeDir, "unused-sibling"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "pair"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "solo"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "unused-sibling"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "pair", "solo"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "pair", "unused-sibling"], { from: "node" });
     await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "solo", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "solo", "--global", "--agent", "codex"], { from: "node" });
 
-    await program.parseAsync(["node", "aweskill", "disable", "skill", "solo", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "solo", "--global", "--agent", "codex"], { from: "node" });
     const soloPath = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "solo", "SKILL.md");
     await expect(readFile(soloPath, "utf8")).rejects.toThrow();
   });
@@ -289,19 +289,19 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "frontend-design"));
     await mkdir(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), { recursive: true });
 
     await program.parseAsync(
-      ["node", "aweskill", "enable", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
+      ["node", "aweskill", "agent", "add", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
       { from: "node" },
     );
     const targetPath = path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
 
     await program.parseAsync(
-      ["node", "aweskill", "disable", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
+      ["node", "aweskill", "agent", "remove", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
       { from: "node" },
     );
     await expect(readFile(targetPath, "utf8")).rejects.toThrow();
@@ -316,9 +316,9 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "biopython"], { from: "node" });
 
     await expect(
       readFile(path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
@@ -341,20 +341,20 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await expect(program.parseAsync(["node", "aweskill", "disable"], { from: "node" })).rejects.toThrow(
+    await expect(program.parseAsync(["node", "aweskill", "agent", "remove"], { from: "node" })).rejects.toThrow(
       'Missing required argument <type>. Use "bundle" or "skill".',
     );
-    await expect(program.parseAsync(["node", "aweskill", "restore"], { from: "node" })).rejects.toThrow(
+    await expect(program.parseAsync(["node", "aweskill", "store", "restore"], { from: "node" })).rejects.toThrow(
       'Missing required argument <archive>. Use a backup archive path, for example "skills-2026-04-12T19-20-00Z.tar.gz".',
     );
-    await expect(program.parseAsync(["node", "aweskill", "bundle", "add-skill", "research"], { from: "node" })).rejects.toThrow(
+    await expect(program.parseAsync(["node", "aweskill", "bundle", "add", "research"], { from: "node" })).rejects.toThrow(
       "Missing required argument <skill>. Use a skill name.",
     );
-    await expect(program.parseAsync(["node", "aweskill", "enable", "skill"], { from: "node" })).rejects.toThrow(
+    await expect(program.parseAsync(["node", "aweskill", "agent", "add", "skill"], { from: "node" })).rejects.toThrow(
       'Missing required argument <name>. Use a bundle or skill name, for example "my-bundle", "biopython", or "all".',
     );
-    await expect(program.parseAsync(["node", "aweskill", "check", "--agent"], { from: "node" })).rejects.toThrow(
-      'Option --agent <agent> argument missing. Use one or more supported agent ids, for example "codex" or "codex,cursor". Run "aweskill list agents" to see the supported agent list.',
+    await expect(program.parseAsync(["node", "aweskill", "agent", "list", "--agent"], { from: "node" })).rejects.toThrow(
+      'Option --agent <agent> argument missing. Use one or more supported agent ids, for example "codex" or "codex,cursor". Run "aweskill agent supported" to see the supported agent list.',
     );
   });
 
@@ -368,7 +368,7 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "list", "agents"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "supported"], { from: "node" });
 
     expect(lines[0]).toBe("Supported agents:");
     expect(lines).toContain("codex (Codex)");
@@ -384,18 +384,18 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
     await writeSkill(getSkillPath(workspace.homeDir, "pymc"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "science-a"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-a", "biopython"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-a", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science-a", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science-a", "scanpy"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "bundle", "create", "science-b"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-b", "scanpy"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-b", "pymc"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science-b", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science-b", "pymc"], { from: "node" });
 
-    await program.parseAsync(["node", "aweskill", "enable", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
 
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
@@ -417,11 +417,11 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
 
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython,scanpy", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "biopython,scanpy", "--global", "--agent", "codex"], { from: "node" });
 
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
@@ -440,16 +440,16 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "all", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "all", "--global", "--agent", "codex"], { from: "node" });
 
     const unmanagedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "foreign-skill");
     await mkdir(unmanagedDir, { recursive: true });
     await writeFile(path.join(unmanagedDir, "SKILL.md"), "# Foreign Skill\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "disable", "skill", "all", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "all", "--global", "--agent", "codex"], { from: "node" });
 
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
@@ -469,15 +469,15 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "science"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "biopython"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "scanpy"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "enable", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
 
-    await program.parseAsync(["node", "aweskill", "disable", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "remove", "bundle", "all", "--global", "--agent", "codex"], { from: "node" });
 
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
@@ -496,7 +496,7 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
 
     const conflictedTarget = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "biopython");
@@ -505,7 +505,7 @@ describe("commands", () => {
 
     await expect(
       program.parseAsync(
-        ["node", "aweskill", "enable", "skill", "biopython", "--global", "--agent", "claude-code"],
+        ["node", "aweskill", "agent", "add", "skill", "biopython", "--global", "--agent", "claude-code"],
         { from: "node" },
       ),
     ).rejects.toThrow(`Refusing to overwrite non-symlink target: ${conflictedTarget}`);
@@ -521,7 +521,7 @@ describe("commands", () => {
     process.chdir(workspace.projectDir);
 
     try {
-      await main(["node", "aweskill", "enable", "skill", "missing-skill"]);
+      await main(["node", "aweskill", "agent", "add", "skill", "missing-skill"]);
     } finally {
       process.chdir(previousCwd);
       if (previousHome === undefined) {
@@ -532,7 +532,7 @@ describe("commands", () => {
     }
 
     expect(errorSpy).toHaveBeenCalledWith(
-      'Error: Unknown skill: missing-skill. Run "aweskill list skills" to see available skills.',
+      'Error: Unknown skill: missing-skill. Run "aweskill skill list" to see available skills.',
     );
   });
 
@@ -569,8 +569,8 @@ describe("commands", () => {
     process.chdir(workspace.projectDir);
 
     try {
-      await main(["node", "aweskill", "enable", "bundle", "super"]);
-      await main(["node", "aweskill", "bundle", "add-template", "missing-template"]);
+      await main(["node", "aweskill", "agent", "add", "bundle", "super"]);
+      await main(["node", "aweskill", "bundle", "template", "import", "missing-template"]);
     } finally {
       process.chdir(previousCwd);
       if (previousHome === undefined) {
@@ -581,10 +581,10 @@ describe("commands", () => {
     }
 
     expect(errorSpy).toHaveBeenCalledWith(
-      'Error: Bundle not found: super. Run "aweskill list bundles" to see available bundles.',
+      'Error: Bundle not found: super. Run "aweskill bundle list" to see available bundles.',
     );
     expect(errorSpy).toHaveBeenCalledWith(
-      'Error: Bundle template not found: missing-template. Run "aweskill list bundles-template" to see available bundle templates.',
+      'Error: Bundle template not found: missing-template. Run "aweskill bundle template list" to see available bundle templates.',
     );
   });
 
@@ -598,17 +598,17 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "linked-skill"), "Linked Skill");
     await writeSkill(getSkillPath(workspace.homeDir, "duplicate-skill"), "Duplicate Skill");
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "linked-skill", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "linked-skill", "--global", "--agent", "codex"], { from: "node" });
     const duplicateDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill");
     const newDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "new-skill");
     await mkdir(duplicateDir, { recursive: true });
     await mkdir(newDir, { recursive: true });
     await writeFile(path.join(duplicateDir, "SKILL.md"), "# Duplicate Skill\n", "utf8");
     await writeFile(path.join(newDir, "SKILL.md"), "# New Skill\n", "utf8");
-    await program.parseAsync(["node", "aweskill", "check", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Global skills for codex:");
     expect(lines.join("\n")).toContain("  linked: 1");
@@ -629,10 +629,10 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "frontend-design"));
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "frontend-design", "--project", "--agent", "cursor"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "check", "--project", "--agent", "cursor"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "frontend-design", "--project", "--agent", "cursor"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--project", "--agent", "cursor"], { from: "node" });
 
     expect(lines.join("\n")).toContain(`Project skills for cursor (${workspace.projectDir}):`);
     expect(lines.join("\n")).toContain("    ✓ frontend-design");
@@ -648,7 +648,7 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "duplicate-skill"), "Central Duplicate");
 
     const skillsDir = resolveAgentSkillsDir("codex", "global", workspace.homeDir);
@@ -659,7 +659,7 @@ describe("commands", () => {
     await writeFile(path.join(duplicateDir, "SKILL.md"), "# Agent Duplicate\n", "utf8");
     await writeFile(path.join(newDir, "SKILL.md"), "# Brand New\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "check", "--agent", "codex", "--update"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex", "--update"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "new-skill"), "SKILL.md"), "utf8")).resolves.toContain("Brand New");
     await expect(readFile(path.join(duplicateDir, "SKILL.md"), "utf8")).resolves.toContain("Central Duplicate");
@@ -678,14 +678,14 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     for (const name of ["a", "b", "c", "d", "e", "f"]) {
       const dir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), name);
       await mkdir(dir, { recursive: true });
       await writeFile(path.join(dir, "SKILL.md"), `# ${name}\n`, "utf8");
     }
 
-    await program.parseAsync(["node", "aweskill", "check", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
 
     expect(lines.join("\n")).toContain("  new: 6");
     expect(lines.join("\n")).toContain("... and 1 more (use --verbose to show all)");
@@ -701,11 +701,11 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     const systemDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
     await mkdir(systemDir, { recursive: true });
 
-    await expect(program.parseAsync(["node", "aweskill", "check", "--agent", "codex", "--update"], { from: "node" })).resolves.toBeDefined();
+    await expect(program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex", "--update"], { from: "node" })).resolves.toBeDefined();
 
     expect(lines.join("\n")).toContain(`Warning: Skipping codex:.system; missing SKILL.md in ${systemDir}`);
     expect(lines.join("\n")).toContain("Skipped 1 entries: codex:.system");
@@ -726,7 +726,7 @@ describe("commands", () => {
     await mkdir(discoveredDir, { recursive: true });
     await writeFile(path.join(discoveredDir, "SKILL.md"), "# AEON\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "scan"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Scanned skills:");
     expect(lines.join("\n")).toContain("Global scanned skills for codex: 1");
@@ -756,8 +756,8 @@ describe("commands", () => {
       await writeFile(path.join(discoveredDir, "SKILL.md"), `# ${name}\n`, "utf8");
     }
 
-    await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
-    await verboseProgram.parseAsync(["node", "aweskill", "scan", "--verbose"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "scan"], { from: "node" });
+    await verboseProgram.parseAsync(["node", "aweskill", "skill", "scan", "--verbose"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Global scanned skills for codex: 2");
     expect(lines.join("\n")).not.toContain("    ✓ aeon ");
@@ -780,7 +780,7 @@ describe("commands", () => {
     await mkdir(discoveredDir, { recursive: true });
     await writeFile(path.join(discoveredDir, "SKILL.md"), "# AEON\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "init", "--scan"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init", "--scan"], { from: "node" });
 
     expect(lines.join("\n")).toContain(`Initialized ${workspace.homeDir}/.aweskill`);
     expect(lines.join("\n")).toContain("Scanned skills:");
@@ -804,7 +804,7 @@ describe("commands", () => {
     await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
     await symlink(realDir, linkedDir);
 
-    await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", "--scan"], { from: "node" });
 
     expect(lines.join("\n")).toContain(`Warning: Source ${linkedDir} is a symlink; copied from ${realDir} to ${getSkillPath(workspace.homeDir, "aeon")}`);
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
@@ -827,7 +827,7 @@ describe("commands", () => {
     await writeFile(path.join(existingSkillDir, "SKILL.md"), "# Existing AEON\n", "utf8");
     await writeFile(path.join(scannedDir, "SKILL.md"), "# New AEON\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", "--scan"], { from: "node" });
 
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Existing AEON");
     expect(lines.join("\n")).toContain("Skipped 1 existing skills");
@@ -850,7 +850,7 @@ describe("commands", () => {
     await writeFile(path.join(existingSkillDir, "SKILL.md"), "# Existing AEON\n", "utf8");
     await writeFile(path.join(scannedDir, "SKILL.md"), "# Replacement AEON\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "scan", "--add", "--override"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", "--scan", "--override"], { from: "node" });
 
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Replacement AEON");
   });
@@ -871,7 +871,7 @@ describe("commands", () => {
     await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
     await symlink(realDir, symlinkDir);
 
-    await program.parseAsync(["node", "aweskill", "import", symlinkDir, "--mode", "cp"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", symlinkDir, "--mode", "cp"], { from: "node" });
     expect(lines.join("\n")).toContain(`Warning: Source ${symlinkDir} is a symlink; copied from ${realDir}`);
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "linked-aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
 
@@ -882,7 +882,7 @@ describe("commands", () => {
       error: () => undefined,
     });
     await mkdir(path.join(workspace.rootDir, "other-home"), { recursive: true });
-    await mvProgram.parseAsync(["node", "aweskill", "import", symlinkDir, "--mode", "mv"], { from: "node" });
+    await mvProgram.parseAsync(["node", "aweskill", "skill", "import", symlinkDir, "--mode", "mv"], { from: "node" });
     await expect(readFile(path.join(realDir, "SKILL.md"), "utf8")).resolves.toContain("AEON");
     await expect(readFile(path.join(workspace.rootDir, "other-home", ".aweskill", "skills", "linked-aeon", "SKILL.md"), "utf8")).resolves.toContain("AEON");
   });
@@ -901,7 +901,7 @@ describe("commands", () => {
     await writeSkill(path.join(skillsRoot, "shell"), "Shell Skill");
     await writeSkill(path.join(skillsRoot, "python"), "Python Skill");
 
-    await program.parseAsync(["node", "aweskill", "import", skillsRoot], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", skillsRoot], { from: "node" });
 
     expect(lines.join("\n")).toContain("Imported 2 skills");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
@@ -928,7 +928,7 @@ describe("commands", () => {
     await symlink(validDir, validLink);
     await symlink(path.join(workspace.rootDir, "missing", "broken-skill"), brokenLink);
 
-    await program.parseAsync(["node", "aweskill", "import", skillsRoot], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", skillsRoot], { from: "node" });
 
     expect(lines.join("\n")).toContain("Imported 1 skills");
     expect(lines.join("\n")).toContain("Missing source files: 1");
@@ -956,7 +956,7 @@ describe("commands", () => {
     await symlink(validDir, validLink);
     await symlink(path.join(workspace.rootDir, "missing", "broken-skill"), brokenLink);
 
-    await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", "--scan"], { from: "node" });
 
     expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill`);
     expect(lines.join("\n")).toContain("Imported 1 skills");
@@ -973,7 +973,7 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "bundle", "add-template", "K-Dense-AI-scientific-skills"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "template", "import", "K-Dense-AI-scientific-skills"], { from: "node" });
 
     const bundlePath = path.join(workspace.homeDir, ".aweskill", "bundles", "k-dense-ai-scientific-skills.yaml");
     await expect(readFile(bundlePath, "utf8")).resolves.toContain("name: k-dense-ai-scientific-skills");
@@ -996,7 +996,7 @@ describe("commands", () => {
 
     try {
       await program.parseAsync(
-        ["node", "aweskill", "bundle", "add-template", "K-Dense-AI-scientific-skills,temporary-science"],
+        ["node", "aweskill", "bundle", "template", "import", "K-Dense-AI-scientific-skills,temporary-science"],
         { from: "node" },
       );
 
@@ -1017,11 +1017,11 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
     await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
     await program.parseAsync(["node", "aweskill", "bundle", "create", "science-a,science-b"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-a,science-b", "biopython,scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "science-a,science-b", "biopython,scanpy"], { from: "node" });
 
     await expect(
       readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "science-a.yaml"), "utf8"),
@@ -1046,7 +1046,7 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
 
-    await program.parseAsync(["node", "aweskill", "rmdup"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "doctor", "dedupe"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Duplicate skill groups in central repo:");
     expect(lines.join("\n")).toContain("  architecture-designer: 2 entries");
@@ -1067,7 +1067,7 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
 
-    await program.parseAsync(["node", "aweskill", "rmdup", "--remove"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "doctor", "dedupe", "--fix"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "SKILL.md"), "utf8")).resolves.toContain("Versioned");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "dup_skills", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
@@ -1087,7 +1087,7 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-2.0.0"), "Newest");
 
-    await program.parseAsync(["node", "aweskill", "rmdup", "--remove", "--delete"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "doctor", "dedupe", "--fix", "--delete"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-2.0.0"), "SKILL.md"), "utf8")).resolves.toContain("Newest");
     await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();
@@ -1110,7 +1110,7 @@ describe("commands", () => {
 
     await writeSkill(getSkillPath(workspace.homeDir, "aeon"), "Central AEON");
     await expect(
-      program.parseAsync(["node", "aweskill", "enable", "skill", "aeon", "--global", "--agent", "claude-code"], { from: "node" }),
+      program.parseAsync(["node", "aweskill", "agent", "add", "skill", "aeon", "--global", "--agent", "claude-code"], { from: "node" }),
     ).rejects.toThrow(`Refusing to overwrite non-symlink target: ${discoveredDir}`);
   });
 
@@ -1124,16 +1124,16 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "ephemeral-skill"));
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "ephemeral-skill", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "ephemeral-skill", "--global", "--agent", "codex"], { from: "node" });
 
     const projPath = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "ephemeral-skill");
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).resolves.toContain("Example Skill");
 
     // Delete the central skill manually, then sync
     await rm(getSkillPath(workspace.homeDir, "ephemeral-skill"), { recursive: true, force: true });
-    await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "sync"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Removed 1 stale projection(s)");
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
@@ -1149,10 +1149,10 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "recover-me"), "Recover Me");
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "recover-me", "--global", "--agent", "codex"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "recover-me", "--global", "--agent", "cursor"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "recover-me", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "recover-me", "--global", "--agent", "cursor"], { from: "node" });
 
     const codexTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "recover-me");
     const cursorTarget = path.join(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), "recover-me");
@@ -1160,7 +1160,7 @@ describe("commands", () => {
     expect((await lstat(codexTarget)).isSymbolicLink()).toBe(true);
     expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
 
-    await program.parseAsync(["node", "aweskill", "recover", "--global", "--agent", "codex,cursor"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "recover", "--global", "--agent", "codex,cursor"], { from: "node" });
 
     expect((await lstat(codexTarget)).isDirectory()).toBe(true);
     expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
