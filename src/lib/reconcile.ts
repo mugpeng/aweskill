@@ -13,10 +13,9 @@ import { listBundles, readBundle } from "./bundles.js";
 import { readGlobalConfig, readProjectConfig } from "./config.js";
 import { getMatchingProjectRules } from "./matcher.js";
 import { getAweskillPaths, getProjectConfigPath, sanitizeName, uniqueSorted } from "./path.js";
+import { canTakeOverDiscoveredSkill, collectKnownProjectDirs, updateRegistryForStatus } from "./registry.js";
 import { getSkillPath } from "./skills.js";
 import { createSkillCopy, createSkillSymlink, listManagedSkillNames, removeManagedProjection } from "./symlink.js";
-import { writeRegistry } from "./registry.js";
-import type { AgentId } from "../types.js";
 
 async function pathExists(targetPath: string): Promise<boolean> {
   try {
@@ -108,6 +107,7 @@ async function buildProjections(options: {
         sourcePath,
         targetPath: path.join(locationDir, activation.name),
         scope,
+        projectDir: scope === "project" ? locationBaseDir : undefined,
         mode: getProjectionMode(agentId),
         locationDir,
       });
@@ -174,22 +174,14 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
     }
     knownLocations.add(resolveAgentSkillsDir(agent.id, status.scope, baseDir));
   }
+
   for (const locationDir of byLocation.keys()) {
     knownLocations.add(locationDir);
   }
 
   for (const locationDir of knownLocations) {
     const projections = byLocation.get(locationDir) ?? [];
-    // Try to infer agentId from locationDir based on known patterns
-    let agentId: AgentId | undefined;
-    for (const agent of listSupportedAgents()) {
-      if (locationDir === resolveAgentSkillsDir(agent.id, "global", homeDir) ||
-          (status.projectDir && locationDir === resolveAgentSkillsDir(agent.id, "project", status.projectDir))) {
-        agentId = agent.id;
-        break;
-      }
-    }
-    const managed = await listManagedSkillNames(locationDir, paths.skillsDir, homeDir, agentId);
+    const managed = await listManagedSkillNames(locationDir, paths.skillsDir);
     const expectedNames = new Set(projections.map((projection) => projection.skillName));
 
     for (const [skillName] of managed) {
@@ -199,13 +191,26 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
 
       const removed = await removeManagedProjection(path.join(locationDir, skillName));
       if (removed) {
-        changes.push({ action: "remove", path: path.join(locationDir, skillName), detail: "removed stale projection" });
+        changes.push({
+          action: "remove",
+          path: path.join(locationDir, skillName),
+          detail: "removed stale projection",
+        });
       }
     }
 
     for (const projection of projections) {
+      const allowReplaceExisting = await canTakeOverDiscoveredSkill({
+        homeDir,
+        agentId: projection.agentId,
+        scope: projection.scope,
+        projectDir: projection.projectDir,
+        skillName: projection.skillName,
+        targetPath: projection.targetPath,
+      });
+
       if (projection.mode === "symlink") {
-        const result = await createSkillSymlink(projection.sourcePath, projection.targetPath);
+        const result = await createSkillSymlink(projection.sourcePath, projection.targetPath, { allowReplaceExisting });
         changes.push({
           action: result === "created" ? "create" : "skip",
           path: projection.targetPath,
@@ -214,19 +219,16 @@ async function applyStatus(status: StatusSnapshot, homeDir: string): Promise<Rec
         continue;
       }
 
-      const result = await createSkillCopy(projection.sourcePath, projection.targetPath);
+      const result = await createSkillCopy(projection.sourcePath, projection.targetPath, { allowReplaceExisting });
       changes.push({
         action: result === "created" ? "create" : "skip",
         path: projection.targetPath,
         detail: result === "created" ? "created copy" : "copy already correct",
       });
     }
-
-    if (agentId) {
-      await writeRegistry(homeDir, agentId, projections);
-    }
   }
 
+  await updateRegistryForStatus(homeDir, status);
   return { changes, warnings: status.warnings };
 }
 
@@ -248,6 +250,7 @@ export async function syncWorkspace(options: {
   const results: ReconcileResult[] = [];
   results.push(await reconcileGlobal(options.homeDir));
 
+  const globalConfig = await readGlobalConfig(options.homeDir);
   const candidateProjects = new Set<string>();
   if (options.projectDir) {
     candidateProjects.add(options.projectDir);
@@ -255,8 +258,23 @@ export async function syncWorkspace(options: {
   if (await pathExists(getProjectConfigPath(options.cwd))) {
     candidateProjects.add(options.cwd);
   }
+  for (const projectRule of globalConfig.projects) {
+    if (projectRule.match === "exact") {
+      candidateProjects.add(projectRule.path);
+    }
+  }
+  for (const projectDir of await collectKnownProjectDirs(options.homeDir)) {
+    candidateProjects.add(projectDir);
+  }
 
   for (const projectDir of candidateProjects) {
+    if (!(await pathExists(projectDir))) {
+      results.push({
+        changes: [],
+        warnings: [`Skipped missing project during sync: ${projectDir}`],
+      });
+      continue;
+    }
     results.push(await reconcileProject(options.homeDir, projectDir));
   }
 

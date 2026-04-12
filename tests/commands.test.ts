@@ -1,11 +1,12 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
-import { readGlobalConfig, readProjectConfig } from "../src/lib/config.js";
+import { readGlobalConfig, readProjectConfig, writeGlobalConfig } from "../src/lib/config.js";
+import { readRegistry } from "../src/lib/registry.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { createTempWorkspace, writeSkill } from "./helpers.js";
 
@@ -51,6 +52,7 @@ describe("commands", () => {
     const targetPath = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "pr-review", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
     expect(lines.join("\n")).toContain("GLOBAL");
+    expect(lines.join("\n")).toContain("REGISTRY");
   });
 
   it("supports project enable and disable flows", async () => {
@@ -102,6 +104,8 @@ describe("commands", () => {
       { from: "node" },
     );
     await expect(readFile(targetPath, "utf8")).rejects.toThrow();
+    const registry = await readRegistry(workspace.homeDir, "cursor");
+    expect(registry?.skills.find((entry) => entry.name === "frontend-design" && entry.scope === "project")).toBeUndefined();
   });
 
   it("defaults enable to all scopes and all agents", async () => {
@@ -125,10 +129,10 @@ describe("commands", () => {
     ).resolves.toContain("Example Skill");
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "project", workspace.projectDir), "biopython", "SKILL.md"), "utf8"),
-    ).resolves.toContain("Example Skill");
+    ).rejects.toThrow();
 
     expect((await readGlobalConfig(workspace.homeDir)).activations).toHaveLength(1);
-    expect((await readProjectConfig(workspace.projectDir)).activations).toHaveLength(1);
+    expect((await readProjectConfig(workspace.projectDir)).activations).toHaveLength(0);
   });
 
   it("fails before writing config when a target path is unmanaged", async () => {
@@ -178,5 +182,272 @@ describe("commands", () => {
     }
 
     expect(errorSpy).toHaveBeenCalledWith("Error: Unknown skill: missing-skill");
+  });
+
+  it("shows registry snapshots for an agent", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython", "--scope", "global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "registry", "show", "codex"], { from: "node" });
+
+    const registry = JSON.parse(lines.at(-1) ?? "{}") as { agentId?: string; skills?: Array<{ name: string }> };
+    expect(registry.agentId).toBe("codex");
+    expect(registry.skills?.map((entry) => entry.name)).toEqual(["biopython"]);
+  });
+
+  it("scan writes discovered entries into registry", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const discoveredDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(discoveredDir, { recursive: true });
+    await writeFile(path.join(discoveredDir, "SKILL.md"), "# AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
+
+    const registry = await readRegistry(workspace.homeDir, "codex");
+    expect(registry?.skills).toContainEqual(
+      expect.objectContaining({
+        name: "aeon",
+        scope: "global",
+        sourcePath: discoveredDir,
+        managedByAweskill: false,
+      }),
+    );
+  });
+
+  it("scan --add warns when copying a symlink source", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const realDir = path.join(workspace.rootDir, "external", "aeon");
+    const linkedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(realDir, { recursive: true });
+    await mkdir(path.dirname(linkedDir), { recursive: true });
+    await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
+    await symlink(realDir, linkedDir);
+
+    await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
+
+    expect(lines.join("\n")).toContain(`Warning: Source ${linkedDir} is a symlink; copied from ${realDir} to ${getSkillPath(workspace.homeDir, "aeon")}`);
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
+  });
+
+  it("scan --add merges missing files by default without overwriting existing ones", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const existingSkillDir = getSkillPath(workspace.homeDir, "aeon");
+    const scannedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(path.join(existingSkillDir, "references"), { recursive: true });
+    await mkdir(path.join(scannedDir, "references"), { recursive: true });
+    await writeFile(path.join(existingSkillDir, "SKILL.md"), "# Existing AEON\n", "utf8");
+    await writeFile(path.join(existingSkillDir, "references", "old.md"), "old\n", "utf8");
+    await writeFile(path.join(scannedDir, "SKILL.md"), "# New AEON\n", "utf8");
+    await writeFile(path.join(scannedDir, "references", "old.md"), "new-should-not-overwrite\n", "utf8");
+    await writeFile(path.join(scannedDir, "references", "new.md"), "new-file\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
+
+    await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Existing AEON");
+    await expect(readFile(path.join(existingSkillDir, "references", "old.md"), "utf8")).resolves.toContain("old");
+    await expect(readFile(path.join(existingSkillDir, "references", "new.md"), "utf8")).resolves.toContain("new-file");
+  });
+
+  it("scan --add --override overwrites existing files", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const existingSkillDir = getSkillPath(workspace.homeDir, "aeon");
+    const scannedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(existingSkillDir, { recursive: true });
+    await mkdir(scannedDir, { recursive: true });
+    await writeFile(path.join(existingSkillDir, "SKILL.md"), "# Existing AEON\n", "utf8");
+    await writeFile(path.join(scannedDir, "SKILL.md"), "# Replacement AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "scan", "--add", "--override"], { from: "node" });
+
+    await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Replacement AEON");
+  });
+
+  it("single add copies from symlink source for cp and preserves the real source for mv", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const realDir = path.join(workspace.rootDir, "external", "aeon");
+    const symlinkDir = path.join(workspace.rootDir, "linked-aeon");
+    await mkdir(realDir, { recursive: true });
+    await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
+    await symlink(realDir, symlinkDir);
+
+    await program.parseAsync(["node", "aweskill", "add", symlinkDir, "--mode", "cp"], { from: "node" });
+    expect(lines.join("\n")).toContain(`Warning: Source ${symlinkDir} is a symlink; copied from ${realDir}`);
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "linked-aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
+
+    const mvProgram = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: path.join(workspace.rootDir, "other-home"),
+      write: () => undefined,
+      error: () => undefined,
+    });
+    await mkdir(path.join(workspace.rootDir, "other-home"), { recursive: true });
+    await mvProgram.parseAsync(["node", "aweskill", "add", symlinkDir, "--mode", "mv"], { from: "node" });
+    await expect(readFile(path.join(realDir, "SKILL.md"), "utf8")).resolves.toContain("AEON");
+    await expect(readFile(path.join(workspace.rootDir, "other-home", ".aweskill", "skills", "linked-aeon", "SKILL.md"), "utf8")).resolves.toContain("AEON");
+  });
+
+  it("scan --add reports broken symlink sources and finishes with a missing count", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const errors: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: (message) => errors.push(message),
+    });
+
+    const validDir = path.join(workspace.rootDir, "external", "aeon");
+    const validLink = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    const brokenLink = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "broken-skill");
+    await mkdir(validDir, { recursive: true });
+    await mkdir(path.dirname(validLink), { recursive: true });
+    await writeFile(path.join(validDir, "SKILL.md"), "# AEON\n", "utf8");
+    await symlink(validDir, validLink);
+    await symlink(path.join(workspace.rootDir, "missing", "broken-skill"), brokenLink);
+
+    await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
+
+    expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill: ${brokenLink}; source not found: ${path.join(workspace.rootDir, "missing", "broken-skill")}`);
+    expect(lines.join("\n")).toContain("Imported 1 skills");
+    expect(lines.join("\n")).toContain("Missing source files: 1");
+  });
+
+  it("enable takes over a discovered skill and rewrites registry to central source", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const discoveredDir = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "aeon");
+    await mkdir(discoveredDir, { recursive: true });
+    await writeFile(path.join(discoveredDir, "SKILL.md"), "# Agent AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "aeon"), "Central AEON");
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "aeon", "--scope", "global", "--agent", "claude-code"], { from: "node" });
+
+    await expect(readFile(path.join(discoveredDir, "SKILL.md"), "utf8")).resolves.toContain("Central AEON");
+    const registry = await readRegistry(workspace.homeDir, "claude-code");
+    expect(registry?.skills).toContainEqual(
+      expect.objectContaining({
+        name: "aeon",
+        scope: "global",
+        sourcePath: getSkillPath(workspace.homeDir, "aeon"),
+        managedByAweskill: true,
+      }),
+    );
+  });
+
+  it("syncs exact global-config projects and known registry projects", async () => {
+    const workspace = await createTempWorkspace();
+    const otherProjectDir = path.join(workspace.rootDir, "other-project");
+    const knownProjectDir = path.join(workspace.rootDir, "known-project");
+    await mkdir(otherProjectDir, { recursive: true });
+    await mkdir(knownProjectDir, { recursive: true });
+
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "shared-skill"));
+    await writeGlobalConfig(workspace.homeDir, {
+      version: 1,
+      activations: [],
+      projects: [
+        {
+          path: otherProjectDir,
+          match: "exact",
+          activations: [
+            {
+              type: "skill",
+              name: "shared-skill",
+              agents: ["codex"],
+            },
+          ],
+        },
+      ],
+    });
+
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "shared-skill", "--scope", "project", "--agent", "cursor"], { from: "node" });
+    await program.parseAsync(
+      ["node", "aweskill", "enable", "skill", "shared-skill", "--scope", "project", "--agent", "codex", "--project", knownProjectDir],
+      { from: "node" },
+    );
+    await rm(path.join(resolveAgentSkillsDir("codex", "project", knownProjectDir), "shared-skill"), {
+      recursive: true,
+      force: true,
+    });
+    await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
+
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "project", otherProjectDir), "shared-skill", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "project", knownProjectDir), "shared-skill", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+
+    const cursorRegistry = await readRegistry(workspace.homeDir, "cursor");
+    expect(cursorRegistry?.skills).toContainEqual(
+      expect.objectContaining({
+        name: "shared-skill",
+        scope: "project",
+        projectDir: workspace.projectDir,
+        managedByAweskill: true,
+      }),
+    );
   });
 });

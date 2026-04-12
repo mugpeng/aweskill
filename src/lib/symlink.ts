@@ -1,7 +1,5 @@
 import { cp, lstat, mkdir, readFile, readdir, readlink, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { readRegistry } from "./registry.js";
-import type { AgentId } from "../types.js";
 
 const COPY_MARKER = ".aweskill-projection.json";
 
@@ -32,6 +30,7 @@ export async function assertProjectionTargetSafe(
   mode: "symlink" | "copy",
   sourcePath: string,
   targetPath: string,
+  options: { allowReplaceExisting?: boolean } = {},
 ): Promise<void> {
   const existing = await tryLstat(targetPath);
   if (!existing) {
@@ -40,6 +39,9 @@ export async function assertProjectionTargetSafe(
 
   if (mode === "symlink") {
     if (!existing.isSymbolicLink()) {
+      if (options.allowReplaceExisting) {
+        return;
+      }
       throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
     }
 
@@ -57,11 +59,18 @@ export async function assertProjectionTargetSafe(
 
   const marker = await readCopyMarker(targetPath);
   if (!marker) {
+    if (options.allowReplaceExisting) {
+      return;
+    }
     throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
   }
 }
 
-export async function createSkillSymlink(sourcePath: string, targetPath: string): Promise<"created" | "skipped"> {
+export async function createSkillSymlink(
+  sourcePath: string,
+  targetPath: string,
+  options: { allowReplaceExisting?: boolean } = {},
+): Promise<"created" | "skipped"> {
   await mkdir(path.dirname(targetPath), { recursive: true });
   const existing = await tryLstat(targetPath);
 
@@ -73,7 +82,11 @@ export async function createSkillSymlink(sourcePath: string, targetPath: string)
     }
     await unlink(targetPath);
   } else if (existing) {
-    throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
+    if (options.allowReplaceExisting) {
+      await rm(targetPath, { force: true, recursive: true });
+    } else {
+      throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
+    }
   }
 
   const linkTarget = path.relative(path.dirname(targetPath), sourcePath) || ".";
@@ -81,7 +94,11 @@ export async function createSkillSymlink(sourcePath: string, targetPath: string)
   return "created";
 }
 
-export async function createSkillCopy(sourcePath: string, targetPath: string): Promise<"created" | "skipped"> {
+export async function createSkillCopy(
+  sourcePath: string,
+  targetPath: string,
+  options: { allowReplaceExisting?: boolean } = {},
+): Promise<"created" | "skipped"> {
   await mkdir(path.dirname(targetPath), { recursive: true });
   const existing = await tryLstat(targetPath);
 
@@ -90,13 +107,11 @@ export async function createSkillCopy(sourcePath: string, targetPath: string): P
   } else if (existing) {
     const marker = await readCopyMarker(targetPath);
     if (!marker) {
-      throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
+      if (!options.allowReplaceExisting) {
+        throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
+      }
     }
-    if (path.resolve(marker.sourcePath) === path.resolve(sourcePath)) {
-      await rm(targetPath, { force: true, recursive: true });
-    } else {
-      await rm(targetPath, { force: true, recursive: true });
-    }
+    await rm(targetPath, { force: true, recursive: true });
   }
 
   await cp(sourcePath, targetPath, { recursive: true });
@@ -130,24 +145,12 @@ export async function removeManagedProjection(targetPath: string): Promise<boole
 export async function listManagedSkillNames(
   skillsDir: string,
   centralSkillsDir: string,
-  homeDir?: string,
-  agentId?: AgentId,
 ): Promise<Map<string, "symlink" | "copy">> {
   const result = new Map<string, "symlink" | "copy">();
 
-  if (homeDir && agentId) {
-    try {
-      const registry = await readRegistry(homeDir, agentId);
-      if (registry) {
-        for (const skill of registry.skills) {
-          result.set(skill.name, skill.mode);
-        }
-        return result;
-      }
-    } catch {
-      // Fallback to physical scan
-    }
-  }
+  try {
+    const entries = await readdir(skillsDir, { withFileTypes: true });
+    for (const entry of entries) {
       const targetPath = path.join(skillsDir, entry.name);
       if (entry.isSymbolicLink()) {
         try {

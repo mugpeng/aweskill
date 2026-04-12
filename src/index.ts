@@ -14,6 +14,7 @@ import { runDisable } from "./commands/disable.js";
 import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
 import { runListBundles, runListSkills, runListStatus } from "./commands/list.js";
+import { getRegistryScope, runRegistryShow } from "./commands/registry.js";
 import { runRemove } from "./commands/remove.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
@@ -76,9 +77,15 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 
   program
     .command("scan")
+    .option("--add", "import scanned skills into the central repository", false)
+    .option("--mode <mode>", "import mode when used with --add", getMode, "cp")
+    .option("--override", "overwrite existing files when importing", false)
     .option("--project <dir>", "scan an explicit project dir", collectAgents, [])
     .action(async (options) => {
       await runScan(context, {
+        add: options.add,
+        mode: options.mode,
+        override: options.override,
         projectDirs: options.project.length > 0 ? options.project : undefined,
       });
     });
@@ -88,12 +95,14 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("[path]")
     .option("--scan", "import scanned skills", false)
     .option("--mode <mode>", "import mode", getMode, "cp")
+    .option("--override", "overwrite existing files when importing", false)
     .option("--project <dir>", "scan an explicit project dir", collectAgents, [])
     .action(async (sourcePath, options) => {
       await runAdd(context, {
         sourcePath,
         scan: options.scan,
         mode: options.mode,
+        override: options.override,
         projectDirs: options.project.length > 0 ? options.project : undefined,
       });
     });
@@ -147,12 +156,28 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       await runListStatus(context, { projectDir: options.project });
     });
 
+  const registry = program.command("registry");
+  registry
+    .command("show")
+    .argument("<agent>")
+    .option("--scope <scope>", "global or project", getRegistryScope)
+    .option("--project <dir>", "filter project-scoped entries to one project dir")
+    .action(async (agentId, options) => {
+      await runRegistryShow(context, {
+        agentId,
+        scope: options.scope,
+        projectDir: options.project,
+      });
+    });
+
   const registerActivationCommand = (name: "enable" | "disable") => {
+    const defaultScope = name === "enable" ? "global" : "all";
+    const scopeDescription = name === "enable" ? "global, project, or all" : "global, project, or all";
     program
       .command(name)
       .argument("<type>", "bundle or skill", getActivationType)
       .argument("<name>")
-      .option("--scope <scope>", "global, project, or all", getCommandScope, "all")
+      .option("--scope <scope>", scopeDescription, getCommandScope, defaultScope)
       .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
       .option("--project <dir>", "project dir for project scope")
       .action(async (type, targetName, options) => {
