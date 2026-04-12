@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { access, lstat, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -59,6 +59,80 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "bundle", "delete", "frontend"], { from: "node" });
 
     await expect(program.parseAsync(["node", "aweskill", "bundle", "show", "frontend"], { from: "node" })).rejects.toThrow();
+  });
+
+  it("creates a timestamped backup archive under ~/.aweskill/backup", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "backup-skill"), "Backup Skill");
+    await program.parseAsync(["node", "aweskill", "backup"], { from: "node" });
+
+    const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
+    const entries = await readdir(backupDir);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatch(/^skills-.*\.tar\.gz$/);
+    expect(lines.join("\n")).toContain(path.join(backupDir, entries[0]!));
+  });
+
+  it("restore refuses conflicting skills by default", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
+    await program.parseAsync(["node", "aweskill", "backup"], { from: "node" });
+
+    const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
+    const [archive] = await readdir(backupDir);
+    await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "restore", path.join(backupDir, archive!)], { from: "node" }),
+    ).rejects.toThrow("Restore would overwrite existing skills");
+  });
+
+  it("restore --override replaces current skills and creates a fresh backup first", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
+    await program.parseAsync(["node", "aweskill", "backup"], { from: "node" });
+
+    const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
+    const [archive] = await readdir(backupDir);
+
+    await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
+    await writeSkill(getSkillPath(workspace.homeDir, "new-current-skill"), "Current Only");
+
+    await program.parseAsync(["node", "aweskill", "restore", path.join(backupDir, archive!), "--override"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "utf8")).resolves.toContain("Original");
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "new-current-skill"), "SKILL.md"))).rejects.toThrow();
+
+    const updatedArchives = await readdir(backupDir);
+    expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
+    expect(lines.join("\n")).toContain("Restored 1 skills");
+    expect(lines.join("\n")).toContain("Backed up current skills to");
   });
 
   it("lists skills with aweskill_cc-style summary lines", async () => {
@@ -739,5 +813,36 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain("Removed 1 stale projection(s)");
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
+  });
+
+  it("recover converts managed symlinks into full directories and leaves managed copies alone", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "recover-me"), "Recover Me");
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "recover-me", "--global", "--agent", "codex"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "recover-me", "--global", "--agent", "cursor"], { from: "node" });
+
+    const codexTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "recover-me");
+    const cursorTarget = path.join(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), "recover-me");
+
+    expect((await lstat(codexTarget)).isSymbolicLink()).toBe(true);
+    expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
+
+    await program.parseAsync(["node", "aweskill", "recover", "--global", "--agent", "codex,cursor"], { from: "node" });
+
+    expect((await lstat(codexTarget)).isDirectory()).toBe(true);
+    expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
+    await expect(readFile(path.join(codexTarget, "SKILL.md"), "utf8")).resolves.toContain("Recover Me");
+    await expect(readFile(path.join(cursorTarget, "SKILL.md"), "utf8")).resolves.toContain("Recover Me");
+    expect(lines.join("\n")).toContain("Recovered 1 skill projection(s)");
+    expect(lines.join("\n")).toContain("codex:recover-me");
   });
 });

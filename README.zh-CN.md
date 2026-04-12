@@ -16,6 +16,7 @@ CLI 使用 `commander`、`@clack/prompts`、`picocolors`。
 
 - 中央仓库：`~/.aweskill/skills/`
 - 重复项暂存目录：`~/.aweskill/dup_skills/`
+- 备份目录：`~/.aweskill/backup/`
 - Bundle：`~/.aweskill/bundles/*.yaml`
 - 支持的 agent：`amp`、`claude-code`、`cline`、`codex`、`cursor`、`gemini-cli`、`goose`、`opencode`、`roo`、`windsurf`
 
@@ -79,8 +80,10 @@ aweskill check
 
 | 命令 | 说明 |
 | --- | --- |
-| `aweskill init [--scan] [--verbose]` | 初始化 `~/.aweskill`（`skills/`、`dup_skills/`、`bundles/` 等），并可选输出扫描摘要 |
+| `aweskill init [--scan] [--verbose]` | 初始化 `~/.aweskill`（`skills/`、`dup_skills/`、`backup/`、`bundles/` 等），并可选输出扫描摘要 |
 | `aweskill scan [--add] [--mode cp/mv] [--override] [--verbose]` | 扫描已支持 agent 的 skill 目录，并可选导入中央仓库 |
+| `aweskill backup` | 将 `skills/` 打包为带时间戳的备份文件，放到 `~/.aweskill/backup/` |
+| `aweskill restore <archive> [--override]` | 从备份归档恢复 `skills/`，恢复前会自动再备份当前状态 |
 | `aweskill add <path> [--mode cp/mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
 | `aweskill add --scan [--mode cp/mv] [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 从中央仓库删除 skill（默认检查 bundle 与托管投影，可用 `--force`） |
@@ -93,6 +96,7 @@ aweskill check
 | `aweskill list bundles` | 列出所有 bundle |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查 agent 技能目录（`linked` / `duplicate` / `new`），`--update` 可按需归一化 |
 | `aweskill rmdup [--remove] [--delete]` | 检查中央仓库中带数字/版本后缀的重复 skills；可选移动到 `dup_skills/` 或直接删除 |
+| `aweskill recover [--global] [--project [dir]] [--agent <agent>]` | 将 aweskill 托管的 symlink 投影恢复成完整目录 |
 | `aweskill enable bundle/skill …` | 在 agent 目录下创建 symlink或 copy；默认全局 + 所有已检测到的 agent |
 | `aweskill disable bundle/skill … [--force]` | 删除 **托管** 投影；单独 `disable skill` 见下文 |
 | `aweskill sync [--project <dir>]` | 中央仓库里 skill 已不存在时，清理仍指向它的托管投影 |
@@ -122,11 +126,20 @@ aweskill scan --verbose
 # 扫描并一步导入
 aweskill scan --add
 
+# 为 ~/.aweskill/skills 创建时间戳备份
+aweskill backup
+
+# 从归档恢复，并在恢复前自动备份当前 skills
+aweskill restore ~/.aweskill/backup/skills-2026-04-12T19-20-00Z.tar.gz --override
+
 # 检查中央仓库中的版本/数字后缀重复 skill
 aweskill rmdup
 
 # 将重复项移动到 ~/.aweskill/dup_skills
 aweskill rmdup --remove
+
+# 将托管 symlink 恢复成完整目录
+aweskill recover
 
 # 覆盖已有文件，而不是只补缺失文件
 aweskill scan --add --override
@@ -185,7 +198,11 @@ skills:
 
 **不再**根据某个全局 YAML 里的 activation 列表做 reconcile。
 
-导入与展示行为与英文 README 中「Import behavior」「Display behavior」一致：合并/覆盖规则、`scan --verbose`、`check --update` 的汇总说明、以及 `rmdup` 的重复判定与处理规则等。
+导入与展示行为与英文 README 中「Import behavior」「Display behavior」一致：合并/覆盖规则、`scan --verbose`、`check --update` 的汇总说明、`rmdup` 的重复判定与处理规则，以及 `restore` 的自动备份与覆盖规则等。
+
+## 模板
+
+参考 bundle 模板放在 [template/bundles/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/template/bundles/K-Dense-AI-scientific-skills.yaml)。运行时实际使用的 bundle 仍然在 `~/.aweskill/bundles/`。
 
 ## 当前支持的 Agent
 

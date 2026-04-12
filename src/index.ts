@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { homedir } from "node:os";
 
 import { runAdd } from "./commands/add.js";
+import { runBackup } from "./commands/backup.js";
 import {
   runBundleAddSkill,
   runBundleCreate,
@@ -16,7 +17,9 @@ import { runDisable } from "./commands/disable.js";
 import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
 import { runListBundles, runListSkills } from "./commands/list.js";
+import { runRecover } from "./commands/recover.js";
 import { runRemove } from "./commands/remove.js";
+import { runRestore } from "./commands/restore.js";
 import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
@@ -68,6 +71,27 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .description("Local skill orchestration CLI for AI agents")
     .version("0.1.1")
     .helpOption("-h, --help", "Display help");
+
+  program
+    .command("backup")
+    .description("Create a timestamped archive of the central skills repository")
+    .action(async () => {
+      await runFramedCommand(" aweskill backup ", async () => runBackup(context));
+    });
+
+  program
+    .command("restore")
+    .argument("<archive>")
+    .description("Restore skills from a backup archive and auto-back up the current skills first")
+    .option("--override", "replace existing skills with the archive contents", false)
+    .action(async (archivePath, options) => {
+      await runFramedCommand(" aweskill restore ", async () =>
+        runRestore(context, {
+          archivePath,
+          override: options.override,
+        }),
+      );
+    });
 
   program
     .command("init")
@@ -258,6 +282,25 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--project <dir>", "also check this project directory")
     .action(async (options) => {
       await runFramedCommand(" aweskill sync ", async () => runSync(context, { projectDir: options.project }));
+    });
+
+  program
+    .command("recover")
+    .description("Convert aweskill-managed symlink projections into full skill directories")
+    .option("--global", "recover global scope (default when no scope flag given)")
+    .option("--project [dir]", "recover project scope; uses cwd when dir is omitted")
+    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill recover ", async () =>
+        runRecover(context, {
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+        }),
+      );
     });
 
   program.showHelpAfterError();

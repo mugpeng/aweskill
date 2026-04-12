@@ -14,6 +14,7 @@ Layout:
 
 - Central repository: `~/.aweskill/skills/`
 - Duplicate holding area: `~/.aweskill/dup_skills/`
+- Backup archive directory: `~/.aweskill/backup/`
 - Bundle definitions: `~/.aweskill/bundles/*.yaml`
 - Supported agents: `amp`, `claude-code`, `cline`, `codex`, `cursor`, `gemini-cli`, `goose`, `opencode`, `roo`, `windsurf`
 
@@ -79,6 +80,8 @@ aweskill check
 | --- | --- |
 | `aweskill init [--scan] [--verbose]` | Create `~/.aweskill` layout (`skills/`, `dup_skills/`, `bundles/`) and optional scan summary |
 | `aweskill scan [--add] [--mode cp\|mv] [--override] [--verbose]` | Scan supported agent skill directories and optionally import them |
+| `aweskill backup` | Create a timestamped `skills/` archive under `~/.aweskill/backup/` |
+| `aweskill restore <archive> [--override]` | Restore `skills/` from an archive after auto-backing up the current state |
 | `aweskill add <path> [--mode cp\|mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
 | `aweskill add --scan [--mode cp\|mv] [--override]` | Import scanned skills in batch |
 | `aweskill remove <skill> [--force]` | Remove a skill from the central repo (checks bundles + managed projections unless `--force`) |
@@ -91,6 +94,7 @@ aweskill check
 | `aweskill list bundles` | List bundles |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | Inspect agent skill directories (`linked` / `duplicate` / `new`) and optionally normalize with `--update` |
 | `aweskill rmdup [--remove] [--delete]` | Find duplicate central skills by numeric/version suffix; optionally move duplicates into `dup_skills/` or delete them |
+| `aweskill recover [--global] [--project [dir]] [--agent <agent>]` | Replace aweskill-managed symlink projections with full copied directories |
 | `aweskill enable bundle\|skill …` | Create projections (symlink or copy) under agent skills dirs; defaults to global scope and all detected agents |
 | `aweskill disable bundle\|skill … [--force]` | Remove **aweskill-managed** projections only; see **Disable skill and bundles** below |
 | `aweskill sync [--project <dir>]` | Remove stale managed projections whose central skill directory no longer exists |
@@ -120,11 +124,20 @@ aweskill scan --verbose
 # Scan and import in one step
 aweskill scan --add
 
+# Create a timestamped backup of ~/.aweskill/skills
+aweskill backup
+
+# Restore from an archive after automatically backing up the current skills
+aweskill restore ~/.aweskill/backup/skills-2026-04-12T19-20-00Z.tar.gz --override
+
 # Find duplicate central skills by versioned/numeric suffix
 aweskill rmdup
 
 # Move duplicate central skills into ~/.aweskill/dup_skills
 aweskill rmdup --remove
+
+# Convert global managed symlinks into full directories
+aweskill recover
 
 # Overwrite existing files instead of only merging missing ones
 aweskill scan --add --override
@@ -190,6 +203,7 @@ Import behavior:
 - Default `scan --add` and batch `add` merge only missing files when the central skill already exists; `--override` overwrites.
 - When the source is a symlink, aweskill copies from the resolved real path and may print a warning.
 - Broken symlinks during batch import are reported; other items continue.
+- `restore` automatically creates a fresh backup of the current `skills/` tree before applying the archive. By default it refuses to overwrite existing skill names; use `--override` to replace the current tree with the archive contents.
 
 Display behavior:
 
@@ -197,6 +211,10 @@ Display behavior:
 - `scan` shows per-agent totals by default; `--verbose` lists concrete scanned skills.
 - `check` categorizes `linked` (managed), `duplicate` (central exists but not managed here), `new` (not in central); `--verbose` lists all; `--update` imports/links per its implementation and prints a summary.
 - `rmdup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family, keeps the numerically largest versioned entry by default, and only modifies files when `--remove` is passed.
+
+## Templates
+
+Reference bundle templates live in [template/bundles/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/template/bundles/K-Dense-AI-scientific-skills.yaml). Runtime bundles still live under `~/.aweskill/bundles/`.
 
 ## Supported Agents
 

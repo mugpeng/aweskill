@@ -19,12 +19,14 @@ function emitMessage(line: string) {
 
   if (
     trimmed.startsWith("Created ")
+    || trimmed.startsWith("Backed up ")
     || trimmed.startsWith("Imported ")
     || trimmed.startsWith("Enabled ")
     || trimmed.startsWith("Disabled ")
     || trimmed.startsWith("Initialized ")
     || trimmed.startsWith("Deleted ")
     || trimmed.startsWith("Removed ")
+    || trimmed.startsWith("Recovered ")
     || trimmed.startsWith("Sync applied ")
   ) {
     p.log.success(trimmed);

@@ -24,6 +24,7 @@ export interface AweskillPaths {
   rootDir: string;
   skillsDir: string;
   dupSkillsDir: string;
+  backupDir: string;
   bundlesDir: string;
 }
 
