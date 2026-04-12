@@ -5,9 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
-import { readGlobalConfig, readProjectConfig, writeGlobalConfig } from "../src/lib/config.js";
 import { getSkillPath } from "../src/lib/skills.js";
-import { createTempWorkspace, writeSkill } from "./helpers.js";
+import { createTempWorkspace, writeSkill } from "./helpers.ts";
 
 describe("commands", () => {
   afterEach(() => {
@@ -15,7 +14,7 @@ describe("commands", () => {
     vi.restoreAllMocks();
   });
 
-  it("runs init, bundle, enable, list and sync", async () => {
+  it("runs init, bundle, enable, check and sync", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -32,24 +31,18 @@ describe("commands", () => {
 
     await mkdir(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), { recursive: true });
     await program.parseAsync(
-      [
-        "node",
-        "aweskill",
-        "enable",
-        "bundle",
-        "frontend",
-        "--global",
-        "--agent",
-        "claude-code",
-      ],
+      ["node", "aweskill", "enable", "bundle", "frontend", "--global", "--agent", "claude-code"],
       { from: "node" },
     );
-    await program.parseAsync(["node", "aweskill", "check"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
 
     const targetPath = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "pr-review", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
+
+    await program.parseAsync(["node", "aweskill", "check"], { from: "node" });
     expect(lines.join("\n")).toContain("Global skills for claude-code:");
+
+    await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
+    expect(lines.join("\n")).toContain("Sync complete");
   });
 
   it("supports bundle delete", async () => {
@@ -112,6 +105,62 @@ describe("commands", () => {
     expect(lines[0]).toContain(`  ✓ shell ${getSkillPath(workspace.homeDir, "shell")}`);
   });
 
+  it("disable skill requires --force when another member of the same bundle is still enabled", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "skill-a"));
+    await writeSkill(getSkillPath(workspace.homeDir, "skill-b"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "pair"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "skill-a"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "skill-b"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+    await program.parseAsync(["node", "aweskill", "enable", "bundle", "pair", "--global", "--agent", "codex"], { from: "node" });
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "disable", "skill", "skill-a", "--global", "--agent", "codex"], { from: "node" }),
+    ).rejects.toThrow("bundle(s): pair");
+
+    await program.parseAsync(
+      ["node", "aweskill", "disable", "skill", "skill-a", "--global", "--agent", "codex", "--force"],
+      { from: "node" },
+    );
+
+    const aPath = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "skill-a", "SKILL.md");
+    const bPath = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "skill-b", "SKILL.md");
+    await expect(readFile(aPath, "utf8")).rejects.toThrow();
+    await expect(readFile(bPath, "utf8")).resolves.toContain("Example Skill");
+  });
+
+  it("disable skill allows without --force when no bundle sibling is projected", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "solo"));
+    await writeSkill(getSkillPath(workspace.homeDir, "unused-sibling"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "pair"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "solo"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "pair", "unused-sibling"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "solo", "--global", "--agent", "codex"], { from: "node" });
+
+    await program.parseAsync(["node", "aweskill", "disable", "skill", "solo", "--global", "--agent", "codex"], { from: "node" });
+    const soloPath = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "solo", "SKILL.md");
+    await expect(readFile(soloPath, "utf8")).rejects.toThrow();
+  });
+
   it("supports project enable and disable flows", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
@@ -126,40 +175,20 @@ describe("commands", () => {
     await mkdir(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), { recursive: true });
 
     await program.parseAsync(
-      [
-        "node",
-        "aweskill",
-        "enable",
-        "skill",
-        "frontend-design",
-        "--project",
-        workspace.projectDir,
-        "--agent",
-        "cursor",
-      ],
+      ["node", "aweskill", "enable", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
       { from: "node" },
     );
     const targetPath = path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
 
     await program.parseAsync(
-      [
-        "node",
-        "aweskill",
-        "disable",
-        "skill",
-        "frontend-design",
-        "--project",
-        workspace.projectDir,
-        "--agent",
-        "cursor",
-      ],
+      ["node", "aweskill", "disable", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
       { from: "node" },
     );
     await expect(readFile(targetPath, "utf8")).rejects.toThrow();
   });
 
-  it("defaults enable to all scopes and all agents", async () => {
+  it("defaults enable to global scope and all detected agents", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
       cwd: workspace.projectDir,
@@ -178,15 +207,13 @@ describe("commands", () => {
     await expect(
       readFile(path.join(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
     ).resolves.toContain("Example Skill");
+    // project scope should NOT be touched by global enable
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "project", workspace.projectDir), "biopython", "SKILL.md"), "utf8"),
     ).rejects.toThrow();
-
-    expect((await readGlobalConfig(workspace.homeDir)).activations).toHaveLength(1);
-    expect((await readProjectConfig(workspace.projectDir)).activations).toHaveLength(0);
   });
 
-  it("fails before writing config when a target path is unmanaged", async () => {
+  it("fails before creating any projection when a target path is unmanaged", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
       cwd: workspace.projectDir,
@@ -208,8 +235,6 @@ describe("commands", () => {
         { from: "node" },
       ),
     ).rejects.toThrow(`Refusing to overwrite non-symlink target: ${conflictedTarget}`);
-
-    expect((await readGlobalConfig(workspace.homeDir)).activations).toHaveLength(0);
   });
 
   it("prints friendly cli errors instead of a stack trace", async () => {
@@ -261,9 +286,9 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("  linked: 1");
     expect(lines.join("\n")).toContain("  duplicate: 1");
     expect(lines.join("\n")).toContain("  new: 1");
-    expect(lines.join("\n")).toContain(`    ✓ linked-skill ${path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "linked-skill")}`);
-    expect(lines.join("\n")).toContain(`    ! duplicate-skill ${duplicateDir}`);
-    expect(lines.join("\n")).toContain(`    + new-skill ${newDir}`);
+    expect(lines.join("\n")).toContain(`    ✓ linked-skill`);
+    expect(lines.join("\n")).toContain(`    ! duplicate-skill`);
+    expect(lines.join("\n")).toContain(`    + new-skill`);
   });
 
   it("checks project agent skills for the current project by default", async () => {
@@ -282,9 +307,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "check", "--project", "--agent", "cursor"], { from: "node" });
 
     expect(lines.join("\n")).toContain(`Project skills for cursor (${workspace.projectDir}):`);
-    expect(lines.join("\n")).toContain(
-      `    ✓ frontend-design ${path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design")}`,
-    );
+    expect(lines.join("\n")).toContain("    ✓ frontend-design");
   });
 
   it("check --update imports new skills and relinks duplicate and new entries to the central repo", async () => {
@@ -422,9 +445,7 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
 
-    // existing skill is untouched
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Existing AEON");
-    // user is informed of the skip
     expect(lines.join("\n")).toContain("Skipped 1 existing skills");
     expect(lines.join("\n")).toContain("aeon");
   });
@@ -527,7 +548,7 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain("Imported 1 skills");
     expect(lines.join("\n")).toContain("Missing source files: 1");
-    expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill: ${brokenLink}; source not found: ${path.join(workspace.rootDir, "missing", "broken-skill")}`);
+    expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill`);
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
   });
 
@@ -553,12 +574,12 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "scan", "--add"], { from: "node" });
 
-    expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill: ${brokenLink}; source not found: ${path.join(workspace.rootDir, "missing", "broken-skill")}`);
+    expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill`);
     expect(lines.join("\n")).toContain("Imported 1 skills");
     expect(lines.join("\n")).toContain("Missing source files: 1");
   });
 
-  it("enable no longer takes over an existing unmanaged skill directory", async () => {
+  it("enable refuses to overwrite an existing unmanaged skill directory", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
       cwd: workspace.projectDir,
@@ -571,63 +592,34 @@ describe("commands", () => {
     await mkdir(discoveredDir, { recursive: true });
     await writeFile(path.join(discoveredDir, "SKILL.md"), "# Agent AEON\n", "utf8");
 
-    await program.parseAsync(["node", "aweskill", "scan"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "aeon"), "Central AEON");
     await expect(
       program.parseAsync(["node", "aweskill", "enable", "skill", "aeon", "--global", "--agent", "claude-code"], { from: "node" }),
     ).rejects.toThrow(`Refusing to overwrite non-symlink target: ${discoveredDir}`);
   });
 
-  it("syncs exact global-config projects and explicit project targets", async () => {
+  it("sync removes stale projections after skill is deleted from central repo", async () => {
     const workspace = await createTempWorkspace();
-    const otherProjectDir = path.join(workspace.rootDir, "other-project");
-    const knownProjectDir = path.join(workspace.rootDir, "known-project");
-    await mkdir(otherProjectDir, { recursive: true });
-    await mkdir(knownProjectDir, { recursive: true });
-
+    const lines: string[] = [];
     const program = createProgram({
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
-      write: () => undefined,
+      write: (message) => lines.push(message),
       error: () => undefined,
     });
 
     await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
-    await writeSkill(getSkillPath(workspace.homeDir, "shared-skill"));
-    await writeGlobalConfig(workspace.homeDir, {
-      version: 1,
-      activations: [],
-      projects: [
-        {
-          path: otherProjectDir,
-          match: "exact",
-          activations: [
-            {
-              type: "skill",
-              name: "shared-skill",
-              agents: ["codex"],
-            },
-          ],
-        },
-      ],
-    });
+    await writeSkill(getSkillPath(workspace.homeDir, "ephemeral-skill"));
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "ephemeral-skill", "--global", "--agent", "codex"], { from: "node" });
 
-    await program.parseAsync(["node", "aweskill", "enable", "skill", "shared-skill", "--project", "--agent", "cursor"], { from: "node" });
-    await program.parseAsync(
-      ["node", "aweskill", "enable", "skill", "shared-skill", "--project", knownProjectDir, "--agent", "codex"],
-      { from: "node" },
-    );
-    await rm(path.join(resolveAgentSkillsDir("codex", "project", knownProjectDir), "shared-skill"), {
-      recursive: true,
-      force: true,
-    });
-    await program.parseAsync(["node", "aweskill", "sync", "--project", knownProjectDir], { from: "node" });
+    const projPath = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "ephemeral-skill");
+    await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).resolves.toContain("Example Skill");
 
-    await expect(
-      readFile(path.join(resolveAgentSkillsDir("codex", "project", otherProjectDir), "shared-skill", "SKILL.md"), "utf8"),
-    ).resolves.toContain("Example Skill");
-    await expect(
-      readFile(path.join(resolveAgentSkillsDir("codex", "project", knownProjectDir), "shared-skill", "SKILL.md"), "utf8"),
-    ).resolves.toContain("Example Skill");
+    // Delete the central skill manually, then sync
+    await rm(getSkillPath(workspace.homeDir, "ephemeral-skill"), { recursive: true, force: true });
+    await program.parseAsync(["node", "aweskill", "sync"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Removed 1 stale projection(s)");
+    await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
   });
 });

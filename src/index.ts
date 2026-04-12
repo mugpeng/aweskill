@@ -65,7 +65,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   program
     .name("aweskill")
     .description("Local skill orchestration CLI for AI agents")
-    .version("0.1.0")
+    .version("0.1.1")
     .helpOption("-h, --help", "Display help");
 
   program
@@ -182,41 +182,62 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       );
     });
 
-  const registerActivationCommand = (name: "enable" | "disable") => {
-    program
-      .command(name)
-      .description(`${name === "enable" ? "Add" : "Remove"} an activation and reconcile`)
-      .argument("<type>", "bundle or skill", getActivationType)
-      .argument("<name>")
-      .option("--global", "apply to global scope (default when no scope flag given)")
-      .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
-      .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
-      .action(async (type, targetName, options) => {
-        const isProject = options.project !== undefined;
-        const scope: Scope = isProject ? "project" : "global";
-        const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
-        const payload = {
+  program
+    .command("enable")
+    .description("Create skill projections (symlinks/copies) in agent directories")
+    .argument("<type>", "bundle or skill", getActivationType)
+    .argument("<name>")
+    .option("--global", "apply to global scope (default when no scope flag given)")
+    .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
+    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .action(async (type, targetName, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill enable ", async () =>
+        runEnable(context, {
           type,
           name: targetName,
           scope,
           agents: options.agent ?? [],
           projectDir,
-        };
-        if (name === "enable") {
-          await runFramedCommand(" aweskill enable ", async () => runEnable(context, payload));
-          return;
-        }
-        await runFramedCommand(" aweskill disable ", async () => runDisable(context, payload));
-      });
-  };
+        }),
+      );
+    });
 
-  registerActivationCommand("enable");
-  registerActivationCommand("disable");
+  program
+    .command("disable")
+    .description("Remove skill projections (symlinks/copies) in agent directories")
+    .argument("<type>", "bundle or skill", getActivationType)
+    .argument("<name>")
+    .option("--global", "apply to global scope (default when no scope flag given)")
+    .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
+    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .option(
+      "--force",
+      "with skill: remove projection even when this skill is in a bundle that still has other members enabled here",
+      false,
+    )
+    .action(async (type, targetName, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill disable ", async () =>
+        runDisable(context, {
+          type,
+          name: targetName,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          force: options.force,
+        }),
+      );
+    });
 
   program
     .command("sync")
-    .description("Recompute global scope plus known projects")
-    .option("--project <dir>", "project dir to reconcile")
+    .description("Remove stale managed projections whose source skill no longer exists")
+    .option("--project <dir>", "also check this project directory")
     .action(async (options) => {
       await runFramedCommand(" aweskill sync ", async () => runSync(context, { projectDir: options.project }));
     });

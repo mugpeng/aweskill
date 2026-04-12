@@ -6,17 +6,19 @@
 
 ## 项目定位
 
-`aweskill` 用一个统一的中央仓库 `~/.aweskill` 管理 Skills，通过 YAML 配置定义 bundle 和 activation，再把技能以 `symlink` 或 `copy` 的方式投影到不同 agent 的技能目录里。
+`aweskill` 在 **`~/.aweskill/skills/`** 维护统一的技能内容，在 **`~/.aweskill/bundles/*.yaml`** 中可选地定义 **bundle**，再按各 agent 的规则把技能 **投影**到对应 `skills` 目录：**多为 symlink，Cursor 等为 copy**。
 
-当前 CLI 仍然保留现有的 `runXxx + RuntimeContext` 分层结构，但终端 UX 已尽量向 `aweskill_cc` 靠拢，使用了 `@clack/prompts` 和 `picocolors`。
+**没有全局 activation 配置文件**：是否启用 =目标路径上是否存在 **由 aweskill 创建的** symlink 或带标记的 copy；`disable` 只删除这类托管投影。
 
-当前实现尽量遵从 `aweskill-cli-design-v3.1.md` 的 MVP 范围：
+CLI 使用 `commander`、`@clack/prompts`、`picocolors`。
+
+目录约定：
 
 - 中央仓库：`~/.aweskill/skills/`
-- bundle 定义：`~/.aweskill/bundles/*.yaml`
-- 全局配置：`~/.aweskill/config.yaml`
-- 项目配置：`<project>/.aweskill.yaml`
-- 当前支持 agent：`amp`、`claude-code`、`cline`、`codex`、`cursor`、`gemini-cli`、`goose`、`opencode`、`roo`、`windsurf`
+- Bundle：`~/.aweskill/bundles/*.yaml`
+- 支持的 agent：`amp`、`claude-code`、`cline`、`codex`、`cursor`、`gemini-cli`、`goose`、`opencode`、`roo`、`windsurf`
+
+`init` 只创建 `skills/`、`bundles/` 等布局，**不会**生成或依赖 `~/.aweskill/config.yaml`。
 
 ## 安装
 
@@ -47,8 +49,10 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.0.tgz
+npm install -g ./aweskill-0.1.1.tgz
 ```
+
+（若 `package.json` 里版本号不同，请以实际打出来的 `.tgz` 文件名为准。）
 
 ## 快速开始
 
@@ -74,22 +78,29 @@ aweskill check
 
 | 命令 | 说明 |
 | --- | --- |
-| `aweskill init [--scan]` | 初始化 `~/.aweskill` 目录，必要时顺带扫描 |
-| `aweskill scan [--add] [--mode cp/mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选直接导入 |
-| `aweskill add <path> [--mode cp/mv] [--override]` | 导入单个 skill 目录或整个 skills 根目录到中央仓库 |
+| `aweskill init [--scan]` | 初始化 `~/.aweskill`（`skills/`、`bundles/` 等），可选扫描 |
+| `aweskill scan [--add] [--mode cp/mv] [--override]` | 扫描已支持 agent 的 skill 目录，并可选导入中央仓库 |
+| `aweskill add <path> [--mode cp/mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
 | `aweskill add --scan [--mode cp/mv] [--override]` | 批量导入扫描结果 |
-| `aweskill remove <skill> [--force]` | 删除 skill，默认先做引用检查 |
+| `aweskill remove <skill> [--force]` | 从中央仓库删除 skill（默认检查 bundle 与托管投影，可用 `--force`） |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
-| `aweskill bundle add-skill <bundle> <skill>` | 给 bundle 增加一个中央仓库中已存在的 skill |
-| `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 删除 skill |
+| `aweskill bundle add-skill <bundle> <skill>` | 向 bundle 增加已存在于中央仓库的 skill |
+| `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 移除 skill |
 | `aweskill bundle delete <name>` | 删除 bundle |
-| `aweskill list skills [--verbose]` | 列出中央仓库中的 skills，并显示总数；默认只展示简短预览 |
-| `aweskill list bundles` | 列出 bundles |
-| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查选定 agent 技能目录，显示各类别统计，并可选按中央仓库归一化更新 |
-| `aweskill enable bundle/skill …` | 写入 activation 并自动 reconcile；默认等价于 `--global --agent all` |
-| `aweskill disable bundle/skill …` | 删除 activation 并自动 reconcile；默认等价于 `--global --agent all` |
-| `aweskill sync [--project <dir>]` | 重算全局范围和已知项目，并修复派生投影 |
+| `aweskill list skills [--verbose]` | 列出中央仓库中的 skills 及总数；默认简短预览 |
+| `aweskill list bundles` | 列出所有 bundle |
+| `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查 agent 技能目录（`linked` / `duplicate` / `new`），`--update` 可按需归一化 |
+| `aweskill enable bundle/skill …` | 在 agent 目录下创建 symlink或 copy；默认全局 + 所有已检测到的 agent |
+| `aweskill disable bundle/skill … [--force]` | 删除 **托管** 投影；单独 `disable skill` 见下文 |
+| `aweskill sync [--project <dir>]` | 中央仓库里 skill 已不存在时，清理仍指向它的托管投影 |
+
+## `disable skill` 与 bundle
+
+- **`disable bundle <name>`**：把 bundle 展开成多个 skill，对当前命令中的 scope/agent 逐个删除托管投影。
+- **`disable skill <name>`**：只删这一项。若该 skill 出现在某个 bundle 里，且在**同一 scope、同一批 agent** 下 **同一 bundle 里还有其他 skill 仍处于托管投影状态**，命令会 **报错** 并提示使用 **`--force`**，或改用 `disable bundle …` 整包卸载。
+
+`enable bundle` 只是一次性展开写入磁盘，**没有**单独的「bundle 激活记录」可编辑。
 
 ## 使用示例
 
@@ -117,65 +128,35 @@ aweskill bundle add-skill backend db-schema
 # 在项目范围内启用单个 skill
 aweskill enable skill pr-review --project /path/to/repo --agent cursor
 
-# 在全局和当前项目范围内为所有 agent 启用 skill
+# 全局范围内为所有已检测到的 agent 启用 skill
 aweskill enable skill biopython
 
-# 在全局范围内为所有已检测到的 agent 启用 bundle
+# 全局启用整个 bundle
 aweskill enable bundle backend --global --agent all
 
 # 检查某个全局 agent 目录
 aweskill check --agent codex
 
-# 显示完整条目，而不是默认的简短预览
+# 显示完整条目
 aweskill check --agent codex --verbose
 
 # 检查并归一化某个项目范围的 agent 目录
 aweskill check --project /path/to/repo --agent cursor --update
 
-# 仅检查某个项目范围的 agent 目录
-aweskill check --project /path/to/repo --agent cursor
-
-# 禁用项目级 activation
+# 禁用项目下的单个 skill（若与仍启用的 bundle 成员冲突，需加 --force）
 aweskill disable skill pr-review --project /path/to/repo --agent cursor
 
-# 修复投影
+# 在仍有同 bundle 其他 skill 启用时，强制只卸掉这一项
+aweskill disable skill my-skill --global --agent codex --force
+
+# 中央仓库已删 skill 后，清理 agent 目录里的失效投影
+aweskill sync
 aweskill sync --project /path/to/repo
 ```
 
-## 配置示例
+## Bundle 文件格式
 
-### 全局配置
-
-```yaml
-version: 1
-
-activations:
-  - type: bundle
-    name: backend
-    agents: [claude-code, codex]
-    scope: global
-
-projects:
-  - path: /Users/peng/work/frontend-app
-    match: exact
-    activations:
-      - type: bundle
-        name: frontend
-        agents: [claude-code, cursor]
-```
-
-### 项目配置
-
-```yaml
-version: 1
-
-activations:
-  - type: skill
-    name: pr-review
-    agents: [cursor]
-```
-
-### bundle 文件
+`~/.aweskill/bundles/<name>.yaml` 示例：
 
 ```yaml
 name: frontend
@@ -184,32 +165,16 @@ skills:
   - frontend-design
 ```
 
-## 投影模型
+## 投影模型（以文件系统为准）
 
-`aweskill` 把 agent 技能目录视为派生状态。
+1. **技能内容**以 `~/.aweskill/skills/<skill-name>/` 为准。
+2. **`enable`** 在指定 scope（全局家目录或项目根）与 agent 下创建 symlink 或 copy。
+3. **`disable`** 只删除 **aweskill 托管** 项（指向中央仓库的 symlink，或带标记的 copy 目录）。
+4. **`sync`** 会检查：全局家目录、传入的 `--project`、以及 **当前工作目录若存在 `.aweskill.yaml` 则把 cwd 当作项目根一并检查**（该文件仅作「此目录参与 sync」的标记，**不会**从中读取 activation 列表）。若中央仓库中对应 skill 目录已不存在，则删除相关托管投影。
 
-1. 读取全局 activation
-2. 读取 `config.yaml` 中命中的项目规则
-3. 读取项目 `.aweskill.yaml`
-4. 将 bundle 展开为 skills
-5. 计算 `(skill × agent × target-dir)`
-6. 创建或删除 `symlink` / `copy`
+**不再**根据某个全局 YAML 里的 activation 列表做 reconcile。
 
-所以 `enable`、`disable`、`sync` 的本质都是“改配置后 reconcile”，而不是直接对 agent 目录做手工修改。
-
-导入行为：
-
-- 默认的 `scan --add` 和 `add --scan` 在中央仓库已存在同名 skill 时，只补缺失文件，不覆盖已有文件
-- `--override` 会覆盖已有文件
-- 当源是 symlink 时，aweskill 会解析到真实源目录进行复制，并在 warning 中打印两条路径
-- 如果扫描到的 symlink 已损坏，批量导入会对该 skill 打印 error，继续处理其他项，并在最后输出缺失源数量
-
-显示行为：
-
-- `list skills` 会显示中央仓库 skill 总数，默认只预览前几个条目
-- `check` 会显示 `linked`、`duplicate`、`new` 各类别的统计，默认每类只预览前几个条目
-- `list skills` 和 `check` 都可以加 `--verbose` 显示完整条目
-- `check --update` 结尾会额外汇总更新了哪些内容，以及跳过了哪些内容
+导入与展示行为与英文 README 中「Import behavior」「Display behavior」一致：合并/覆盖规则、`--verbose`、`check --update` 的汇总说明等。
 
 ## 当前支持的 Agent
 
@@ -225,27 +190,6 @@ skills:
 | `opencode` | `~/.opencode/skills/` | `<project>/.opencode/skills/` | `symlink` |
 | `roo` | `~/.roo/skills/` | `<project>/.roo/skills/` | `symlink` |
 | `windsurf` | `~/.windsurf/skills/` | `<project>/.windsurf/skills/` | `symlink` |
-
-## 与 v3.1 设计稿的符合度
-
-当前仓库已经覆盖设计稿中的核心 MVP 主路径：
-
-- 中央 skill 仓库
-- bundle 增删改查
-- 全局与项目 activation 配置
-- `exact / prefix / glob` 项目匹配
-- reconcile 驱动的派生投影
-- scan / import / remove 流程
-- 可安装的 CLI 包和 `aweskill` 命令
-- 针对存储、reconcile、命令流程的自动化测试
-
-当前 `sync` 的行为：
-
-- 总是重算全局范围
-- 如果传了 `--project`，会重算该项目
-- 如果当前工作目录存在 `.aweskill.yaml`，会重算当前项目
-- 会重算全局配置中声明的 `exact` 项目规则，前提是这些项目目录当前存在
-- 不会自动枚举所有可能命中的 `prefix` 或 `glob` 项目
 
 ## 开发
 
