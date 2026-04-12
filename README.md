@@ -108,6 +108,7 @@ aweskill check
 - `enable skill all` enables every skill in `~/.aweskill/skills/`; `enable bundle all` enables the union of all bundle members.
 - `aweskill enable <type> <name>` accepts `all` as `<name>`; the help text and missing-argument hint now mention it explicitly.
 - `disable skill all` removes all managed skill projections in the selected scope/agents; `disable bundle all` removes the union of all bundle members.
+- Batch-oriented commands also accept comma-separated names and treat them as a union, for example `enable skill biopython,scanpy` or `bundle add-template foo,bar`.
 
 `enable bundle` is a one-time expansion: there is no stored “bundle activation” to edit later beyond what’s on disk.
 
@@ -125,6 +126,9 @@ aweskill list bundles-template
 
 # Copy a built-in template bundle into ~/.aweskill/bundles
 aweskill bundle add-template K-Dense-AI-scientific-skills
+
+# Copy multiple template bundles at once
+aweskill bundle add-template K-Dense-AI-scientific-skills,temporary-science
 
 # Scan current project and global agent directories
 aweskill scan
@@ -163,6 +167,9 @@ aweskill enable skill pr-review --project /path/to/repo --agent cursor
 
 # Enable a skill globally for all detected agents
 aweskill enable skill biopython
+
+# Enable multiple skills at once
+aweskill enable skill biopython,scanpy --global --agent codex
 
 # Enable every central-repo skill for one agent
 aweskill enable skill all --global --agent codex

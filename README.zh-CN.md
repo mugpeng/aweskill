@@ -110,6 +110,7 @@ aweskill check
 - `enable skill all`：启用 `~/.aweskill/skills/` 下全部 skill；`enable bundle all`：启用所有 bundle 展开后的 skill 并集。
 - `aweskill enable <type> <name>` 的 `<name>` 现在明确支持 `all`，帮助信息和缺失参数提示都已同步。
 - `disable skill all`：删除所选 scope/agent 下全部托管 skill 投影；`disable bundle all`：删除所有 bundle 展开后的 skill 并集。
+- 这类批量命令也支持逗号分隔，并按“并集”处理，例如 `enable skill biopython,scanpy`、`bundle add-template foo,bar`。
 
 `enable bundle` 只是一次性展开写入磁盘，**没有**单独的「bundle 激活记录」可编辑。
 
@@ -127,6 +128,9 @@ aweskill list bundles-template
 
 # 把一个内置模板复制到 ~/.aweskill/bundles
 aweskill bundle add-template K-Dense-AI-scientific-skills
+
+# 一次性复制多个内置模板
+aweskill bundle add-template K-Dense-AI-scientific-skills,temporary-science
 
 # 扫描当前项目和全局 agent 目录
 aweskill scan
@@ -165,6 +169,9 @@ aweskill enable skill pr-review --project /path/to/repo --agent cursor
 
 # 全局范围内为所有已检测到的 agent 启用 skill
 aweskill enable skill biopython
+
+# 一次性启用多个 skill
+aweskill enable skill biopython,scanpy --global --agent codex
 
 # 为某个 agent 一次性启用中央仓库全部 skill
 aweskill enable skill all --global --agent codex

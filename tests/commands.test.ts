@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
 import { getSkillPath } from "../src/lib/skills.js";
+import { getTemplateBundlesDir } from "../src/lib/templates.js";
 import { createTempWorkspace, writeSkill } from "./helpers.ts";
 
 describe("commands", () => {
@@ -404,6 +405,29 @@ describe("commands", () => {
     ).resolves.toContain("Example Skill");
     await expect(
       readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "pymc", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+  });
+
+  it("supports comma-separated skill names for enable", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
+
+    await program.parseAsync(["node", "aweskill", "enable", "skill", "biopython,scanpy", "--global", "--agent", "codex"], { from: "node" });
+
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Example Skill");
+    await expect(
+      readFile(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "scanpy", "SKILL.md"), "utf8"),
     ).resolves.toContain("Example Skill");
   });
 
@@ -900,6 +924,59 @@ describe("commands", () => {
     const bundlePath = path.join(workspace.homeDir, ".aweskill", "bundles", "k-dense-ai-scientific-skills.yaml");
     await expect(readFile(bundlePath, "utf8")).resolves.toContain("name: k-dense-ai-scientific-skills");
     expect(lines.join("\n")).toContain("Added bundle k-dense-ai-scientific-skills from template");
+  });
+
+  it("bundle add-template supports comma-separated template names", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const templateBundlesDir = await getTemplateBundlesDir();
+    const temporaryTemplatePath = path.join(templateBundlesDir, "temporary-science.yaml");
+    await writeFile(temporaryTemplatePath, "name: temporary-science\nskills:\n  - example-skill\n", "utf8");
+
+    try {
+      await program.parseAsync(
+        ["node", "aweskill", "bundle", "add-template", "K-Dense-AI-scientific-skills,temporary-science"],
+        { from: "node" },
+      );
+
+      expect(lines.join("\n")).toContain("Added bundle k-dense-ai-scientific-skills from template");
+      expect(lines.join("\n")).toContain("Added bundle temporary-science from template");
+    } finally {
+      await rm(temporaryTemplatePath, { force: true });
+    }
+  });
+
+  it("bundle add-skill supports comma-separated bundles and skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "science-a,science-b"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science-a,science-b", "biopython,scanpy"], { from: "node" });
+
+    await expect(
+      readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "science-a.yaml"), "utf8"),
+    ).resolves.toContain("biopython");
+    await expect(
+      readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "science-b.yaml"), "utf8"),
+    ).resolves.toContain("scanpy");
+    expect(lines.join("\n")).toContain("Bundle science-a:");
+    expect(lines.join("\n")).toContain("Bundle science-b:");
   });
 
   it("rmdup reports duplicate groups without changing files by default", async () => {

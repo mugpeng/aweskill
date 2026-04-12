@@ -62,3 +62,10 @@ export function assertPathSafe(baseDir: string, targetPath: string): void {
 export function uniqueSorted<T>(items: T[]): T[] {
   return [...new Set(items)].sort() as T[];
 }
+
+export function splitCommaValues(input: string): string[] {
+  return input
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}

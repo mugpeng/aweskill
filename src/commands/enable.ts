@@ -4,7 +4,7 @@ import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgent
 import { listBundles, readBundle } from "../lib/bundles.js";
 import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
 import { assertProjectionTargetSafe, createSkillCopy, createSkillSymlink } from "../lib/symlink.js";
-import { sanitizeName, uniqueSorted } from "../lib/path.js";
+import { sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
@@ -35,10 +35,10 @@ async function resolveAgentsForScope(
   );
 }
 
-async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
-  const normalizedName = sanitizeName(name);
+async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string): Promise<string[]> {
+  const normalizedNames = uniqueSorted(splitCommaValues(names).map((name) => sanitizeName(name)));
 
-  if (normalizedName === "all") {
+  if (normalizedNames.includes("all")) {
     if (type === "bundle") {
       const bundles = await listBundles(context.homeDir);
       const skillNames = uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
@@ -55,20 +55,24 @@ async function resolveSkillNames(context: RuntimeContext, type: ActivationType, 
   }
 
   if (type === "bundle") {
-    const bundle = await readBundle(context.homeDir, normalizedName);
-    for (const skillName of bundle.skills) {
+    const bundles = await Promise.all(normalizedNames.map((bundleName) => readBundle(context.homeDir, bundleName)));
+    const skillNames = uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+    for (const skillName of skillNames) {
       if (!(await skillExists(context.homeDir, skillName))) {
-        throw new Error(`Bundle ${bundle.name} references unknown skill: ${skillName}`);
+        const bundle = bundles.find((candidate) => candidate.skills.includes(skillName));
+        throw new Error(`Bundle ${bundle?.name ?? "(unknown)"} references unknown skill: ${skillName}`);
       }
     }
-    return bundle.skills;
+    return skillNames;
   }
 
-  if (!(await skillExists(context.homeDir, normalizedName))) {
-    throw new Error(`Unknown skill: ${normalizedName}`);
+  for (const normalizedName of normalizedNames) {
+    if (!(await skillExists(context.homeDir, normalizedName))) {
+      throw new Error(`Unknown skill: ${normalizedName}`);
+    }
   }
 
-  return [normalizedName];
+  return normalizedNames;
 }
 
 export async function runEnable(
@@ -115,6 +119,7 @@ export async function runEnable(
   }
 
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
-  context.write(`Enabled ${options.type} ${sanitizeName(options.name)} for ${agents.join(", ")} in ${scopeLabel}${created.length > 0 ? ` (${created.length} created)` : ""}`);
+  const targetLabel = uniqueSorted(splitCommaValues(options.name).map((name) => sanitizeName(name))).join(", ");
+  context.write(`Enabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${created.length > 0 ? ` (${created.length} created)` : ""}`);
   return { agents, skillNames, created };
 }

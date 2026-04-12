@@ -1,6 +1,6 @@
 import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
-import { getAweskillPaths, sanitizeName, uniqueSorted } from "../lib/path.js";
+import { getAweskillPaths, sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
 import { skillExists } from "../lib/skills.js";
 import { listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
@@ -33,10 +33,10 @@ async function resolveAgentsForScope(
   );
 }
 
-async function resolveSkillNames(context: RuntimeContext, type: ActivationType, name: string): Promise<string[]> {
-  const normalizedName = sanitizeName(name);
+async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string): Promise<string[]> {
+  const normalizedNames = uniqueSorted(splitCommaValues(names).map((name) => sanitizeName(name)));
 
-  if (normalizedName === "all") {
+  if (normalizedNames.includes("all")) {
     if (type === "bundle") {
       const bundles = await listBundles(context.homeDir);
       return uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
@@ -60,16 +60,20 @@ async function resolveSkillNames(context: RuntimeContext, type: ActivationType, 
   }
 
   if (type === "bundle") {
-    const bundle = await readBundle(context.homeDir, normalizedName);
-    return bundle.skills;
+    const bundles = await Promise.all(normalizedNames.map((bundleName) => readBundle(context.homeDir, bundleName)));
+    return uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
   }
 
   // For disable we don't require the skill to still exist in central repo
-  if (!(await skillExists(context.homeDir, normalizedName))) {
-    return [normalizedName];
+  const resolvedNames: string[] = [];
+  for (const normalizedName of normalizedNames) {
+    if (!(await skillExists(context.homeDir, normalizedName))) {
+      resolvedNames.push(normalizedName);
+      continue;
+    }
+    resolvedNames.push(normalizedName);
   }
-
-  return [normalizedName];
+  return uniqueSorted(resolvedNames);
 }
 
 /**
@@ -127,7 +131,7 @@ export async function runDisable(
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
   const skillNames = await resolveSkillNames(context, options.type, options.name);
 
-  if (sanitizeName(options.name) === "all" && options.type === "skill") {
+  if (splitCommaValues(options.name).map((name) => sanitizeName(name)).includes("all") && options.type === "skill") {
     const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
     const scopedManaged = await Promise.all(
       agents.map(async (agentId) => {
@@ -171,6 +175,7 @@ export async function runDisable(
   }
 
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
-  context.write(`Disabled ${options.type} ${sanitizeName(options.name)} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`);
+  const targetLabel = uniqueSorted(splitCommaValues(options.name).map((name) => sanitizeName(name))).join(", ");
+  context.write(`Disabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`);
   return { agents, skillNames, removed };
 }
