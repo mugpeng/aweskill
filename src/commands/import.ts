@@ -2,7 +2,7 @@ import { importPath, importScannedSkills } from "../lib/import.js";
 import { scanSkills } from "../lib/scanner.js";
 import type { ImportMode, RuntimeContext } from "../types.js";
 
-export async function runAdd(
+export async function runImport(
   context: RuntimeContext,
   options: {
     sourcePath?: string;
@@ -42,7 +42,7 @@ export async function runAdd(
   }
 
   if (!options.sourcePath) {
-    throw new Error("add requires a source path or --scan");
+    throw new Error('import requires a source path or --scan');
   }
 
   const result = await importPath({

@@ -60,8 +60,8 @@ npm install -g ./aweskill-0.1.1.tgz
 # 1. Initialize the aweskill home
 aweskill init
 
-# 2. Add a local skill into the central repository
-aweskill add /path/to/my-skill --mode cp
+# 2. Import a local skill into the central repository
+aweskill import /path/to/my-skill --mode cp
 
 # 3. Create a bundle
 aweskill bundle create frontend
@@ -82,16 +82,18 @@ aweskill check
 | `aweskill scan [--add] [--mode cp\|mv] [--override] [--verbose]` | Scan supported agent skill directories and optionally import them |
 | `aweskill backup` | Create a timestamped `skills/` archive under `~/.aweskill/backup/` |
 | `aweskill restore <archive> [--override]` | Restore `skills/` from an archive after auto-backing up the current state |
-| `aweskill add <path> [--mode cp\|mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
-| `aweskill add --scan [--mode cp\|mv] [--override]` | Import scanned skills in batch |
+| `aweskill import <path> [--mode cp\|mv] [--override]` | Import one skill directory or one skills root directory into the central repo |
+| `aweskill import --scan [--mode cp\|mv] [--override]` | Import scanned skills in batch |
 | `aweskill remove <skill> [--force]` | Remove a skill from the central repo (checks bundles + managed projections unless `--force`) |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle show <name>` | Show bundle contents |
+| `aweskill bundle add-template <name>` | Copy a built-in template bundle into `~/.aweskill/bundles/` |
 | `aweskill bundle add-skill <bundle> <skill>` | Add an existing central-repo skill to a bundle |
 | `aweskill bundle remove-skill <bundle> <skill>` | Remove a skill from a bundle |
 | `aweskill bundle delete <name>` | Delete a bundle |
 | `aweskill list skills [--verbose]` | List central skills with totals; defaults to a short preview |
-| `aweskill list bundles` | List bundles |
+| `aweskill list bundles [--verbose]` | List central bundles with totals; defaults to a short preview |
+| `aweskill list bundles-template [--verbose]` | List built-in bundle templates under `template/bundles/` |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | Inspect agent skill directories (`linked` / `duplicate` / `new`) and optionally normalize with `--update` |
 | `aweskill rmdup [--remove] [--delete]` | Find duplicate central skills by numeric/version suffix; optionally move duplicates into `dup_skills/` or delete them |
 | `aweskill recover [--global] [--project [dir]] [--agent <agent>]` | Replace aweskill-managed symlink projections with full copied directories |
@@ -113,10 +115,16 @@ aweskill check
 
 ```bash
 # Import a skill by copying it into the central repo
-aweskill add ~/Downloads/pr-review --mode cp
+aweskill import ~/Downloads/pr-review --mode cp
 
 # Import all skills from a skills root directory
-aweskill add ~/.agents/skills
+aweskill import ~/.agents/skills
+
+# List built-in bundle templates
+aweskill list bundles-template
+
+# Copy a built-in template bundle into ~/.aweskill/bundles
+aweskill bundle add-template K-Dense-AI-scientific-skills
 
 # Scan current project and global agent directories
 aweskill scan

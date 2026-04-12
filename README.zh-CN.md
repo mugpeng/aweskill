@@ -63,7 +63,7 @@ npm install -g ./aweskill-0.1.1.tgz
 aweskill init
 
 # 2. 导入一个本地 skill 到中央仓库
-aweskill add /path/to/my-skill --mode cp
+aweskill import /path/to/my-skill --mode cp
 
 # 3. 创建 bundle
 aweskill bundle create frontend
@@ -84,16 +84,18 @@ aweskill check
 | `aweskill scan [--add] [--mode cp/mv] [--override] [--verbose]` | 扫描已支持 agent 的 skill 目录，并可选导入中央仓库 |
 | `aweskill backup` | 将 `skills/` 打包为带时间戳的备份文件，放到 `~/.aweskill/backup/` |
 | `aweskill restore <archive> [--override]` | 从备份归档恢复 `skills/`，恢复前会自动再备份当前状态 |
-| `aweskill add <path> [--mode cp/mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
-| `aweskill add --scan [--mode cp/mv] [--override]` | 批量导入扫描结果 |
+| `aweskill import <path> [--mode cp/mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
+| `aweskill import --scan [--mode cp/mv] [--override]` | 批量导入扫描结果 |
 | `aweskill remove <skill> [--force]` | 从中央仓库删除 skill（默认检查 bundle 与托管投影，可用 `--force`） |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
+| `aweskill bundle add-template <name>` | 将内置模板 bundle 复制到 `~/.aweskill/bundles/` |
 | `aweskill bundle add-skill <bundle> <skill>` | 向 bundle 增加已存在于中央仓库的 skill |
 | `aweskill bundle remove-skill <bundle> <skill>` | 从 bundle 移除 skill |
 | `aweskill bundle delete <name>` | 删除 bundle |
 | `aweskill list skills [--verbose]` | 列出中央仓库中的 skills 及总数；默认简短预览 |
-| `aweskill list bundles` | 列出所有 bundle |
+| `aweskill list bundles [--verbose]` | 列出中央仓库 bundle 及总数；默认简短预览 |
+| `aweskill list bundles-template [--verbose]` | 列出 `template/bundles/` 下自带的 bundle 模板 |
 | `aweskill check [--global] [--project [dir]] [--agent <agent>] [--update] [--verbose]` | 检查 agent 技能目录（`linked` / `duplicate` / `new`），`--update` 可按需归一化 |
 | `aweskill rmdup [--remove] [--delete]` | 检查中央仓库中带数字/版本后缀的重复 skills；可选移动到 `dup_skills/` 或直接删除 |
 | `aweskill recover [--global] [--project [dir]] [--agent <agent>]` | 将 aweskill 托管的 symlink 投影恢复成完整目录 |
@@ -115,10 +117,16 @@ aweskill check
 
 ```bash
 # 复制导入一个 skill
-aweskill add ~/Downloads/pr-review --mode cp
+aweskill import ~/Downloads/pr-review --mode cp
 
 # 一次性导入整个 skills 根目录
-aweskill add ~/.agents/skills
+aweskill import ~/.agents/skills
+
+# 列出内置 bundle 模板
+aweskill list bundles-template
+
+# 把一个内置模板复制到 ~/.aweskill/bundles
+aweskill bundle add-template K-Dense-AI-scientific-skills
 
 # 扫描当前项目和全局 agent 目录
 aweskill scan

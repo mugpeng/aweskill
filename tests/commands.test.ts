@@ -159,6 +159,50 @@ describe("commands", () => {
     expect(lines[0]).toContain(`  ✓ one-password ${getSkillPath(workspace.homeDir, "one-password")}`);
   });
 
+  it("lists bundles with preview by default and full details with --verbose", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await writeSkill(getSkillPath(workspace.homeDir, "scanpy"));
+    await writeSkill(getSkillPath(workspace.homeDir, "pymc"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "science"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "biopython"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "scanpy"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add-skill", "science", "pymc"], { from: "node" });
+
+    await program.parseAsync(["node", "aweskill", "list", "bundles"], { from: "node" });
+    expect(lines.join("\n")).toContain("Bundles in central repo: 1 total");
+    expect(lines.join("\n")).toContain("science: 3 skills -> biopython, pymc, scanpy");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "list", "bundles", "--verbose"], { from: "node" });
+    expect(lines.join("\n")).toContain("Bundles in central repo: 1 total");
+    expect(lines.join("\n")).toContain("science: 3 skills -> biopython, pymc, scanpy");
+  });
+
+  it("lists built-in bundle templates", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "list", "bundles-template"], { from: "node" });
+    expect(lines.join("\n")).toContain("Bundle templates:");
+    expect(lines.join("\n")).toContain("k-dense-ai-scientific-skills");
+  });
+
   it("list skills --verbose shows all skills without preview truncation", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -308,6 +352,26 @@ describe("commands", () => {
     await expect(program.parseAsync(["node", "aweskill", "enable", "skill"], { from: "node" })).rejects.toThrow(
       'Missing required argument <name>. Use a bundle or skill name, for example "my-bundle", "biopython", or "all".',
     );
+    await expect(program.parseAsync(["node", "aweskill", "check", "--agent"], { from: "node" })).rejects.toThrow(
+      'Option --agent <agent> argument missing. Use one or more supported agent ids, for example "codex" or "codex,cursor". Run "aweskill list agents" to see the supported agent list.',
+    );
+  });
+
+  it("lists supported agents", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "list", "agents"], { from: "node" });
+
+    expect(lines[0]).toBe("Supported agents:");
+    expect(lines).toContain("codex (Codex)");
+    expect(lines).toContain("cursor (Cursor)");
   });
 
   it("supports enable bundle all as the union of all bundle skills", async () => {
@@ -713,7 +777,7 @@ describe("commands", () => {
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Replacement AEON");
   });
 
-  it("single add copies from symlink source for cp and preserves the real source for mv", async () => {
+  it("single import copies from symlink source for cp and preserves the real source for mv", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -729,7 +793,7 @@ describe("commands", () => {
     await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
     await symlink(realDir, symlinkDir);
 
-    await program.parseAsync(["node", "aweskill", "add", symlinkDir, "--mode", "cp"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "import", symlinkDir, "--mode", "cp"], { from: "node" });
     expect(lines.join("\n")).toContain(`Warning: Source ${symlinkDir} is a symlink; copied from ${realDir}`);
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "linked-aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
 
@@ -740,12 +804,12 @@ describe("commands", () => {
       error: () => undefined,
     });
     await mkdir(path.join(workspace.rootDir, "other-home"), { recursive: true });
-    await mvProgram.parseAsync(["node", "aweskill", "add", symlinkDir, "--mode", "mv"], { from: "node" });
+    await mvProgram.parseAsync(["node", "aweskill", "import", symlinkDir, "--mode", "mv"], { from: "node" });
     await expect(readFile(path.join(realDir, "SKILL.md"), "utf8")).resolves.toContain("AEON");
     await expect(readFile(path.join(workspace.rootDir, "other-home", ".aweskill", "skills", "linked-aeon", "SKILL.md"), "utf8")).resolves.toContain("AEON");
   });
 
-  it("add imports all skills from a skills root directory", async () => {
+  it("import imports all skills from a skills root directory", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -759,14 +823,14 @@ describe("commands", () => {
     await writeSkill(path.join(skillsRoot, "shell"), "Shell Skill");
     await writeSkill(path.join(skillsRoot, "python"), "Python Skill");
 
-    await program.parseAsync(["node", "aweskill", "add", skillsRoot], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "import", skillsRoot], { from: "node" });
 
     expect(lines.join("\n")).toContain("Imported 2 skills");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "python"), "SKILL.md"), "utf8")).resolves.toContain("Python Skill");
   });
 
-  it("add from a skills root reports broken symlinks and continues", async () => {
+  it("import from a skills root reports broken symlinks and continues", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const errors: string[] = [];
@@ -786,7 +850,7 @@ describe("commands", () => {
     await symlink(validDir, validLink);
     await symlink(path.join(workspace.rootDir, "missing", "broken-skill"), brokenLink);
 
-    await program.parseAsync(["node", "aweskill", "add", skillsRoot], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "import", skillsRoot], { from: "node" });
 
     expect(lines.join("\n")).toContain("Imported 1 skills");
     expect(lines.join("\n")).toContain("Missing source files: 1");
@@ -819,6 +883,23 @@ describe("commands", () => {
     expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill`);
     expect(lines.join("\n")).toContain("Imported 1 skills");
     expect(lines.join("\n")).toContain("Missing source files: 1");
+  });
+
+  it("bundle add-template copies a built-in template into the central bundles directory", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "bundle", "add-template", "K-Dense-AI-scientific-skills"], { from: "node" });
+
+    const bundlePath = path.join(workspace.homeDir, ".aweskill", "bundles", "k-dense-ai-scientific-skills.yaml");
+    await expect(readFile(bundlePath, "utf8")).resolves.toContain("name: k-dense-ai-scientific-skills");
+    expect(lines.join("\n")).toContain("Added bundle k-dense-ai-scientific-skills from template");
   });
 
   it("rmdup reports duplicate groups without changing files by default", async () => {

@@ -3,20 +3,21 @@
 import { Command } from "commander";
 import { homedir } from "node:os";
 
-import { runAdd } from "./commands/add.js";
 import { runBackup } from "./commands/backup.js";
 import {
+  runBundleAddTemplate,
   runBundleAddSkill,
   runBundleCreate,
   runBundleDelete,
   runBundleRemoveSkill,
   runBundleShow,
 } from "./commands/bundle.js";
+import { runImport } from "./commands/import.js";
 import { runCheck } from "./commands/check.js";
 import { runDisable } from "./commands/disable.js";
 import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
-import { runListBundles, runListSkills } from "./commands/list.js";
+import { runListBundles, runListSkills, runListTemplateBundles } from "./commands/list.js";
 import { runRecover } from "./commands/recover.js";
 import { runRemove } from "./commands/remove.js";
 import { runRestore } from "./commands/restore.js";
@@ -64,6 +65,10 @@ function getActivationType(value: string): ActivationType {
 function formatCliErrorMessage(message: string): string {
   const match = message.match(/missing required argument '([^']+)'/i);
   if (!match) {
+    const optionMatch = message.match(/option '([^']+)' argument missing/i);
+    if (optionMatch?.[1] === "--agent <agent>") {
+      return "Option --agent <agent> argument missing. Use one or more supported agent ids, for example \"codex\" or \"codex,cursor\". Run \"aweskill list agents\" to see the supported agent list.";
+    }
     return message.replace(/^error:\s*/i, "");
   }
 
@@ -150,15 +155,15 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
 
   program
-    .command("add")
+    .command("import")
     .argument("[path]")
     .description("Import one skill or a skills root directory")
     .option("--scan", "import scanned skills", false)
     .option("--mode <mode>", "import mode: cp (default) or mv", getMode, "cp")
     .option("--override", "overwrite existing files when importing", false)
     .action(async (sourcePath, options) => {
-      await runFramedCommand(" aweskill add ", async () =>
-        runAdd(context, {
+      await runFramedCommand(" aweskill import ", async () =>
+        runImport(context, {
           sourcePath,
           scan: options.scan,
           mode: options.mode,
@@ -197,6 +202,9 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .action(async (bundleName, skillName) => {
       await runFramedCommand(" aweskill bundle add-skill ", async () => runBundleAddSkill(context, bundleName, skillName));
     });
+  bundle.command("add-template").argument("<name>").action(async (name) => {
+    await runFramedCommand(" aweskill bundle add-template ", async () => runBundleAddTemplate(context, name));
+  });
   bundle
     .command("remove-skill")
     .argument("<bundle>")
@@ -212,8 +220,29 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   list.command("skills").option("--verbose", "show all skills instead of a short preview", false).action(async (options) => {
     await runListSkills(context, { verbose: options.verbose });
   });
-  list.command("bundles").action(async () => {
-    await runListBundles(context);
+  list.command("bundles").option("--verbose", "show all bundles instead of a short preview", false).action(async (options) => {
+    await runListBundles(context, { verbose: options.verbose });
+  });
+  list.command("bundles-template").option("--verbose", "show all bundle templates instead of a short preview", false).action(async (options) => {
+    await runListTemplateBundles(context, { verbose: options.verbose });
+  });
+  list.command("agents").description("List supported agent ids and display names").action(async () => {
+    const lines = [
+      "Supported agents:",
+      "amp (Amp)",
+      "claude-code (Claude Code)",
+      "cline (Cline)",
+      "codex (Codex)",
+      "cursor (Cursor)",
+      "gemini-cli (Gemini CLI)",
+      "goose (Goose)",
+      "opencode (OpenCode)",
+      "roo (Roo Code)",
+      "windsurf (Windsurf)",
+    ];
+    for (const line of lines) {
+      context.write(line);
+    }
   });
 
   program
@@ -221,7 +250,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .description("Inspect agent skill directories and optionally normalize them")
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
-    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill list agents" to see supported ids', collectAgents)
     .option("--update", "import missing skills into the central repo and relink duplicates/new skills", false)
     .option("--verbose", "show all skills in each category instead of a short preview", false)
     .action(async (options) => {
@@ -246,7 +275,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("<name>", 'bundle or skill name, or "all"')
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
-    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill list agents" to see supported ids', collectAgents)
     .action(async (type, targetName, options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -269,7 +298,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("<name>")
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
-    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill list agents" to see supported ids', collectAgents)
     .option(
       "--force",
       "with skill: remove projection even when this skill is in a bundle that still has other members enabled here",
@@ -318,7 +347,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .description("Convert aweskill-managed symlink projections into full skill directories")
     .option("--global", "recover global scope (default when no scope flag given)")
     .option("--project [dir]", "recover project scope; uses cwd when dir is omitted")
-    .option("--agent <agent>", "repeat or use comma list; defaults to all", collectAgents)
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill list agents" to see supported ids', collectAgents)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
