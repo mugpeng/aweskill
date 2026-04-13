@@ -1,106 +1,203 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
 
 import type { AgentDefinition, AgentId, ProjectionMode, Scope } from "../types.js";
+import { pathExists } from "./fs.js";
+
+function defineAgent(
+  id: AgentId,
+  displayName: string,
+  options: {
+    defaultProjectionMode?: ProjectionMode;
+    rootDir: (homeDir: string) => string;
+    globalSkillsDir?: (homeDir: string) => string;
+    projectSkillsDir?: (projectDir: string) => string;
+  },
+): AgentDefinition {
+  return {
+    id,
+    displayName,
+    defaultProjectionMode: options.defaultProjectionMode ?? "symlink",
+    supportsGlobal: Boolean(options.globalSkillsDir),
+    supportsProject: Boolean(options.projectSkillsDir),
+    rootDir: options.rootDir,
+    globalSkillsDir: options.globalSkillsDir,
+    projectSkillsDir: options.projectSkillsDir,
+  };
+}
 
 const AGENTS: Record<AgentId, AgentDefinition> = {
-  amp: {
-    id: "amp",
-    displayName: "Amp",
-    defaultProjectionMode: "symlink",
-    rootDir: (homeDir) => path.join(homeDir, ".amp"),
-    globalSkillsDir: (homeDir) => path.join(homeDir, ".amp", "skills"),
-    projectSkillsDir: (projectDir) => path.join(projectDir, ".amp", "skills"),
-  },
-  "claude-code": {
-    id: "claude-code",
-    displayName: "Claude Code",
-    defaultProjectionMode: "symlink",
+  adal: defineAgent("adal", "AdaL", {
+    rootDir: (homeDir) => path.join(homeDir, ".adal"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".adal", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".adal", "skills"),
+  }),
+  amp: defineAgent("amp", "Amp", {
+    rootDir: (homeDir) => path.join(homeDir, ".agents"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".agents", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".agents", "skills"),
+  }),
+  antigravity: defineAgent("antigravity", "Antigravity", {
+    rootDir: (homeDir) => path.join(homeDir, ".gemini", "antigravity"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".gemini", "antigravity", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".gemini", "antigravity", "skills"),
+  }),
+  augment: defineAgent("augment", "Augment", {
+    rootDir: (homeDir) => path.join(homeDir, ".augment"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".augment", "rules"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".augment", "rules"),
+  }),
+  "claude-code": defineAgent("claude-code", "Claude Code", {
     rootDir: (homeDir) => path.join(homeDir, ".claude"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".claude", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".claude", "skills"),
-  },
-  cline: {
-    id: "cline",
-    displayName: "Cline",
-    defaultProjectionMode: "symlink",
+  }),
+  cline: defineAgent("cline", "Cline", {
     rootDir: (homeDir) => path.join(homeDir, ".cline"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".cline", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".cline", "skills"),
-  },
-  codex: {
-    id: "codex",
-    displayName: "Codex",
-    defaultProjectionMode: "symlink",
+  }),
+  codebuddy: defineAgent("codebuddy", "CodeBuddy", {
+    rootDir: (homeDir) => path.join(homeDir, ".codebuddy"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".codebuddy", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".codebuddy", "skills"),
+  }),
+  "command-code": defineAgent("command-code", "Command Code", {
+    rootDir: (homeDir) => path.join(homeDir, ".commandcode"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".commandcode", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".commandcode", "skills"),
+  }),
+  codex: defineAgent("codex", "Codex", {
     rootDir: (homeDir) => path.join(homeDir, ".codex"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".codex", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".codex", "skills"),
-  },
-  cursor: {
-    id: "cursor",
-    displayName: "Cursor",
-    defaultProjectionMode: "copy",
+  }),
+  copilot: defineAgent("copilot", "GitHub Copilot", {
+    rootDir: (homeDir) => path.join(homeDir, ".github"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".github", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".github", "skills"),
+  }),
+  crush: defineAgent("crush", "Crush", {
+    rootDir: (homeDir) => path.join(homeDir, ".config", "crush"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".config", "crush", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".config", "crush", "skills"),
+  }),
+  cursor: defineAgent("cursor", "Cursor", {
     rootDir: (homeDir) => path.join(homeDir, ".cursor"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".cursor", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".cursor", "skills"),
-  },
-  "gemini-cli": {
-    id: "gemini-cli",
-    displayName: "Gemini CLI",
-    defaultProjectionMode: "symlink",
+  }),
+  droid: defineAgent("droid", "Droid", {
+    rootDir: (homeDir) => path.join(homeDir, ".factory"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".factory", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".factory", "skills"),
+  }),
+  "gemini-cli": defineAgent("gemini-cli", "Gemini CLI", {
     rootDir: (homeDir) => path.join(homeDir, ".gemini"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".gemini", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".gemini", "skills"),
-  },
-  goose: {
-    id: "goose",
-    displayName: "Goose",
-    defaultProjectionMode: "symlink",
+  }),
+  goose: defineAgent("goose", "Goose", {
     rootDir: (homeDir) => path.join(homeDir, ".goose"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".goose", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".goose", "skills"),
-  },
-  opencode: {
-    id: "opencode",
-    displayName: "OpenCode",
-    defaultProjectionMode: "symlink",
+  }),
+  "kiro-cli": defineAgent("kiro-cli", "Kiro CLI", {
+    rootDir: (homeDir) => path.join(homeDir, ".kiro"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".kiro", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".kiro", "skills"),
+  }),
+  "kilo-code": defineAgent("kilo-code", "Kilo Code", {
+    rootDir: (homeDir) => path.join(homeDir, ".kilocode"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".kilocode", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".kilocode", "skills"),
+  }),
+  kode: defineAgent("kode", "Kode", {
+    rootDir: (homeDir) => path.join(homeDir, ".kode"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".kode", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".kode", "skills"),
+  }),
+  "mistral-vibe": defineAgent("mistral-vibe", "Mistral Vibe", {
+    rootDir: (homeDir) => path.join(homeDir, ".vibe"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".vibe", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".vibe", "skills"),
+  }),
+  mux: defineAgent("mux", "Mux", {
+    rootDir: (homeDir) => path.join(homeDir, ".mux"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".mux", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".mux", "skills"),
+  }),
+  neovate: defineAgent("neovate", "Neovate", {
+    rootDir: (homeDir) => path.join(homeDir, ".neovate"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".neovate", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".neovate", "skills"),
+  }),
+  openclaw: defineAgent("openclaw", "OpenClaw", {
+    rootDir: (homeDir) => path.join(homeDir, ".openclaw"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".openclaw", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".openclaw", "skills"),
+  }),
+  "openclaude-ide": defineAgent("openclaude-ide", "OpenClaude IDE", {
+    rootDir: (homeDir) => path.join(homeDir, ".openclaude"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".openclaude", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".openclaude", "skills"),
+  }),
+  openhands: defineAgent("openhands", "OpenHands", {
+    rootDir: (homeDir) => path.join(homeDir, ".openhands"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".openhands", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".openhands", "skills"),
+  }),
+  opencode: defineAgent("opencode", "OpenCode", {
     rootDir: (homeDir) => path.join(homeDir, ".opencode"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".opencode", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".opencode", "skills"),
-  },
-  roo: {
-    id: "roo",
-    displayName: "Roo Code",
-    defaultProjectionMode: "symlink",
+  }),
+  qoder: defineAgent("qoder", "Qoder", {
+    rootDir: (homeDir) => path.join(homeDir, ".qoder"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".qoder", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".qoder", "skills"),
+  }),
+  "qwen-code": defineAgent("qwen-code", "Qwen Code", {
+    rootDir: (homeDir) => path.join(homeDir, ".qwen"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".qwen", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".qwen", "skills"),
+  }),
+  replit: defineAgent("replit", "Replit", {
+    rootDir: (homeDir) => path.join(homeDir, ".config", "replit"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".agent", "skills"),
+  }),
+  roo: defineAgent("roo", "Roo Code", {
     rootDir: (homeDir) => path.join(homeDir, ".roo"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".roo", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".roo", "skills"),
-  },
-  windsurf: {
-    id: "windsurf",
-    displayName: "Windsurf",
-    defaultProjectionMode: "symlink",
-    rootDir: (homeDir) => path.join(homeDir, ".windsurf"),
-    globalSkillsDir: (homeDir) => path.join(homeDir, ".windsurf", "skills"),
-    projectSkillsDir: (projectDir) => path.join(projectDir, ".windsurf", "skills"),
-  },
+  }),
+  trae: defineAgent("trae", "Trae", {
+    rootDir: (homeDir) => path.join(homeDir, ".trae"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".trae", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".trae", "skills"),
+  }),
+  "trae-cn": defineAgent("trae-cn", "Trae CN", {
+    rootDir: (homeDir) => path.join(homeDir, ".trae-cn"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".trae-cn", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".trae-cn", "skills"),
+  }),
+  windsurf: defineAgent("windsurf", "Windsurf", {
+    rootDir: (homeDir) => path.join(homeDir, ".codeium", "windsurf"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".codeium", "windsurf", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".codeium", "windsurf", "skills"),
+  }),
 };
 
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function listSupportedAgents(): AgentDefinition[] {
-  return Object.values(AGENTS);
+  return Object.values(AGENTS).sort((left, right) => left.id.localeCompare(right.id));
 }
 
 export function listSupportedAgentIds(): AgentId[] {
-  return listSupportedAgents().map((agent) => agent.id).sort();
+  return listSupportedAgents().map((agent) => agent.id);
+}
+
+export function supportsScope(agentId: AgentId, scope: Scope): boolean {
+  const definition = getAgentDefinition(agentId);
+  return scope === "global" ? definition.supportsGlobal : definition.supportsProject;
 }
 
 export function isAgentId(value: string): value is AgentId {
@@ -113,9 +210,11 @@ export function getAgentDefinition(agentId: AgentId): AgentDefinition {
 
 export function resolveAgentSkillsDir(agentId: AgentId, scope: Scope, baseDir: string): string {
   const definition = getAgentDefinition(agentId);
-  return scope === "global"
-    ? definition.globalSkillsDir(baseDir)
-    : definition.projectSkillsDir(baseDir);
+  const resolver = scope === "global" ? definition.globalSkillsDir : definition.projectSkillsDir;
+  if (!resolver) {
+    throw new Error(`Agent ${agentId} does not support ${scope} scope.`);
+  }
+  return resolver(baseDir);
 }
 
 export function getProjectionMode(agentId: AgentId): ProjectionMode {
@@ -129,10 +228,12 @@ export async function detectInstalledAgents(options: {
   const installed: AgentId[] = [];
 
   for (const agent of listSupportedAgents()) {
-    const globalRootPath = agent.rootDir(options.homeDir);
-    const projectPath = options.projectDir ? agent.projectSkillsDir(options.projectDir) : null;
+    const globalRootPath = agent.supportsGlobal ? agent.rootDir(options.homeDir) : null;
+    const projectPath = agent.supportsProject && options.projectDir
+      ? resolveAgentSkillsDir(agent.id, "project", options.projectDir)
+      : null;
 
-    if (await pathExists(globalRootPath)) {
+    if (globalRootPath && (await pathExists(globalRootPath))) {
       installed.push(agent.id);
       continue;
     }
@@ -142,5 +243,5 @@ export async function detectInstalledAgents(options: {
     }
   }
 
-  return installed.sort();
+  return installed;
 }

@@ -83,6 +83,51 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(path.join(backupDir, entries[0]!));
   });
 
+  it("backs up skills and bundles to a user-provided archive path with --both", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const archivePath = path.join(workspace.projectDir, "exports", "store-backup.tar.gz");
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "backup-skill"), "Backup Skill");
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "backup-skill"], { from: "node" });
+
+    await program.parseAsync(["node", "aweskill", "store", "backup", archivePath, "--both"], { from: "node" });
+
+    await expect(access(archivePath)).resolves.toBeUndefined();
+    expect(lines.join("\n")).toContain(`Backed up skills and bundles to ${archivePath}`);
+  });
+
+  it("writes a timestamped archive into a user-provided directory", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const exportDir = path.join(workspace.projectDir, "exports");
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await mkdir(exportDir, { recursive: true });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "backup-skill"), "Backup Skill");
+
+    await program.parseAsync(["node", "aweskill", "store", "backup", exportDir], { from: "node" });
+
+    const entries = await readdir(exportDir);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatch(/^skills-.*\.tar\.gz$/);
+    expect(lines.join("\n")).toContain(path.join(exportDir, entries[0]!));
+  });
+
   it("restore refuses conflicting skills by default", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
@@ -134,6 +179,35 @@ describe("commands", () => {
     expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
     expect(lines.join("\n")).toContain("Restored 1 skills");
     expect(lines.join("\n")).toContain("Backed up current skills to");
+  });
+
+  it("restore --both restores bundles and backs up bundles too", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "restore-me"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup", "--both"], { from: "node" });
+
+    const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
+    const [archive] = await readdir(backupDir);
+
+    await rm(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), { force: true });
+    await writeSkill(getSkillPath(workspace.homeDir, "current-only"), "Current Only");
+
+    await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--both", "--override"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("restore-me");
+    expect(lines.join("\n")).toContain("Restored 1 skills and 1 bundles");
+    expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
   it("lists skills with aweskill_cc-style summary lines", async () => {
@@ -297,6 +371,10 @@ describe("commands", () => {
       ["node", "aweskill", "agent", "add", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
       { from: "node" },
     );
+    await expect(lstat(path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design"))).resolves.toMatchObject({
+      isSymbolicLink: expect.any(Function),
+    });
+    expect((await lstat(path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design"))).isSymbolicLink()).toBe(true);
     const targetPath = path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
 
@@ -371,8 +449,27 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "agent", "supported"], { from: "node" });
 
     expect(lines[0]).toBe("Supported agents:");
+    expect(lines).toContain("augment (Augment)");
     expect(lines).toContain("codex (Codex)");
     expect(lines).toContain("cursor (Cursor)");
+    expect(lines).toContain("replit (Replit)");
+  });
+
+  it("rejects global-only operations for project-only agents", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "frontend-design"));
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "agent", "add", "skill", "frontend-design", "--global", "--agent", "replit"], { from: "node" }),
+    ).rejects.toThrow("Agent replit does not support global scope.");
   });
 
   it("supports enable bundle all as the union of all bundle skills", async () => {
@@ -1139,7 +1236,7 @@ describe("commands", () => {
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
   });
 
-  it("recover converts managed symlinks into full directories and leaves managed copies alone", async () => {
+  it("recover converts managed symlinks into full directories", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1158,7 +1255,7 @@ describe("commands", () => {
     const cursorTarget = path.join(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), "recover-me");
 
     expect((await lstat(codexTarget)).isSymbolicLink()).toBe(true);
-    expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
+    expect((await lstat(cursorTarget)).isSymbolicLink()).toBe(true);
 
     await program.parseAsync(["node", "aweskill", "agent", "recover", "--global", "--agent", "codex,cursor"], { from: "node" });
 
@@ -1166,7 +1263,8 @@ describe("commands", () => {
     expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
     await expect(readFile(path.join(codexTarget, "SKILL.md"), "utf8")).resolves.toContain("Recover Me");
     await expect(readFile(path.join(cursorTarget, "SKILL.md"), "utf8")).resolves.toContain("Recover Me");
-    expect(lines.join("\n")).toContain("Recovered 1 skill projection(s)");
+    expect(lines.join("\n")).toContain("Recovered 2 skill projection(s)");
     expect(lines.join("\n")).toContain("codex:recover-me");
+    expect(lines.join("\n")).toContain("cursor:recover-me");
   });
 });

@@ -24,6 +24,8 @@ import { runRestore } from "./commands/restore.js";
 import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
+import { AWESKILL_VERSION } from "./lib/version.js";
+import { listSupportedAgents } from "./lib/agents.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
 import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
 import type { ActivationType, ImportMode, RuntimeContext, Scope } from "./types.js";
@@ -70,10 +72,10 @@ function formatCliErrorMessage(message: string): string {
       return "Option --agent <agent> argument missing. Use one or more supported agent ids, for example \"codex\" or \"codex,cursor\". Run \"aweskill agent supported\" to see the supported agent list.";
     }
     const normalizedMessage = message.replace(/^error:\s*/i, "");
-    const bundleFileMatch = normalizedMessage.match(/ENOENT: no such file or directory, open '([^']+\/bundles\/([^/'"]+)\.ya?ml)'/i);
+    const bundleFileMatch = normalizedMessage.match(/ENOENT: no such file or directory, open '([^']+\/(bundles|resources\/bundle_templates)\/([^/'"]+)\.ya?ml)'/i);
     if (bundleFileMatch) {
-      const bundleName = bundleFileMatch[2]!;
-      if (bundleFileMatch[1]?.includes("/template/bundles/")) {
+      const bundleName = bundleFileMatch[3]!;
+      if (bundleFileMatch[2] === "resources/bundle_templates") {
         return `Bundle template not found: ${bundleName}. Run "aweskill bundle template list" to see available bundle templates.`;
       }
       return `Bundle not found: ${bundleName}. Run "aweskill bundle list" to see available bundles.`;
@@ -104,16 +106,7 @@ function formatCliErrorMessage(message: string): string {
 function writeSupportedAgents(context: RuntimeContext): void {
   const lines = [
     "Supported agents:",
-    "amp (Amp)",
-    "claude-code (Claude Code)",
-    "cline (Cline)",
-    "codex (Codex)",
-    "cursor (Cursor)",
-    "gemini-cli (Gemini CLI)",
-    "goose (Goose)",
-    "opencode (OpenCode)",
-    "roo (Roo Code)",
-    "windsurf (Windsurf)",
+    ...listSupportedAgents().map((agent) => `${agent.id} (${agent.displayName})`),
   ];
   for (const line of lines) {
     context.write(line);
@@ -139,7 +132,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   program
     .name("aweskill")
     .description("Local skill orchestration CLI for AI agents")
-    .version("0.1.6")
+    .version(AWESKILL_VERSION)
     .helpOption("-h, --help", "Display help");
 
   const skill = program.command("skill").description("Manage skills in the central store");
@@ -352,20 +345,29 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
   store
     .command("backup")
+    .argument("[archive]")
     .description("Create a timestamped archive of the central skills repository")
-    .action(async () => {
-      await runFramedCommand(" aweskill store backup ", async () => runBackup(context));
+    .option("--both", "include bundle definitions in the backup archive", false)
+    .action(async (archivePath, options) => {
+      await runFramedCommand(" aweskill store backup ", async () =>
+        runBackup(context, {
+          archivePath,
+          includeBundles: options.both,
+        }),
+      );
     });
   store
     .command("restore")
     .argument("<archive>")
     .description("Restore skills from a backup archive and auto-back up the current skills first")
     .option("--override", "replace existing skills with the archive contents", false)
+    .option("--both", "restore bundle definitions and include them in the pre-restore backup", false)
     .action(async (archivePath, options) => {
       await runFramedCommand(" aweskill store restore ", async () =>
         runRestore(context, {
           archivePath,
           override: options.override,
+          includeBundles: options.both,
         }),
       );
     });

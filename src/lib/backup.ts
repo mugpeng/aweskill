@@ -1,8 +1,9 @@
-import { access, mkdtemp, mkdir } from "node:fs/promises";
+import { mkdtemp, mkdir, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
+import { pathExists } from "./fs.js";
 import { getAweskillPaths } from "./path.js";
 
 function formatTimestamp(date: Date): string {
@@ -23,23 +24,65 @@ async function runTar(args: string[]): Promise<void> {
   });
 }
 
-export async function createSkillsBackupArchive(homeDir: string): Promise<string> {
-  const { rootDir, skillsDir, backupDir } = getAweskillPaths(homeDir);
-  await mkdir(backupDir, { recursive: true });
+function formatBackupLabel(includeBundles: boolean): string {
+  return includeBundles ? "skills and bundles" : "skills";
+}
 
-  const archivePath = await nextBackupArchivePath(backupDir);
+function archiveEntries(homeDir: string, includeBundles: boolean) {
+  const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(homeDir);
+  return includeBundles
+    ? [path.relative(rootDir, skillsDir), path.relative(rootDir, bundlesDir)]
+    : [path.relative(rootDir, skillsDir)];
+}
 
-  await runTar(["-czf", archivePath, "-C", rootDir, path.relative(rootDir, skillsDir)]);
+export async function createSkillsBackupArchive(
+  homeDir: string,
+  options: {
+    archivePath?: string;
+    includeBundles?: boolean;
+  } = {},
+): Promise<string> {
+  const { rootDir, backupDir } = getAweskillPaths(homeDir);
+  const includeBundles = options.includeBundles ?? false;
+  const archivePath = await resolveBackupArchivePath(backupDir, options.archivePath);
+
+  await mkdir(path.dirname(archivePath), { recursive: true });
+
+  await runTar(["-czf", archivePath, "-C", rootDir, ...archiveEntries(homeDir, includeBundles)]);
   return archivePath;
 }
 
-export async function extractSkillsArchive(archivePath: string): Promise<{ tempDir: string; extractedSkillsDir: string }> {
+export async function extractSkillsArchive(archivePath: string): Promise<{
+  tempDir: string;
+  extractedSkillsDir: string;
+  extractedBundlesDir: string;
+}> {
   const tempDir = await mkdtemp(path.join(tmpdir(), "aweskill-restore-"));
   await runTar(["-xzf", archivePath, "-C", tempDir]);
   return {
     tempDir,
     extractedSkillsDir: path.join(tempDir, "skills"),
+    extractedBundlesDir: path.join(tempDir, "bundles"),
   };
+}
+
+export { formatBackupLabel };
+
+async function resolveBackupArchivePath(backupDir: string, requestedPath?: string): Promise<string> {
+  if (!requestedPath) {
+    return nextBackupArchivePath(backupDir);
+  }
+
+  try {
+    const requestedStats = await stat(requestedPath);
+    if (requestedStats.isDirectory()) {
+      return nextBackupArchivePath(requestedPath);
+    }
+  } catch {
+    // Treat missing paths as explicit archive filenames and let tar surface other filesystem errors.
+  }
+
+  return requestedPath;
 }
 
 async function nextBackupArchivePath(backupDir: string): Promise<string> {
@@ -56,14 +99,5 @@ async function nextBackupArchivePath(backupDir: string): Promise<string> {
       return candidate;
     }
     index += 1;
-  }
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
   }
 }

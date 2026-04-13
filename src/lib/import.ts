@@ -1,7 +1,8 @@
-import { access, cp, lstat, mkdir, readlink, readdir, rename, rm, stat } from "node:fs/promises";
+import { cp, lstat, mkdir, readlink, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { ImportMode, ImportResult, ScanCandidate } from "../types.js";
+import { pathExists } from "./fs.js";
 import { sanitizeName } from "./path.js";
 import { assertSkillSource, getSkillPath, skillExists } from "./skills.js";
 
@@ -14,15 +15,6 @@ class MissingSymlinkSourceError extends Error {
     this.name = "MissingSymlinkSourceError";
     this.sourcePath = sourcePath;
     this.resolvedSourcePath = resolvedSourcePath;
-  }
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
   }
 }
 

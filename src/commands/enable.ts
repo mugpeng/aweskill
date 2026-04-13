@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 
-import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir } from "../lib/agents.js";
+import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
 import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
 import { assertProjectionTargetSafe, createSkillCopy, createSkillSymlink } from "../lib/symlink.js";
@@ -22,13 +22,17 @@ async function resolveAgentsForScope(
       homeDir: context.homeDir,
       projectDir: scope === "project" ? projectDir : undefined,
     });
-    return detected.length > 0 ? detected : listSupportedAgentIds();
+    const candidates = detected.length > 0 ? detected : listSupportedAgentIds();
+    return candidates.filter((agentId) => supportsScope(agentId, scope));
   }
 
   return uniqueSorted(
     requestedAgents.map((agent) => {
       if (!isAgentId(agent)) {
         throw new Error(`Unsupported agent: ${agent}`);
+      }
+      if (!supportsScope(agent, scope)) {
+        throw new Error(`Agent ${agent} does not support ${scope} scope.`);
       }
       return agent;
     }),

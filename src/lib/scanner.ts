@@ -2,7 +2,8 @@ import { access, lstat, readdir, readlink } from "node:fs/promises";
 import path from "node:path";
 
 import type { ScanCandidate } from "../types.js";
-import { listSupportedAgents } from "./agents.js";
+import { listSupportedAgents, supportsScope } from "./agents.js";
+import { pathExists } from "./fs.js";
 import { sanitizeName } from "./path.js";
 
 async function hasSkillReadme(skillDir: string): Promise<boolean> {
@@ -17,15 +18,6 @@ async function hasSkillReadme(skillDir: string): Promise<boolean> {
 async function isSymlinkPath(targetPath: string): Promise<boolean> {
   try {
     return (await lstat(targetPath)).isSymbolicLink();
-  } catch {
-    return false;
-  }
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
   } catch {
     return false;
   }
@@ -85,9 +77,13 @@ export async function scanSkills(options: {
   const results: ScanCandidate[] = [];
 
   for (const agent of listSupportedAgents()) {
-    results.push(...(await scanDirectory(agent.globalSkillsDir(options.homeDir), agent.id, "global")));
+    if (supportsScope(agent.id, "global")) {
+      results.push(...(await scanDirectory(agent.globalSkillsDir!(options.homeDir), agent.id, "global")));
+    }
     for (const projectDir of options.projectDirs ?? []) {
-      results.push(...(await scanDirectory(agent.projectSkillsDir(projectDir), agent.id, "project", projectDir)));
+      if (supportsScope(agent.id, "project")) {
+        results.push(...(await scanDirectory(agent.projectSkillsDir!(projectDir), agent.id, "project", projectDir)));
+      }
     }
   }
 
