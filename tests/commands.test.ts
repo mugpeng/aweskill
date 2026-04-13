@@ -135,6 +135,50 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(path.join(backupDir, entries[0]!));
   });
 
+  it("shows the aweskill store root with store where", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "where"], { from: "node" });
+
+    expect(lines).toEqual([`aweskill store: ${path.join(workspace.homeDir, ".aweskill")}`]);
+  });
+
+  it("shows store directories and entry counts with store where --verbose", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "alpha"), "Alpha");
+    await writeSkill(getSkillPath(workspace.homeDir, "beta"), "Beta");
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "where", "--verbose"], { from: "node" });
+
+    const output = lines.join("\n");
+    expect(output).toContain(`aweskill store: ${path.join(workspace.homeDir, ".aweskill")}`);
+    expect(output).toContain(`  - skills: 2 entries -> ${path.join(workspace.homeDir, ".aweskill", "skills")}`);
+    expect(output).toContain(`  - dup_skills: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "dup_skills")}`);
+    expect(output).toContain(`  - backup: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "backup")}`);
+    expect(output).toContain(`  - bundles: 1 entry -> ${path.join(workspace.homeDir, ".aweskill", "bundles")}`);
+  });
+
   it("backs up skills and bundles to a user-provided archive path by default", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];

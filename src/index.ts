@@ -25,6 +25,7 @@ import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { runClean } from "./commands/clean.js";
+import { runStoreWhere } from "./commands/where.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
 import { listSupportedAgents } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
@@ -410,6 +411,13 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           includeBundles: options.skillsOnly ? false : options.both,
         }),
       );
+    });
+  store
+    .command("where")
+    .description("Show the aweskill store location and optionally summarize its contents")
+    .option("--verbose", "show core store directories and entry counts", false)
+    .action(async (options) => {
+      await runStoreWhere(context, { verbose: options.verbose });
     });
 
   const doctor = program.command("doctor").description("Diagnose and repair repository issues");
