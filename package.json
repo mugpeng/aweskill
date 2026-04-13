@@ -16,11 +16,11 @@
     "aweskill": "dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup --config config/tsup.config.ts",
     "dev": "tsx src/index.ts",
     "prepare": "npm run build",
     "prepack": "npm run build",
-    "test": "vitest run"
+    "test": "vitest run --config config/vitest.config.ts"
   },
   "engines": {
     "node": ">=20"
