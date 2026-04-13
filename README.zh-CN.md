@@ -10,7 +10,7 @@
   </p>
   <p>
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
-    <img src="https://img.shields.io/badge/agents-32_supported-0ea5a4?style=flat-square" alt="Supported agents">
+    <img src="https://img.shields.io/badge/agents-47_supported-0ea5a4?style=flat-square" alt="Supported agents">
     <img src="https://img.shields.io/badge/projection-symlink-1f2328?style=flat-square" alt="Projection mode">
     <img src="https://img.shields.io/badge/platform-local%20CLI-334155?style=flat-square" alt="Local CLI">
   </p>
@@ -113,7 +113,7 @@ aweskill agent list
 
 当前支持的 agent：
 
-`adal`、`amp`、`antigravity`、`augment`、`claude-code`、`cline`、`codebuddy`、`command-code`、`codex`、`copilot`、`crush`、`cursor`、`droid`、`gemini-cli`、`goose`、`kiro-cli`、`kilo-code`、`kode`、`mistral-vibe`、`mux`、`neovate`、`openclaw`、`openclaude-ide`、`openhands`、`opencode`、`qoder`、`qwen-code`、`replit`、`roo`、`trae`、`trae-cn`、`windsurf`
+`adal`、`amp`、`antigravity`、`augment`、`bob`、`claude-code`、`cline`、`codebuddy`、`command-code`、`continue`、`codex`、`copilot`、`cortex`、`crush`、`cursor`、`deepagents`、`droid`、`firebender`、`gemini-cli`、`github-copilot`、`goose`、`iflow-cli`、`junie`、`kilo`、`kilo-code`、`kimi-cli`、`kiro-cli`、`kode`、`mcpjam`、`mistral-vibe`、`mux`、`neovate`、`openclaw`、`openclaude-ide`、`openhands`、`opencode`、`pi`、`pochi`、`qoder`、`qwen-code`、`replit`、`roo`、`trae`、`trae-cn`、`warp`、`windsurf`、`zencoder`
 
 关键目录：
 
@@ -278,40 +278,64 @@ aweskill agent recover --global --agent codex
 
 ## 支持的 Agent
 
-| Agent | 全局路径 | 项目路径 | 投影方式 |
-| --- | --- | --- | --- |
-| `adal` | `~/.adal/skills/` | `<project>/.adal/skills/` | `symlink` |
-| `amp` | `~/.agents/skills/` | `<project>/.agents/skills/` | `symlink` |
-| `antigravity` | `~/.gemini/antigravity/skills/` | `<project>/.gemini/antigravity/skills/` | `symlink` |
-| `augment` | `~/.augment/rules/` | `<project>/.augment/rules/` | `symlink` |
-| `claude-code` | `~/.claude/skills/` | `<project>/.claude/skills/` | `symlink` |
-| `cline` | `~/.cline/skills/` | `<project>/.cline/skills/` | `symlink` |
-| `codebuddy` | `~/.codebuddy/skills/` | `<project>/.codebuddy/skills/` | `symlink` |
-| `command-code` | `~/.commandcode/skills/` | `<project>/.commandcode/skills/` | `symlink` |
-| `codex` | `~/.codex/skills/` | `<project>/.codex/skills/` | `symlink` |
-| `copilot` | `~/.github/skills/` | `<project>/.github/skills/` | `symlink` |
-| `crush` | `~/.config/crush/skills/` | `<project>/.config/crush/skills/` | `symlink` |
-| `cursor` | `~/.cursor/skills/` | `<project>/.cursor/skills/` | `symlink` |
-| `droid` | `~/.factory/skills/` | `<project>/.factory/skills/` | `symlink` |
-| `gemini-cli` | `~/.gemini/skills/` | `<project>/.gemini/skills/` | `symlink` |
-| `goose` | `~/.goose/skills/` | `<project>/.goose/skills/` | `symlink` |
-| `kiro-cli` | `~/.kiro/skills/` | `<project>/.kiro/skills/` | `symlink` |
-| `kilo-code` | `~/.kilocode/skills/` | `<project>/.kilocode/skills/` | `symlink` |
-| `kode` | `~/.kode/skills/` | `<project>/.kode/skills/` | `symlink` |
-| `mistral-vibe` | `~/.vibe/skills/` | `<project>/.vibe/skills/` | `symlink` |
-| `mux` | `~/.mux/skills/` | `<project>/.mux/skills/` | `symlink` |
-| `neovate` | `~/.neovate/skills/` | `<project>/.neovate/skills/` | `symlink` |
-| `openclaw` | `~/.openclaw/skills/` | `<project>/.openclaw/skills/` | `symlink` |
-| `openclaude-ide` | `~/.openclaude/skills/` | `<project>/.openclaude/skills/` | `symlink` |
-| `openhands` | `~/.openhands/skills/` | `<project>/.openhands/skills/` | `symlink` |
-| `opencode` | `~/.opencode/skills/` | `<project>/.opencode/skills/` | `symlink` |
-| `qoder` | `~/.qoder/skills/` | `<project>/.qoder/skills/` | `symlink` |
-| `qwen-code` | `~/.qwen/skills/` | `<project>/.qwen/skills/` | `symlink` |
-| `replit` | `-` | `<project>/.agent/skills/` | `symlink` |
-| `roo` | `~/.roo/skills/` | `<project>/.roo/skills/` | `symlink` |
-| `trae` | `~/.trae/skills/` | `<project>/.trae/skills/` | `symlink` |
-| `trae-cn` | `~/.trae-cn/skills/` | `<project>/.trae-cn/skills/` | `symlink` |
-| `windsurf` | `~/.codeium/windsurf/skills/` | `<project>/.codeium/windsurf/skills/` | `symlink` |
+支持 47 个 agent，包括：
+
+**Claude Code** · **Cursor** · **Windsurf** · **Codex** · **GitHub Copilot** · **Gemini CLI** · **OpenCode** · **Goose** · **Amp** · **Roo Code** · **Kiro CLI** · **Kilo Code** · **Trae** · **Cline** · **Antigravity** · **Droid** · **Augment** · **OpenClaw** · **CodeBuddy** · **Command Code** · **Crush** · **Kode** · **Mistral Vibe** · **Mux** · **OpenClaude IDE** · **OpenHands** · **Qoder** · **Qwen Code** · **Replit** · **Trae CN** · **Neovate** · **AdaL**
+
+<details>
+<summary>所有支持的 agent</summary>
+
+| Agent | 全局路径 | 项目路径 |
+| --- | --- | --- |
+| `adal` | `~/.adal/skills/` | `<project>/.adal/skills/` |
+| `amp` | `~/.agents/skills/` | `<project>/.agents/skills/` |
+| `antigravity` | `~/.gemini/antigravity/skills/` | `<project>/.gemini/antigravity/skills/` |
+| `augment` | `~/.augment/skills/` | `<project>/.augment/skills/` |
+| `bob` | `~/.bob/skills/` | `<project>/.bob/skills/` |
+| `claude-code` | `~/.claude/skills/` | `<project>/.claude/skills/` |
+| `cline` | `~/.cline/skills/` | `<project>/.cline/skills/` |
+| `codebuddy` | `~/.codebuddy/skills/` | `<project>/.codebuddy/skills/` |
+| `command-code` | `~/.commandcode/skills/` | `<project>/.commandcode/skills/` |
+| `continue` | `~/.continue/skills/` | `<project>/.continue/skills/` |
+| `codex` | `~/.codex/skills/` | `<project>/.codex/skills/` |
+| `copilot` | `~/.copilot/skills/` | `<project>/.copilot/skills/` |
+| `cortex` | `~/.snowflake/cortex/skills/` | `<project>/.cortex/skills/` |
+| `crush` | `~/.config/crush/skills/` | `<project>/.config/crush/skills/` |
+| `cursor` | `~/.cursor/skills/` | `<project>/.cursor/skills/` |
+| `deepagents` | `~/.deepagents/agent/skills/` | `<project>/.deepagents/agent/skills/` |
+| `droid` | `~/.factory/skills/` | `<project>/.factory/skills/` |
+| `firebender` | `~/.firebender/skills/` | `<project>/.firebender/skills/` |
+| `gemini-cli` | `~/.gemini/skills/` | `<project>/.gemini/skills/` |
+| `github-copilot` | `~/.copilot/skills/` | `<project>/.copilot/skills/` |
+| `goose` | `~/.goose/skills/` | `<project>/.goose/skills/` |
+| `iflow-cli` | `~/.iflow/skills/` | `<project>/.iflow/skills/` |
+| `junie` | `~/.junie/skills/` | `<project>/.junie/skills/` |
+| `kilo` | `~/.kilocode/skills/` | `<project>/.kilocode/skills/` |
+| `kiro-cli` | `~/.kiro/skills/` | `<project>/.kiro/skills/` |
+| `kilo-code` | `~/.kilocode/skills/` | `<project>/.kilocode/skills/` |
+| `kimi-cli` | `~/.kimi/skills/` | `<project>/.kimi/skills/` |
+| `kode` | `~/.kode/skills/` | `<project>/.kode/skills/` |
+| `mcpjam` | `~/.mcpjam/skills/` | `<project>/.mcpjam/skills/` |
+| `mistral-vibe` | `~/.vibe/skills/` | `<project>/.vibe/skills/` |
+| `mux` | `~/.mux/skills/` | `<project>/.mux/skills/` |
+| `neovate` | `~/.neovate/skills/` | `<project>/.neovate/skills/` |
+| `openclaw` | `~/.openclaw/skills/` | `<project>/.openclaw/skills/` |
+| `openclaude-ide` | `~/.openclaude/skills/` | `<project>/.openclaude/skills/` |
+| `openhands` | `~/.openhands/skills/` | `<project>/.openhands/skills/` |
+| `opencode` | `~/.opencode/skills/` | `<project>/.opencode/skills/` |
+| `pi` | `~/.pi/agent/skills/` | `<project>/.pi/agent/skills/` |
+| `pochi` | `~/.pochi/skills/` | `<project>/.pochi/skills/` |
+| `qoder` | `~/.qoder/skills/` | `<project>/.qoder/skills/` |
+| `qwen-code` | `~/.qwen/skills/` | `<project>/.qwen/skills/` |
+| `replit` | `-` | `<project>/.agent/skills/` |
+| `roo` | `~/.roo/skills/` | `<project>/.roo/skills/` |
+| `trae` | `~/.trae/skills/` | `<project>/.trae/skills/` |
+| `trae-cn` | `~/.trae-cn/skills/` | `<project>/.trae-cn/skills/` |
+| `warp` | `~/.warp/skills/` | `<project>/.warp/skills/` |
+| `windsurf` | `~/.codeium/windsurf/skills/` | `<project>/.codeium/windsurf/skills/` |
+| `zencoder` | `~/.zencoder/skills/` | `<project>/.zencoder/skills/` |
+
+</details>
 
 ## 开发
 

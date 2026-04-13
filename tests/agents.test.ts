@@ -12,20 +12,31 @@ describe("agents", () => {
       "amp",
       "antigravity",
       "augment",
+      "bob",
       "claude-code",
       "cline",
       "codebuddy",
       "codex",
       "command-code",
+      "continue",
       "copilot",
+      "cortex",
       "crush",
       "cursor",
+      "deepagents",
       "droid",
+      "firebender",
       "gemini-cli",
+      "github-copilot",
       "goose",
+      "iflow-cli",
+      "junie",
+      "kilo",
       "kilo-code",
+      "kimi-cli",
       "kiro-cli",
       "kode",
+      "mcpjam",
       "mistral-vibe",
       "mux",
       "neovate",
@@ -33,13 +44,17 @@ describe("agents", () => {
       "openclaw",
       "opencode",
       "openhands",
+      "pi",
+      "pochi",
       "qoder",
       "qwen-code",
       "replit",
       "roo",
       "trae",
       "trae-cn",
+      "warp",
       "windsurf",
+      "zencoder",
     ]);
   });
 
@@ -48,7 +63,9 @@ describe("agents", () => {
     expect(resolveAgentSkillsDir("gemini-cli", "global", "/tmp/home")).toContain(".gemini/skills");
     expect(getAgentDefinition("cursor").defaultProjectionMode).toBe("symlink");
     expect(getAgentDefinition("opencode").rootDir("/tmp/home")).toContain(".opencode");
-    expect(resolveAgentSkillsDir("augment", "global", "/tmp/home")).toContain(".augment/rules");
+    expect(resolveAgentSkillsDir("augment", "global", "/tmp/home")).toContain(".augment/skills");
+    expect(resolveAgentSkillsDir("github-copilot", "global", "/tmp/home")).toContain(".copilot/skills");
+    expect(resolveAgentSkillsDir("deepagents", "global", "/tmp/home")).toContain(".deepagents/agent/skills");
     expect(resolveAgentSkillsDir("replit", "project", "/tmp/project")).toContain(".agent/skills");
     expect(resolveAgentSkillsDir("windsurf", "global", "/tmp/home")).toContain(".codeium/windsurf/skills");
   });
@@ -58,6 +75,7 @@ describe("agents", () => {
     await mkdir(path.join(workspace.homeDir, ".codex"), { recursive: true });
     await mkdir(path.join(workspace.homeDir, ".gemini"), { recursive: true });
     await mkdir(path.join(workspace.homeDir, ".augment"), { recursive: true });
+    await mkdir(path.join(workspace.homeDir, ".bob"), { recursive: true });
     await mkdir(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), { recursive: true });
     await mkdir(resolveAgentSkillsDir("replit", "project", workspace.projectDir), { recursive: true });
 
@@ -66,6 +84,6 @@ describe("agents", () => {
       projectDir: workspace.projectDir,
     });
 
-    expect(installed).toEqual(["augment", "codex", "cursor", "gemini-cli", "replit"]);
+    expect(installed).toEqual(["augment", "bob", "codex", "cursor", "gemini-cli", "replit"]);
   });
 });

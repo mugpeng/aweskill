@@ -43,8 +43,13 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
   }),
   augment: defineAgent("augment", "Augment", {
     rootDir: (homeDir) => path.join(homeDir, ".augment"),
-    globalSkillsDir: (homeDir) => path.join(homeDir, ".augment", "rules"),
-    projectSkillsDir: (projectDir) => path.join(projectDir, ".augment", "rules"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".augment", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".augment", "skills"),
+  }),
+  bob: defineAgent("bob", "IBM Bob", {
+    rootDir: (homeDir) => path.join(homeDir, ".bob"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".bob", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".bob", "skills"),
   }),
   "claude-code": defineAgent("claude-code", "Claude Code", {
     rootDir: (homeDir) => path.join(homeDir, ".claude"),
@@ -66,15 +71,25 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
     globalSkillsDir: (homeDir) => path.join(homeDir, ".commandcode", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".commandcode", "skills"),
   }),
+  continue: defineAgent("continue", "Continue", {
+    rootDir: (homeDir) => path.join(homeDir, ".continue"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".continue", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".continue", "skills"),
+  }),
   codex: defineAgent("codex", "Codex", {
     rootDir: (homeDir) => path.join(homeDir, ".codex"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".codex", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".codex", "skills"),
   }),
   copilot: defineAgent("copilot", "GitHub Copilot", {
-    rootDir: (homeDir) => path.join(homeDir, ".github"),
-    globalSkillsDir: (homeDir) => path.join(homeDir, ".github", "skills"),
-    projectSkillsDir: (projectDir) => path.join(projectDir, ".github", "skills"),
+    rootDir: (homeDir) => path.join(homeDir, ".copilot"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".copilot", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".copilot", "skills"),
+  }),
+  cortex: defineAgent("cortex", "Cortex Code", {
+    rootDir: (homeDir) => path.join(homeDir, ".snowflake", "cortex"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".snowflake", "cortex", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".cortex", "skills"),
   }),
   crush: defineAgent("crush", "Crush", {
     rootDir: (homeDir) => path.join(homeDir, ".config", "crush"),
@@ -86,20 +101,50 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
     globalSkillsDir: (homeDir) => path.join(homeDir, ".cursor", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".cursor", "skills"),
   }),
+  deepagents: defineAgent("deepagents", "Deep Agents", {
+    rootDir: (homeDir) => path.join(homeDir, ".deepagents"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".deepagents", "agent", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".deepagents", "agent", "skills"),
+  }),
   droid: defineAgent("droid", "Droid", {
     rootDir: (homeDir) => path.join(homeDir, ".factory"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".factory", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".factory", "skills"),
+  }),
+  firebender: defineAgent("firebender", "Firebender", {
+    rootDir: (homeDir) => path.join(homeDir, ".firebender"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".firebender", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".firebender", "skills"),
   }),
   "gemini-cli": defineAgent("gemini-cli", "Gemini CLI", {
     rootDir: (homeDir) => path.join(homeDir, ".gemini"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".gemini", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".gemini", "skills"),
   }),
+  "github-copilot": defineAgent("github-copilot", "GitHub Copilot", {
+    rootDir: (homeDir) => path.join(homeDir, ".copilot"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".copilot", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".copilot", "skills"),
+  }),
   goose: defineAgent("goose", "Goose", {
     rootDir: (homeDir) => path.join(homeDir, ".goose"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".goose", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".goose", "skills"),
+  }),
+  "iflow-cli": defineAgent("iflow-cli", "iFlow CLI", {
+    rootDir: (homeDir) => path.join(homeDir, ".iflow"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".iflow", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".iflow", "skills"),
+  }),
+  junie: defineAgent("junie", "Junie", {
+    rootDir: (homeDir) => path.join(homeDir, ".junie"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".junie", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".junie", "skills"),
+  }),
+  kilo: defineAgent("kilo", "Kilo Code", {
+    rootDir: (homeDir) => path.join(homeDir, ".kilocode"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".kilocode", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".kilocode", "skills"),
   }),
   "kiro-cli": defineAgent("kiro-cli", "Kiro CLI", {
     rootDir: (homeDir) => path.join(homeDir, ".kiro"),
@@ -111,10 +156,20 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
     globalSkillsDir: (homeDir) => path.join(homeDir, ".kilocode", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".kilocode", "skills"),
   }),
+  "kimi-cli": defineAgent("kimi-cli", "Kimi Code CLI", {
+    rootDir: (homeDir) => path.join(homeDir, ".kimi"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".kimi", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".kimi", "skills"),
+  }),
   kode: defineAgent("kode", "Kode", {
     rootDir: (homeDir) => path.join(homeDir, ".kode"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".kode", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".kode", "skills"),
+  }),
+  mcpjam: defineAgent("mcpjam", "MCPJam", {
+    rootDir: (homeDir) => path.join(homeDir, ".mcpjam"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".mcpjam", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".mcpjam", "skills"),
   }),
   "mistral-vibe": defineAgent("mistral-vibe", "Mistral Vibe", {
     rootDir: (homeDir) => path.join(homeDir, ".vibe"),
@@ -151,6 +206,16 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
     globalSkillsDir: (homeDir) => path.join(homeDir, ".opencode", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".opencode", "skills"),
   }),
+  pi: defineAgent("pi", "Pi", {
+    rootDir: (homeDir) => path.join(homeDir, ".pi", "agent"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".pi", "agent", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".pi", "agent", "skills"),
+  }),
+  pochi: defineAgent("pochi", "Pochi", {
+    rootDir: (homeDir) => path.join(homeDir, ".pochi"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".pochi", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".pochi", "skills"),
+  }),
   qoder: defineAgent("qoder", "Qoder", {
     rootDir: (homeDir) => path.join(homeDir, ".qoder"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".qoder", "skills"),
@@ -180,10 +245,20 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
     globalSkillsDir: (homeDir) => path.join(homeDir, ".trae-cn", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".trae-cn", "skills"),
   }),
+  warp: defineAgent("warp", "Warp", {
+    rootDir: (homeDir) => path.join(homeDir, ".warp"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".warp", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".warp", "skills"),
+  }),
   windsurf: defineAgent("windsurf", "Windsurf", {
     rootDir: (homeDir) => path.join(homeDir, ".codeium", "windsurf"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".codeium", "windsurf", "skills"),
     projectSkillsDir: (projectDir) => path.join(projectDir, ".codeium", "windsurf", "skills"),
+  }),
+  zencoder: defineAgent("zencoder", "Zencoder", {
+    rootDir: (homeDir) => path.join(homeDir, ".zencoder"),
+    globalSkillsDir: (homeDir) => path.join(homeDir, ".zencoder", "skills"),
+    projectSkillsDir: (projectDir) => path.join(projectDir, ".zencoder", "skills"),
   }),
 };
 
