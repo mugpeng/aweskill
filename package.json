@@ -8,7 +8,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "template",
+    "resources",
     "README.md",
     "README.zh-CN.md"
   ],

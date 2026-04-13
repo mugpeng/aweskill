@@ -14,8 +14,8 @@ async function pathExists(targetPath: string): Promise<boolean> {
 export async function getTemplateBundlesDir(): Promise<string> {
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
-    path.resolve(moduleDir, "..", "..", "template", "bundles"),
-    path.resolve(moduleDir, "..", "template", "bundles"),
+    path.resolve(moduleDir, "..", "..", "resources", "bundle_templates"),
+    path.resolve(moduleDir, "..", "resources", "bundle_templates"),
   ];
 
   for (const candidate of candidates) {

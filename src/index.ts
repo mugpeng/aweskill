@@ -71,10 +71,10 @@ function formatCliErrorMessage(message: string): string {
       return "Option --agent <agent> argument missing. Use one or more supported agent ids, for example \"codex\" or \"codex,cursor\". Run \"aweskill agent supported\" to see the supported agent list.";
     }
     const normalizedMessage = message.replace(/^error:\s*/i, "");
-    const bundleFileMatch = normalizedMessage.match(/ENOENT: no such file or directory, open '([^']+\/bundles\/([^/'"]+)\.ya?ml)'/i);
+    const bundleFileMatch = normalizedMessage.match(/ENOENT: no such file or directory, open '([^']+\/(bundles|resources\/bundle_templates)\/([^/'"]+)\.ya?ml)'/i);
     if (bundleFileMatch) {
-      const bundleName = bundleFileMatch[2]!;
-      if (bundleFileMatch[1]?.includes("/template/bundles/")) {
+      const bundleName = bundleFileMatch[3]!;
+      if (bundleFileMatch[2] === "resources/bundle_templates") {
         return `Bundle template not found: ${bundleName}. Run "aweskill bundle template list" to see available bundle templates.`;
       }
       return `Bundle not found: ${bundleName}. Run "aweskill bundle list" to see available bundles.`;

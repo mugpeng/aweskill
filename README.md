@@ -121,6 +121,7 @@ Key directories:
 - Duplicate holding area: `~/.aweskill/dup_skills/`
 - Backup archive: `~/.aweskill/backup/`
 - Bundles: `~/.aweskill/bundles/*.yaml`
+- Repo resources: `resources/bundle_templates/` and `resources/skill_archives/`
 
 ## Common Workflows
 
@@ -249,9 +250,11 @@ aweskill agent remove bundle backend --global --agent codex
 aweskill agent recover --global --agent codex
 ```
 
-## Templates
+## Templates And Archives
 
-Reference bundle templates live in [template/bundles/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/template/bundles/K-Dense-AI-scientific-skills.yaml). Runtime bundles still live under `~/.aweskill/bundles/`.
+Reference bundle templates now live in [resources/bundle_templates/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/resources/bundle_templates/K-Dense-AI-scientific-skills.yaml). Runtime bundles still live under `~/.aweskill/bundles/`.
+
+`resources/skill_archives/` is reserved for repository-level `tar.gz` backups that you want to keep in-tree and share with other users. `aweskill` does not generate or restore these archives automatically.
 
 ## Supported Agents
 

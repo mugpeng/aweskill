@@ -121,6 +121,7 @@ aweskill agent list
 - 重复项暂存区：`~/.aweskill/dup_skills/`
 - 备份目录：`~/.aweskill/backup/`
 - Bundle 文件：`~/.aweskill/bundles/*.yaml`
+- 仓库资源目录：`resources/bundle_templates/` 和 `resources/skill_archives/`
 
 ## 常见工作流
 
@@ -248,6 +249,12 @@ aweskill agent remove bundle backend --global --agent codex
 # 把 symlink 投影恢复成完整目录
 aweskill agent recover --global --agent codex
 ```
+
+## 模板与归档
+
+内置 bundle 模板现在位于 [resources/bundle_templates/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/resources/bundle_templates/K-Dense-AI-scientific-skills.yaml)。运行时 bundle 仍然位于 `~/.aweskill/bundles/`。
+
+`resources/skill_archives/` 预留给你手动维护的整仓库 `tar.gz` 归档，用于随仓库分发给其他用户。`aweskill` 不会自动生成或恢复这些归档。
 
 ## 相关工具
 
