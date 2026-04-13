@@ -258,6 +258,8 @@ Reference bundle templates now live in [resources/bundle_templates/K-Dense-AI-sc
 
 `resources/skill_archives/` is reserved for repository-level `tar.gz` backups that you want to keep in-tree and share with other users. `aweskill` does not generate or restore these archives automatically.
 
+For a shareable archive collection maintained outside this repository, see [oh-my-skills](https://github.com/mugpeng/oh-my-skills), a separate backup repository for skill bundles and full-snapshot archives.
+
 ## Supported Agents
 
 | Agent | Global Path | Project Path | Mode |

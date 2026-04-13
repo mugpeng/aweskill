@@ -258,6 +258,8 @@ aweskill agent recover --global --agent codex
 
 `resources/skill_archives/` 预留给你手动维护的整仓库 `tar.gz` 归档，用于随仓库分发给其他用户。`aweskill` 不会自动生成或恢复这些归档。
 
+如果你希望使用一个独立于本仓库、可直接分享给其他用户的技能归档集合，可以参考 [oh-my-skills](https://github.com/mugpeng/oh-my-skills)。它是一个单独维护的备份仓库，用来存放可分发的 bundle 和整库快照归档。
+
 ## 相关工具
 
 如果你在关注更广的 skills 生态，下面这些项目都值得使用和研究：
