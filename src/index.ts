@@ -116,12 +116,22 @@ function writeSupportedAgents(context: RuntimeContext): void {
 function configureCommandTree(command: Command): void {
   command.showHelpAfterError();
   command.exitOverride((error) => {
-    throw new Error(formatCliErrorMessage(error.message));
+    error.message = formatCliErrorMessage(error.message);
+    throw error;
   });
 
   for (const child of command.commands) {
     configureCommandTree(child);
   }
+}
+
+function normalizeVersionAlias(argv: string[]): string[] {
+  return argv.map((arg, index) => {
+    if (index >= 2 && arg === "-V") {
+      return "-v";
+    }
+    return arg;
+  });
 }
 
 
@@ -132,7 +142,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   program
     .name("aweskill")
     .description("Local skill orchestration CLI for AI agents")
-    .version(AWESKILL_VERSION)
+    .version(AWESKILL_VERSION, "-v, --version", "output the version number")
     .helpOption("-h, --help", "Display help");
 
   const skill = program.command("skill").description("Manage skills in the central store");
@@ -394,8 +404,13 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 export async function main(argv = process.argv) {
   const program = createProgram();
   try {
-    await program.parseAsync(argv);
+    await program.parseAsync(normalizeVersionAlias(argv));
   } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+    if (code === "commander.version" || code === "commander.helpDisplayed") {
+      return;
+    }
+
     const message = error instanceof Error ? error.message : String(error);
     if (message === "(outputHelp)" || message === "outputHelp") {
       return;

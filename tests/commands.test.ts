@@ -62,6 +62,25 @@ describe("commands", () => {
     await expect(program.parseAsync(["node", "aweskill", "bundle", "show", "frontend"], { from: "node" })).rejects.toThrow();
   });
 
+  it("prints version for -V and -v without writing an error", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await main(["node", "aweskill", "-V"]);
+    expect(stdout).toHaveBeenCalledWith("0.1.8\n");
+    expect(stderr).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(0);
+
+    stdout.mockClear();
+    stderr.mockClear();
+    process.exitCode = 0;
+
+    await main(["node", "aweskill", "-v"]);
+    expect(stdout).toHaveBeenCalledWith("0.1.8\n");
+    expect(stderr).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(0);
+  });
+
   it("creates a timestamped backup archive under ~/.aweskill/backup", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
