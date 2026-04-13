@@ -3,7 +3,7 @@
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
   <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.8-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.9-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -42,7 +42,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.1.8
+npm install -g aweskill@0.1.9
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -68,7 +68,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.8.tgz
+npm install -g ./aweskill-0.1.9.tgz
 ```
 
 ## 快速开始
@@ -83,18 +83,21 @@ aweskill store where --verbose
 # 3. 扫描已有 agent 的 skill 目录
 aweskill skill scan
 
-# 4. 导入一个 skills 根目录或单个 skill
+# 4. 把扫描到的 agent skill 导入中央仓库
+aweskill skill import --scan
+
+# 5. 导入一个 skills 根目录或单个 skill
 aweskill skill import ~/.agents/skills
 # aweskill skill import /path/to/my-skill --link-source
 
-# 5. 创建 bundle
+# 6. 创建 bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 6. 为一个 agent 启用这个 bundle
+# 7. 为一个 agent 启用这个 bundle
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 7. 查看当前投影状态
+# 8. 查看当前投影状态
 aweskill agent list
 ```
 
@@ -140,39 +143,74 @@ aweskill agent add bundle frontend --global --agent codex
 ### 把现有 skill 导入中央仓库
 
 ```bash
+# 从现有 agent skill 目录导入
 aweskill skill import ~/.agents/skills
+
+# 导入外部 skill 目录，并保留原目录不变
 aweskill skill import ~/Downloads/pr-review
+
+# 导入外部 skill 目录，并把原目录替换成 aweskill 托管投影
 aweskill skill import ~/Downloads/pr-review --link-source
+
+# 导入扫描到的 agent skill，默认回写成 aweskill 托管投影
 aweskill skill import --scan
+
+# 导入扫描到的 agent skill，但保留原 agent 目录不变
 aweskill skill import --scan --keep-source
 ```
 
 ### 构建可复用 bundle
 
 ```bash
+# 创建一个可复用 bundle
 aweskill bundle create backend
+
+# 给 bundle 添加多个 skill
 aweskill bundle add backend api-design,db-schema
+
+# 查看 bundle 内容
 aweskill bundle show backend
 ```
 
 ### 把 skill 投影到多个 agent
 
 ```bash
+# 把一个 skill 投影到检测到的全局 agent 目录
 aweskill agent add skill biopython
+
+# 把多个 skill 投影到指定 agent 的全局目录
 aweskill agent add skill biopython,scanpy --global --agent codex
+
+# 把整个 bundle 投影到所有检测到的全局 agent
 aweskill agent add bundle backend --global --agent all
 ```
 
 ### 维护本地仓库
 
 ```bash
+# 查看中央仓库位置和目录统计
 aweskill store where --verbose
+
+# 备份当前 store
 aweskill store backup
+
+# 恢复备份归档
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
+
+# 删除中央仓库已不存在来源的托管投影
 aweskill agent sync
+
+# 把托管 symlink 恢复为完整目录
 aweskill agent recover --global --agent codex
+
+# 清理中央仓库里的可疑条目
 aweskill doctor clean
+
+# 把中央仓库里的重复 skill 移到 dup_skills
 aweskill doctor dedupe --apply
+
+# 把 agent 目录里的 duplicate 条目重新变成 aweskill 托管投影
+aweskill doctor relink --global --agent codex --apply
 ```
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
@@ -207,11 +245,12 @@ aweskill doctor dedupe --apply
 | `aweskill agent supported` | 列出支持的 agent id 和显示名 |
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
-| `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new` 状态 |
+| `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new`、`suspicious` 状态 |
 | `aweskill agent sync` | 删除失效托管投影 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | 查找并可选清理不规范的 store 条目 |
 | `aweskill doctor dedupe [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
+| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>]` | 查找 agent 目录里的 duplicate skill，并可选重新链接回中央仓库 |
 
 </details>
 

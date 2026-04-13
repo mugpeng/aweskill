@@ -1,7 +1,7 @@
 import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { importSkill } from "../lib/import.js";
 import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
-import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
+import { getSkillSuspicionReason, listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import { listManagedSkillNames, createSkillSymlink } from "../lib/symlink.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
@@ -39,13 +39,14 @@ async function resolveAgentsForScope(
   );
 }
 
-type CheckCategory = "linked" | "duplicate" | "new";
+export type CheckCategory = "linked" | "duplicate" | "new" | "suspicious";
 
 interface CheckedSkill {
   name: string;
   path: string;
   category: CheckCategory;
   hasSKILLMd: boolean;
+  suspicionReason?: string;
 }
 
 function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verbose = false): string[] {
@@ -58,6 +59,7 @@ function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verb
     { title: "  linked", marker: "✓", key: "linked" },
     { title: "  duplicate", marker: "!", key: "duplicate" },
     { title: "  new", marker: "+", key: "new" },
+    { title: "  suspicious", marker: "?", key: "suspicious" },
   ];
 
   for (const category of categories) {
@@ -73,6 +75,37 @@ function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verb
   }
 
   return lines;
+}
+
+export function classifyCheckedSkill(
+  skill: { name: string; path: string; hasSKILLMd: boolean },
+  managed: Map<string, "symlink" | "copy">,
+  centralSkills: Set<string>,
+): CheckedSkill {
+  const suspicionReason = getSkillSuspicionReason(skill);
+  if (suspicionReason) {
+    return {
+      name: skill.name,
+      path: skill.path,
+      category: "suspicious",
+      hasSKILLMd: skill.hasSKILLMd,
+      suspicionReason,
+    };
+  }
+
+  let category: CheckCategory = "new";
+  if (managed.has(skill.name)) {
+    category = "linked";
+  } else if (centralSkills.has(skill.name)) {
+    category = "duplicate";
+  }
+
+  return {
+    name: skill.name,
+    path: skill.path,
+    category,
+    hasSKILLMd: skill.hasSKILLMd,
+  };
 }
 
 export async function runCheck(
@@ -100,21 +133,7 @@ export async function runCheck(
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
     const managed = await listManagedSkillNames(skillsDir, getAweskillPaths(context.homeDir).skillsDir);
     const skills = await listSkillEntriesInDirectory(skillsDir);
-    const checked = skills.map((skill) => {
-      let category: CheckCategory = "new";
-      if (managed.has(skill.name)) {
-        category = "linked";
-      } else if (centralSkills.has(skill.name)) {
-        category = "duplicate";
-      }
-
-      return {
-        name: skill.name,
-        path: skill.path,
-        category,
-        hasSKILLMd: skill.hasSKILLMd,
-      } satisfies CheckedSkill;
-    });
+    const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, centralSkills));
 
     if (options.update) {
       for (const skill of checked) {
@@ -122,8 +141,11 @@ export async function runCheck(
           continue;
         }
 
-        if (!skill.hasSKILLMd) {
-          context.write(`Warning: Skipping ${agentId}:${skill.name}; missing SKILL.md in ${skill.path}`);
+        if (skill.category === "suspicious") {
+          const reason = skill.suspicionReason === "reserved-name"
+            ? `reserved skill name in ${skill.path}`
+            : `missing SKILL.md in ${skill.path}`;
+          context.write(`Warning: Skipping ${agentId}:${skill.name}; ${reason}`);
           skipped.push(`${agentId}:${skill.name}`);
           continue;
         }

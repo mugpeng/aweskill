@@ -1,5 +1,24 @@
 # change log
 
+## v0.1.9
+
+`v0.1.9` is the release where `aweskill` gets stricter about agent-side hygiene and adds a direct repair path for duplicate agent entries. Since `v0.1.8`, the CLI learned to classify suspicious agent skills before trying to import or relink them, and it now exposes a dedicated `doctor relink` command to turn duplicate agent directories back into managed projections.
+
+### This is the release where suspicious agent entries stop pretending to be valid skills.
+
+Agent-side checks now treat missing `SKILL.md` files and reserved names such as `.system` as `suspicious` instead of mixing them into normal duplicate or new-skill flows. That classification is shared across the core checking logic, `agent list`, and `agent list --update`, so the CLI skips unsafe entries consistently and emits clearer warnings about why they were ignored.
+
+### This is the release where duplicate agent directories get a dedicated repair command.
+
+`aweskill doctor relink` now finds duplicate skill directories that already exist in the central store and can replace them with managed symlinks when run with `--apply`. The new command is deliberately narrow: it only acts on `duplicate` entries, leaves suspicious directories untouched, and gives users a dry-run view before making changes.
+
+### Highlights
+
+- Added `aweskill doctor relink [--apply] [--global|--project [dir]] [--agent <agent>]`.
+- Added `suspicious` as an explicit agent-skill category for reserved names and entries missing `SKILL.md`.
+- Updated `agent list --update` to skip suspicious entries with clearer warnings.
+- Documented the new import defaults and agent-side hygiene rules in the README and contributing guide.
+
 ## v0.1.8
 
 `v0.1.8` is the release where `aweskill` nearly doubles its agent coverage. Since `v0.1.7`, the supported agent list grew from 32 to 47, the README got a more readable collapsible agent table, and a few existing agent paths were corrected to match upstream conventions.

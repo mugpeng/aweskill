@@ -3,7 +3,7 @@
   <h1>aweskill: One Skill Store for All Your Coding Agents</h1>
   <p><strong>Local skill orchestration CLI for AI coding agents.</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.8-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.9-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
@@ -42,7 +42,7 @@ aweskill --help
 To pin a specific release:
 
 ```bash
-npm install -g aweskill@0.1.8
+npm install -g aweskill@0.1.9
 ```
 
 Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -68,7 +68,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.8.tgz
+npm install -g ./aweskill-0.1.9.tgz
 ```
 
 ## Quick Start
@@ -83,18 +83,21 @@ aweskill store where --verbose
 # 3. Scan existing agent skill directories
 aweskill skill scan
 
-# 4. Import a skills root or a single skill
+# 4. Import scanned agent skills into the central store
+aweskill skill import --scan
+
+# 5. Import a skills root or a single skill
 aweskill skill import ~/.agents/skills
 # aweskill skill import /path/to/my-skill --link-source
 
-# 5. Create a bundle
+# 6. Create a bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 6. Enable the bundle for one agent
+# 7. Enable the bundle for one agent
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 7. Inspect current projected skills
+# 8. Inspect current projected skills
 aweskill agent list
 ```
 
@@ -140,39 +143,74 @@ Key directories:
 ### Import skills into the central store
 
 ```bash
+# Import skills from an existing agent-managed skills directory
 aweskill skill import ~/.agents/skills
+
+# Import a standalone skill folder and keep the original directory unchanged
 aweskill skill import ~/Downloads/pr-review
+
+# Import a standalone skill folder and replace the source with an aweskill-managed projection
 aweskill skill import ~/Downloads/pr-review --link-source
+
+# Import scanned agent skills and relink their source paths by default
 aweskill skill import --scan
+
+# Import scanned agent skills but keep the original agent directories unchanged
 aweskill skill import --scan --keep-source
 ```
 
 ### Build reusable bundles
 
 ```bash
+# Create a reusable bundle
 aweskill bundle create backend
+
+# Add multiple skills into the bundle
 aweskill bundle add backend api-design,db-schema
+
+# Inspect what the bundle contains
 aweskill bundle show backend
 ```
 
 ### Project skills into agents
 
 ```bash
+# Project one skill into detected global agent directories
 aweskill agent add skill biopython
+
+# Project multiple skills into one specific global agent directory
 aweskill agent add skill biopython,scanpy --global --agent codex
+
+# Project a whole bundle into every detected global agent directory
 aweskill agent add bundle backend --global --agent all
 ```
 
 ### Keep the store clean
 
 ```bash
+# Inspect the central store layout and entry counts
 aweskill store where --verbose
+
+# Create a backup archive of the current store
 aweskill store backup
+
+# Restore a backup archive into the current store
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
+
+# Remove stale managed projections whose central source is gone
 aweskill agent sync
+
+# Turn managed symlinks back into full directories
 aweskill agent recover --global --agent codex
+
+# Remove suspicious entries from the central store
 aweskill doctor clean
+
+# Move duplicate central-store skills into dup_skills
 aweskill doctor dedupe --apply
+
+# Relink duplicate agent entries back to aweskill-managed projections
+aweskill doctor relink --global --agent codex --apply
 ```
 
 By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
@@ -207,11 +245,12 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill agent supported` | List supported agent ids and display names |
 | `aweskill agent add bundle\|skill ...` | Project managed skills into agent directories |
 | `aweskill agent remove bundle\|skill ... [--force]` | Remove managed projections |
-| `aweskill agent list [...]` | Inspect linked, duplicate, and new entries |
+| `aweskill agent list [...]` | Inspect linked, duplicate, new, and suspicious entries |
 | `aweskill agent sync` | Remove stale managed projections |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | Find and optionally remove suspicious non-store entries |
 | `aweskill doctor dedupe [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
+| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>]` | Find duplicate agent skill entries and optionally relink them to the central store |
 
 </details>
 

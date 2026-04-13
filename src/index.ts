@@ -26,6 +26,7 @@ import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { runClean } from "./commands/clean.js";
 import { runStoreWhere } from "./commands/where.js";
+import { runRelink } from "./commands/relink.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
 import { listSupportedAgents } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
@@ -276,7 +277,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--update", "import missing skills into the central store and relink duplicates/new skills", false)
+    .option("--update", "import missing skills into the central store and relink duplicate/new skills while skipping suspicious entries", false)
     .option("--verbose", "show all skills in each category instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
@@ -441,6 +442,26 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
         runRmdup(context, {
           apply: options.apply,
           delete: options.delete,
+        }),
+      );
+    });
+  doctor
+    .command("relink")
+    .description("Find duplicate agent skill entries and optionally relink them to the central store")
+    .option("--apply", "replace duplicate agent skill entries with aweskill-managed projections", false)
+    .option("--global", "check global scope (default when no scope flag given)")
+    .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill doctor relink ", async () =>
+        runRelink(context, {
+          apply: options.apply,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
         }),
       );
     });

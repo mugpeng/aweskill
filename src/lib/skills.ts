@@ -5,6 +5,8 @@ import type { SkillEntry } from "../types.js";
 import { pathExists } from "./fs.js";
 import { getAweskillPaths, sanitizeName } from "./path.js";
 
+export type SkillSuspicionReason = "missing-skill-md" | "reserved-name";
+
 export async function ensureHomeLayout(homeDir: string): Promise<void> {
   const paths = getAweskillPaths(homeDir);
   await mkdir(paths.rootDir, { recursive: true });
@@ -54,4 +56,16 @@ export async function assertSkillSource(sourcePath: string): Promise<void> {
 
 export async function skillExists(homeDir: string, skillName: string): Promise<boolean> {
   return pathExists(getSkillPath(homeDir, skillName));
+}
+
+export function getSkillSuspicionReason(skill: Pick<SkillEntry, "name" | "hasSKILLMd">): SkillSuspicionReason | null {
+  if (!skill.hasSKILLMd) {
+    return "missing-skill-md";
+  }
+
+  if (skill.name.startsWith(".")) {
+    return "reserved-name";
+  }
+
+  return null;
 }

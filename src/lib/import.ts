@@ -86,7 +86,7 @@ interface BatchImportSource {
   path: string;
 }
 
-interface BatchImportSummary {
+export interface BatchImportSummary {
   imported: string[];
   skipped: string[];
   overwritten: string[];

@@ -45,7 +45,7 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (trimmed.startsWith("linked:") || trimmed.startsWith("duplicate:") || trimmed.startsWith("new:")) {
+  if (trimmed.startsWith("linked:") || trimmed.startsWith("duplicate:") || trimmed.startsWith("new:") || trimmed.startsWith("suspicious:")) {
     console.log(pc.dim(trimmed));
     return;
   }
@@ -95,13 +95,13 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (line.startsWith("    ✓ ") || line.startsWith("    ! ") || line.startsWith("    + ")) {
+  if (line.startsWith("    ✓ ") || line.startsWith("    ! ") || line.startsWith("    + ") || line.startsWith("    ? ")) {
     const marker = line.slice(4, 5);
     const rest = line.slice(6);
     const firstSpace = rest.indexOf(" ");
     const name = firstSpace === -1 ? rest : rest.slice(0, firstSpace);
     const location = firstSpace === -1 ? "" : rest.slice(firstSpace + 1);
-    const coloredMarker = marker === "✓" ? pc.green("✓") : marker === "!" ? pc.yellow("!") : pc.cyan("+");
+    const coloredMarker = marker === "✓" ? pc.green("✓") : marker === "!" ? pc.yellow("!") : marker === "?" ? pc.red("?") : pc.cyan("+");
     console.log(`    ${coloredMarker} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
     return;
   }

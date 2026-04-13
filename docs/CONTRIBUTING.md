@@ -155,9 +155,12 @@ There is no separate global activation registry. The projected filesystem state 
 
 ### Import behavior
 
-- Default `skill import --scan` and batch `skill import` merge only missing files when the central skill already exists
-- `--override` overwrites existing central content
-- If the import source is a symlink, `aweskill` copies from the resolved real path and may emit a warning
+- `skill import --scan` defaults to `--link-source`
+- `skill import <path>` defaults to `--keep-source`
+- `--link-source` replaces the source path with an aweskill-managed projection after importing
+- `--keep-source` leaves the source path in place after importing
+- `--keep-source` and `--link-source` are mutually exclusive and should error when both are passed
+- When a source path is a symlink, `aweskill` copies from the resolved real path and may emit a warning
 - Broken symlinks during batch import are reported while other items continue
 - `restore` creates a fresh backup of the current store before applying the archive
 - `restore` accepts either a backup archive or an unpacked directory containing `skills/`
@@ -202,9 +205,14 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 
 - `skill list` shows totals and a short preview unless `--verbose`
 - `skill scan` shows per-agent totals by default and concrete entries with `--verbose`
-- `agent list` categorizes entries as `linked`, `duplicate`, and `new`
+- `agent list` categorizes entries as `linked`, `duplicate`, `new`, and `suspicious`
+- `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
+  - the directory or link is missing `SKILL.md`
+  - the skill name is reserved, such as names that begin with `.`
 - `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
 - `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
+- `doctor relink` is the user-facing repair command for duplicate agent skill entries
+- `doctor relink` should only act on `duplicate` entries and must skip `suspicious` entries
 - `backup` and `restore` report suspicious entries they skipped
 
 ### Projection examples
@@ -237,6 +245,17 @@ aweskill agent recover --global --agent codex
 ### Managed-only removal
 
 `aweskill` removes only entries it can identify as its own managed projections. It does not blindly delete arbitrary directories in user-owned skill roots.
+
+### Agent-side hygiene
+
+When reading agent skill directories, contributors should use the same notion of validity across all consumers:
+
+- entries missing `SKILL.md` are suspicious
+- reserved or hidden skill names such as `.system` are suspicious
+- suspicious entries should not be imported, relinked, or counted as new skills
+- warning text should explain why the entry was skipped
+
+This rule should stay consistent across `agent list`, `agent list --update`, `doctor relink`, and any future agent-side maintenance flow.
 
 ### Small command surface
 
