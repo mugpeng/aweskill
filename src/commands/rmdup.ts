@@ -3,10 +3,10 @@ import type { RuntimeContext } from "../types.js";
 
 export async function runRmdup(
   context: RuntimeContext,
-  options: { remove?: boolean; delete?: boolean },
+  options: { apply?: boolean; delete?: boolean },
 ) {
-  if (options.delete && !options.remove) {
-    throw new Error("--delete requires --remove");
+  if (options.delete && !options.apply) {
+    throw new Error("--delete requires --apply");
   }
 
   const duplicates = await findDuplicateSkills(context.homeDir);
@@ -27,7 +27,7 @@ export async function runRmdup(
 
   let moved: string[] = [];
   let deleted: string[] = [];
-  if (options.remove) {
+  if (options.apply) {
     const result = await removeDuplicateSkills(context.homeDir, duplicates, { delete: options.delete });
     moved = result.moved;
     deleted = result.deleted;
@@ -39,7 +39,7 @@ export async function runRmdup(
     }
   } else {
     lines.push("");
-    lines.push("Dry run only. Use --remove to move duplicates into dup_skills, or --remove --delete to delete them.");
+    lines.push("Dry run only. Use --apply to move duplicates into dup_skills, or --apply --delete to delete them.");
   }
 
   context.write(lines.join("\n"));

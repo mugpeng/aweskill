@@ -161,21 +161,25 @@ aweskill agent add bundle backend --global --agent all
 ### Keep the store clean
 
 ```bash
-aweskill store backup --both
+aweskill store backup
+aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 aweskill agent sync
 aweskill agent recover --global --agent codex
-aweskill doctor dedupe --fix
+aweskill doctor clean
+aweskill doctor dedupe --apply
 ```
 
-By default, `store backup` and `store restore` only operate on `skills/`. Add `--both` to include `bundles/`, and pass an optional archive path to `store backup` if you want to export to a specific location.
+By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
+
+`aweskill` also runs store hygiene checks in `skill list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedupe` is also dry-run by default and now requires `--apply` before it mutates anything.
 
 ## Command Surface
 
 | Command | Description |
 | --- | --- |
 | `aweskill store init [--scan] [--verbose]` | Create the `~/.aweskill` layout |
-| `aweskill store backup [archive] [--both]` | Archive the central skill store, optionally to a specific path |
-| `aweskill store restore <archive> [--override] [--both]` | Restore a previous backup |
+| `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
+| `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
 | `aweskill skill scan [--verbose]` | Scan supported agent skill directories |
 | `aweskill skill import <path> [--mode cp\|mv] [--override]` | Import a skill or an entire skills root |
 | `aweskill skill import --scan [--mode cp\|mv] [--override]` | Import the current scan results |
@@ -194,7 +198,8 @@ By default, `store backup` and `store restore` only operate on `skills/`. Add `-
 | `aweskill agent list [...]` | Inspect linked, duplicate, and new entries |
 | `aweskill agent sync` | Remove stale managed projections |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
-| `aweskill doctor dedupe [--fix] [--delete]` | Find and optionally clean duplicate skills |
+| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | Find and optionally remove suspicious non-store entries |
+| `aweskill doctor dedupe [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
 
 ## Contributing
 

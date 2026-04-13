@@ -135,7 +135,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(path.join(backupDir, entries[0]!));
   });
 
-  it("backs up skills and bundles to a user-provided archive path with --both", async () => {
+  it("backs up skills and bundles to a user-provided archive path by default", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const archivePath = path.join(workspace.projectDir, "exports", "store-backup.tar.gz");
@@ -151,7 +151,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "backup-skill"], { from: "node" });
 
-    await program.parseAsync(["node", "aweskill", "store", "backup", archivePath, "--both"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup", archivePath], { from: "node" });
 
     await expect(access(archivePath)).resolves.toBeUndefined();
     expect(lines.join("\n")).toContain(`Backed up skills and bundles to ${archivePath}`);
@@ -180,26 +180,34 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(path.join(exportDir, entries[0]!));
   });
 
-  it("restore refuses conflicting skills by default", async () => {
+  it("restore skips conflicting skills by default and reports them", async () => {
     const workspace = await createTempWorkspace();
+    const lines: string[] = [];
     const program = createProgram({
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
-      write: () => undefined,
+      write: (message) => lines.push(message),
       error: () => undefined,
     });
 
     await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "restore-me"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
     const [archive] = await readdir(backupDir);
     await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
+    await writeFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "name: research\nskills:\n  - changed\n", "utf8");
 
-    await expect(
-      program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!)], { from: "node" }),
-    ).rejects.toThrow("Restore would overwrite existing skills");
+    await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!)], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "utf8")).resolves.toContain("Changed");
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("changed");
+    expect(lines.join("\n")).toContain("Restored 0 skills and 0 bundles");
+    expect(lines.join("\n")).toContain("Skipped existing skills: restore-me");
+    expect(lines.join("\n")).toContain("Skipped existing bundles: research");
   });
 
   it("restore --override replaces current skills and creates a fresh backup first", async () => {
@@ -230,10 +238,10 @@ describe("commands", () => {
     const updatedArchives = await readdir(backupDir);
     expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
     expect(lines.join("\n")).toContain("Restored 1 skills");
-    expect(lines.join("\n")).toContain("Backed up current skills to");
+    expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
-  it("restore --both restores bundles and backs up bundles too", async () => {
+  it("restore restores bundles and backs up bundles too by default", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -247,7 +255,7 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
     await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
     await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "restore-me"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "store", "backup", "--both"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
     const [archive] = await readdir(backupDir);
@@ -255,11 +263,62 @@ describe("commands", () => {
     await rm(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), { force: true });
     await writeSkill(getSkillPath(workspace.homeDir, "current-only"), "Current Only");
 
-    await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--both", "--override"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--override"], { from: "node" });
 
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("restore-me");
     expect(lines.join("\n")).toContain("Restored 1 skills and 1 bundles");
     expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
+  });
+
+  it("restore accepts an unpacked backup directory", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+    const restoreDir = path.join(workspace.projectDir, "restore-source");
+
+    await mkdir(path.join(restoreDir, "skills", "demo-skill"), { recursive: true });
+    await mkdir(path.join(restoreDir, "bundles"), { recursive: true });
+    await writeFile(path.join(restoreDir, "skills", "demo-skill", "SKILL.md"), "# Demo Skill\n", "utf8");
+    await writeFile(path.join(restoreDir, "bundles", "demo.yaml"), "name: demo\nskills:\n  - demo-skill\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "restore", restoreDir], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "demo-skill"), "SKILL.md"), "utf8")).resolves.toContain("Demo Skill");
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "demo.yaml"), "utf8")).resolves.toContain("demo-skill");
+  });
+
+  it("restore skips suspicious files from an unpacked backup directory", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const restoreDir = path.join(workspace.projectDir, "restore-source");
+
+    await mkdir(path.join(restoreDir, "skills", "demo-skill"), { recursive: true });
+    await mkdir(path.join(restoreDir, "skills", "broken-skill"), { recursive: true });
+    await mkdir(path.join(restoreDir, "bundles"), { recursive: true });
+    await writeFile(path.join(restoreDir, "skills", "demo-skill", "SKILL.md"), "# Demo Skill\n", "utf8");
+    await writeFile(path.join(restoreDir, "skills", "._global"), "junk\n", "utf8");
+    await writeFile(path.join(restoreDir, "bundles", "demo.yaml"), "name: demo\nskills:\n  - demo-skill\n", "utf8");
+    await writeFile(path.join(restoreDir, "bundles", "._global"), "junk\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "restore", restoreDir], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "demo-skill"), "SKILL.md"), "utf8")).resolves.toContain("Demo Skill");
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "broken-skill")))).rejects.toThrow();
+    expect(lines.join("\n")).toContain("Skipped suspicious restore source entries:");
+    expect(lines.join("\n")).toContain("skills/._global");
+    expect(lines.join("\n")).toContain("bundles/._global");
   });
 
   it("lists skills with aweskill_cc-style summary lines", async () => {
@@ -284,6 +343,28 @@ describe("commands", () => {
     expect(lines[0]).toContain("Skills in central repo: 6 total");
     expect(lines[0]).toContain("Showing first 5 skills");
     expect(lines[0]).toContain(`  ✓ one-password ${getSkillPath(workspace.homeDir, "one-password")}`);
+  });
+
+  it("list commands summarize suspicious store entries and suggest doctor clean", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "one-password"), "1Password");
+    await mkdir(getSkillPath(workspace.homeDir, "broken-skill"), { recursive: true });
+    await writeFile(path.join(workspace.homeDir, ".aweskill", "bundles", "._global"), "junk\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "skill", "list"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "list"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Suspicious store entries detected:");
+    expect(lines.join("\n")).toContain("Run \"aweskill doctor clean\"");
   });
 
   it("lists bundles with preview by default and full details with --verbose", async () => {
@@ -1203,10 +1284,39 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("  architecture-designer: 2 entries");
     expect(lines.join("\n")).toContain("keep: architecture-designer-0.1.0");
     expect(lines.join("\n")).toContain("drop: architecture-designer ");
+    expect(lines.join("\n")).toContain("Dry run only. Use --apply to move duplicates into dup_skills, or --apply --delete to delete them.");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"), "utf8")).resolves.toContain("Base");
   });
 
-  it("rmdup --remove moves duplicates into dup_skills by default", async () => {
+  it("doctor clean reports and removes suspicious files with --apply", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await mkdir(getSkillPath(workspace.homeDir, "broken-skill"), { recursive: true });
+    await writeFile(path.join(workspace.homeDir, ".aweskill", "skills", "._global"), "junk\n", "utf8");
+    await writeFile(path.join(workspace.homeDir, ".aweskill", "bundles", "._global"), "junk\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "clean"], { from: "node" });
+    expect(lines.join("\n")).toContain("Suspicious store entries:");
+    expect(lines.join("\n")).toContain("Dry run only. Use --apply to remove suspicious entries.");
+    await expect(access(path.join(workspace.homeDir, ".aweskill", "skills", "._global"))).resolves.toBeUndefined();
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "doctor", "clean", "--apply"], { from: "node" });
+    expect(lines.join("\n")).toContain("Removed 3 suspicious store entries");
+    await expect(access(path.join(workspace.homeDir, ".aweskill", "skills", "._global"))).rejects.toThrow();
+    await expect(access(path.join(workspace.homeDir, ".aweskill", "bundles", "._global"))).rejects.toThrow();
+    await expect(access(getSkillPath(workspace.homeDir, "broken-skill"))).rejects.toThrow();
+  });
+
+  it("rmdup --apply moves duplicates into dup_skills", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
       cwd: workspace.projectDir,
@@ -1218,14 +1328,14 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
 
-    await program.parseAsync(["node", "aweskill", "doctor", "dedupe", "--fix"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "doctor", "dedupe", "--apply"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "SKILL.md"), "utf8")).resolves.toContain("Versioned");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "dup_skills", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
     await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();
   });
 
-  it("rmdup --remove --delete permanently deletes duplicates", async () => {
+  it("rmdup --apply --delete permanently deletes duplicates", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
       cwd: workspace.projectDir,
@@ -1238,7 +1348,7 @@ describe("commands", () => {
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
     await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-2.0.0"), "Newest");
 
-    await program.parseAsync(["node", "aweskill", "doctor", "dedupe", "--fix", "--delete"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "doctor", "dedupe", "--apply", "--delete"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-2.0.0"), "SKILL.md"), "utf8")).resolves.toContain("Newest");
     await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();

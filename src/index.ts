@@ -24,6 +24,7 @@ import { runRestore } from "./commands/restore.js";
 import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
+import { runClean } from "./commands/clean.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
 import { listSupportedAgents } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
@@ -384,41 +385,58 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("backup")
     .argument("[archive]")
     .description("Create a timestamped archive of the central skills repository")
-    .option("--both", "include bundle definitions in the backup archive", false)
+    .option("--both", "include bundle definitions in the backup archive (default behavior)", true)
+    .option("--skills-only", "back up only skills/ without bundles/", false)
     .action(async (archivePath, options) => {
       await runFramedCommand(" aweskill store backup ", async () =>
         runBackup(context, {
           archivePath,
-          includeBundles: options.both,
+          includeBundles: options.skillsOnly ? false : options.both,
         }),
       );
     });
   store
     .command("restore")
     .argument("<archive>")
-    .description("Restore skills from a backup archive and auto-back up the current skills first")
+    .description("Restore skills from a backup archive or unpacked backup directory and auto-back up the current store first")
     .option("--override", "replace existing skills with the archive contents", false)
-    .option("--both", "restore bundle definitions and include them in the pre-restore backup", false)
+    .option("--both", "restore bundle definitions and include them in the pre-restore backup (default behavior)", true)
+    .option("--skills-only", "restore only skills/ without bundles/", false)
     .action(async (archivePath, options) => {
       await runFramedCommand(" aweskill store restore ", async () =>
         runRestore(context, {
           archivePath,
           override: options.override,
-          includeBundles: options.both,
+          includeBundles: options.skillsOnly ? false : options.both,
         }),
       );
     });
 
   const doctor = program.command("doctor").description("Diagnose and repair repository issues");
   doctor
+    .command("clean")
+    .description("Find and optionally remove suspicious non-store entries in skills/ and bundles/")
+    .option("--apply", "remove suspicious entries instead of reporting only", false)
+    .option("--skills-only", "scan only skills/", false)
+    .option("--bundles-only", "scan only bundles/", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill doctor clean ", async () =>
+        runClean(context, {
+          apply: options.apply,
+          skillsOnly: options.skillsOnly,
+          bundlesOnly: options.bundlesOnly,
+        }),
+      );
+    });
+  doctor
     .command("dedupe")
     .description("Find or remove duplicate central-store skills with numeric/version suffixes")
-    .option("--fix", "move duplicate skills into dup_skills (or delete them with --delete)", false)
-    .option("--delete", "when used with --fix, permanently delete duplicates instead of moving them", false)
+    .option("--apply", "move duplicate skills into dup_skills (or delete them with --delete)", false)
+    .option("--delete", "when used with --apply, permanently delete duplicates instead of moving them", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill doctor dedupe ", async () =>
         runRmdup(context, {
-          remove: options.fix,
+          apply: options.apply,
           delete: options.delete,
         }),
       );

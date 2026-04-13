@@ -1,15 +1,17 @@
-import { listBundles, listBundlesInDirectory } from "../lib/bundles.js";
-import { listSkills } from "../lib/skills.js";
+import { getAweskillPaths } from "../lib/path.js";
+import { listBundlesInDirectory } from "../lib/bundles.js";
 import { getTemplateBundlesDir } from "../lib/templates.js";
+import { formatHygieneHint, scanStoreHygiene } from "../lib/hygiene.js";
 import type { RuntimeContext } from "../types.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
 
 export async function runListSkills(context: RuntimeContext, options: { verbose?: boolean } = {}) {
-  const skills = await listSkills(context.homeDir);
+  const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(context.homeDir);
+  const { validSkills: skills, findings } = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeBundles: true });
 
   if (skills.length === 0) {
-    context.write("No skills found in central repo.");
+    context.write(["No skills found in central repo.", ...formatHygieneHint(findings)].join("\n"));
     return skills;
   }
 
@@ -22,6 +24,7 @@ export async function runListSkills(context: RuntimeContext, options: { verbose?
     const marker = skill.hasSKILLMd ? "✓" : "!";
     lines.push(`  ${marker} ${skill.name} ${skill.path}`);
   }
+  lines.push(...formatHygieneHint(findings));
   context.write(lines.join("\n"));
   return skills;
 }
@@ -47,8 +50,9 @@ function formatBundleLines(title: string, bundles: { name: string; skills: strin
 }
 
 export async function runListBundles(context: RuntimeContext, options: { verbose?: boolean } = {}) {
-  const bundles = await listBundles(context.homeDir);
-  context.write(formatBundleLines("Bundles in central repo", bundles, options.verbose).join("\n"));
+  const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(context.homeDir);
+  const { validBundles: bundles, findings } = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeSkills: true });
+  context.write([...formatBundleLines("Bundles in central repo", bundles, options.verbose), ...formatHygieneHint(findings)].join("\n"));
   return bundles;
 }
 

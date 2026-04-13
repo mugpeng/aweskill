@@ -1,9 +1,10 @@
 import { gunzipSync, gzipSync } from "node:zlib";
-import { mkdtemp, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { pathExists } from "./fs.js";
+import { scanStoreHygiene } from "./hygiene.js";
 import { getAweskillPaths } from "./path.js";
 
 const TAR_BLOCK_SIZE = 512;
@@ -191,16 +192,34 @@ async function collectTarEntries(rootDir: string, relativeDir: string): Promise<
   return entries;
 }
 
+async function collectTarEntriesForFile(rootDir: string, relativeFilePath: string): Promise<TarEntry[]> {
+  const absolutePath = path.join(rootDir, relativeFilePath);
+  const entryStats = await stat(absolutePath);
+  return [{
+    name: normalizeTarPath(relativeFilePath),
+    type: "file",
+    mode: entryStats.mode & 0o777,
+    data: await readFile(absolutePath),
+  }];
+}
+
 async function archiveEntries(homeDir: string, includeBundles: boolean): Promise<TarEntry[]> {
   const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(homeDir);
   const entries: TarEntry[] = [];
+  const hygiene = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeBundles });
 
-  if (await pathExists(skillsDir)) {
-    entries.push(...await collectTarEntries(rootDir, path.relative(rootDir, skillsDir)));
+  if (hygiene.validSkills.length > 0) {
+    entries.push({ name: "skills", type: "directory", mode: 0o755 });
+    for (const skill of hygiene.validSkills) {
+      entries.push(...await collectTarEntries(rootDir, path.relative(rootDir, skill.path)));
+    }
   }
 
-  if (includeBundles && await pathExists(bundlesDir)) {
-    entries.push(...await collectTarEntries(rootDir, path.relative(rootDir, bundlesDir)));
+  if (includeBundles && hygiene.validBundles.length > 0) {
+    entries.push({ name: "bundles", type: "directory", mode: 0o755 });
+    for (const bundle of hygiene.validBundles) {
+      entries.push(...await collectTarEntriesForFile(rootDir, path.join("bundles", `${bundle.name}.yaml`)));
+    }
   }
 
   return entries;
@@ -230,8 +249,24 @@ export async function extractSkillsArchive(archivePath: string): Promise<{
   extractedBundlesDir: string;
 }> {
   const tempDir = await mkdtemp(path.join(tmpdir(), "aweskill-restore-"));
-  const archiveBuffer = await readFile(archivePath);
-  await extractTarArchive(gunzipSync(archiveBuffer), tempDir);
+  const sourceStats = await stat(archivePath);
+
+  if (sourceStats.isDirectory()) {
+    const sourceSkillsDir = path.join(archivePath, "skills");
+    const sourceBundlesDir = path.join(archivePath, "bundles");
+    if (!(await pathExists(sourceSkillsDir))) {
+      throw new Error(`Restore source does not contain a skills/ directory: ${archivePath}`);
+    }
+
+    await cp(sourceSkillsDir, path.join(tempDir, "skills"), { recursive: true });
+    if (await pathExists(sourceBundlesDir)) {
+      await cp(sourceBundlesDir, path.join(tempDir, "bundles"), { recursive: true });
+    }
+  } else {
+    const archiveBuffer = await readFile(archivePath);
+    await extractTarArchive(gunzipSync(archiveBuffer), tempDir);
+  }
+
   return {
     tempDir,
     extractedSkillsDir: path.join(tempDir, "skills"),

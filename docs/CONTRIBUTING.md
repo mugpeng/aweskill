@@ -160,13 +160,52 @@ There is no separate global activation registry. The projected filesystem state 
 - If the import source is a symlink, `aweskill` copies from the resolved real path and may emit a warning
 - Broken symlinks during batch import are reported while other items continue
 - `restore` creates a fresh backup of the current store before applying the archive
+- `restore` accepts either a backup archive or an unpacked directory containing `skills/`
+- `restore` skips existing skills and bundles by default and only overwrites with `--override`
+- `backup` and `restore` include both `skills/` and `bundles/` by default; use `--skills-only` for a reduced flow
+
+### Store Hygiene
+
+`aweskill` now treats store hygiene as a first-class maintenance concern.
+
+The canonical store should only contain:
+
+- skill directories or managed links under `~/.aweskill/skills/`, each with a `SKILL.md`
+- bundle YAML files under `~/.aweskill/bundles/`
+
+Contributors should preserve the shared hygiene rules used across:
+
+- `doctor clean`
+- `skill list`
+- `bundle list`
+- `store backup`
+- `store restore`
+
+Examples of suspicious entries:
+
+- files such as `._global` inside `skills/` or `bundles/`
+- skill directories missing `SKILL.md`
+- non-YAML files in `bundles/`
+- malformed bundle YAML files
+
+The intended command model is:
+
+- `doctor clean` is the user-facing hygiene scanner
+- `doctor clean` defaults to dry run
+- `doctor clean --apply` removes suspicious entries
+- `doctor dedupe` also defaults to dry run
+- `doctor dedupe --apply` is required before mutating state
+
+If you change hygiene rules, update all consumers together. Backup, restore, and list flows should not silently drift away from `doctor clean`.
 
 ### Display behavior
 
 - `skill list` shows totals and a short preview unless `--verbose`
 - `skill scan` shows per-agent totals by default and concrete entries with `--verbose`
 - `agent list` categorizes entries as `linked`, `duplicate`, and `new`
-- `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--fix` is passed
+- `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
+- `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
+- `backup` and `restore` report suspicious entries they skipped
 
 ### Projection examples
 

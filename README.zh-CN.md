@@ -161,21 +161,25 @@ aweskill agent add bundle backend --global --agent all
 ### 维护本地仓库
 
 ```bash
-aweskill store backup --both
+aweskill store backup
+aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 aweskill agent sync
 aweskill agent recover --global --agent codex
-aweskill doctor dedupe --fix
+aweskill doctor clean
+aweskill doctor dedupe --apply
 ```
 
-默认情况下，`store backup` 和 `store restore` 只处理 `skills/`。加上 `--both` 会同时处理 `bundles/`；如果想导出到指定位置，也可以给 `store backup` 传一个可选的 archive 路径。
+默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
+
+`aweskill` 现在也会在 `skill list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedupe` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
 
 ## 命令面
 
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill store init [--scan] [--verbose]` | 初始化 `~/.aweskill` 布局 |
-| `aweskill store backup [archive] [--both]` | 归档中央 skill 仓库，也可导出到指定路径 |
-| `aweskill store restore <archive> [--override] [--both]` | 从备份恢复 |
+| `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
+| `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
 | `aweskill skill scan [--verbose]` | 扫描支持的 agent skill 目录 |
 | `aweskill skill import <path> [--mode cp\|mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
 | `aweskill skill import --scan [--mode cp\|mv] [--override]` | 导入当前扫描结果 |
@@ -194,7 +198,8 @@ aweskill doctor dedupe --fix
 | `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new` 状态 |
 | `aweskill agent sync` | 删除失效托管投影 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
-| `aweskill doctor dedupe [--fix] [--delete]` | 查找并清理重复 skill |
+| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | 查找并可选清理不规范的 store 条目 |
+| `aweskill doctor dedupe [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
 
 ## 贡献
 
