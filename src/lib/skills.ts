@@ -1,17 +1,9 @@
-import { access, mkdir, readdir } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import type { SkillEntry } from "../types.js";
+import { pathExists } from "./fs.js";
 import { getAweskillPaths, sanitizeName } from "./path.js";
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function ensureHomeLayout(homeDir: string): Promise<void> {
   const paths = getAweskillPaths(homeDir);

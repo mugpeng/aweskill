@@ -1,15 +1,6 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { pathExists } from "./fs.js";
 
 export async function getTemplateBundlesDir(): Promise<string> {
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));

@@ -3,6 +3,7 @@ import path from "node:path";
 
 import type { ScanCandidate } from "../types.js";
 import { listSupportedAgents, supportsScope } from "./agents.js";
+import { pathExists } from "./fs.js";
 import { sanitizeName } from "./path.js";
 
 async function hasSkillReadme(skillDir: string): Promise<boolean> {
@@ -17,15 +18,6 @@ async function hasSkillReadme(skillDir: string): Promise<boolean> {
 async function isSymlinkPath(targetPath: string): Promise<boolean> {
   try {
     return (await lstat(targetPath)).isSymbolicLink();
-  } catch {
-    return false;
-  }
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
   } catch {
     return false;
   }

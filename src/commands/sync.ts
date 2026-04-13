@@ -1,19 +1,10 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
 
 import { listSupportedAgents, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
+import { pathExists } from "../lib/fs.js";
 import { getAweskillPaths } from "../lib/path.js";
 import { listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import type { RuntimeContext } from "../types.js";
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Scan all known agent skill directories and remove any managed projections

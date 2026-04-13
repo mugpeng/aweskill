@@ -1,8 +1,9 @@
-import { access, mkdtemp, mkdir } from "node:fs/promises";
+import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
+import { pathExists } from "./fs.js";
 import { getAweskillPaths } from "./path.js";
 
 function formatTimestamp(date: Date): string {
@@ -56,14 +57,5 @@ async function nextBackupArchivePath(backupDir: string): Promise<string> {
       return candidate;
     }
     index += 1;
-  }
-}
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
   }
 }

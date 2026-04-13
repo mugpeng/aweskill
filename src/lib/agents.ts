@@ -1,7 +1,7 @@
-import { access } from "node:fs/promises";
 import path from "node:path";
 
 import type { AgentDefinition, AgentId, ProjectionMode, Scope } from "../types.js";
+import { pathExists } from "./fs.js";
 
 function defineAgent(
   id: AgentId,
@@ -186,15 +186,6 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
     projectSkillsDir: (projectDir) => path.join(projectDir, ".codeium", "windsurf", "skills"),
   }),
 };
-
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export function listSupportedAgents(): AgentDefinition[] {
   return Object.values(AGENTS).sort((left, right) => left.id.localeCompare(right.id));
