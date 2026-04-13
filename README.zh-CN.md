@@ -77,21 +77,24 @@ npm install -g ./aweskill-0.1.8.tgz
 # 1. 初始化 aweskill 家目录
 aweskill store init
 
-# 2. 扫描已有 agent 的 skill 目录
+# 2. 查看 aweskill store 在哪里
+aweskill store where --verbose
+
+# 3. 扫描已有 agent 的 skill 目录
 aweskill skill scan
 
-# 3. 导入一个 skills 根目录或单个 skill
+# 4. 导入一个 skills 根目录或单个 skill
 aweskill skill import ~/.agents/skills
 # aweskill skill import /path/to/my-skill --mode cp
 
-# 4. 创建 bundle
+# 5. 创建 bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 5. 为一个 agent 启用这个 bundle
+# 6. 为一个 agent 启用这个 bundle
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 6. 查看当前投影状态
+# 7. 查看当前投影状态
 aweskill agent list
 ```
 
@@ -161,6 +164,7 @@ aweskill agent add bundle backend --global --agent all
 ### 维护本地仓库
 
 ```bash
+aweskill store where --verbose
 aweskill store backup
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 aweskill agent sync
@@ -175,9 +179,15 @@ aweskill doctor dedupe --apply
 
 ## 命令面
 
+核心命令：`store init`、`store where`、`skill import`、`bundle create`、`agent add`、`doctor clean`
+
+<details>
+<summary>全部命令</summary>
+
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill store init [--scan] [--verbose]` | 初始化 `~/.aweskill` 布局 |
+| `aweskill store where [--verbose]` | 显示 `~/.aweskill` 位置，并汇总核心 store 目录 |
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
 | `aweskill skill scan [--verbose]` | 扫描支持的 agent skill 目录 |
@@ -200,6 +210,8 @@ aweskill doctor dedupe --apply
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | 查找并可选清理不规范的 store 条目 |
 | `aweskill doctor dedupe [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
+
+</details>
 
 ## 贡献
 

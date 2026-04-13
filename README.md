@@ -77,21 +77,24 @@ npm install -g ./aweskill-0.1.8.tgz
 # 1. Initialize the aweskill home
 aweskill store init
 
-# 2. Scan existing agent skill directories
+# 2. Show where the aweskill store lives
+aweskill store where --verbose
+
+# 3. Scan existing agent skill directories
 aweskill skill scan
 
-# 3. Import a skills root or a single skill
+# 4. Import a skills root or a single skill
 aweskill skill import ~/.agents/skills
 # aweskill skill import /path/to/my-skill --mode cp
 
-# 4. Create a bundle
+# 5. Create a bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 5. Enable the bundle for one agent
+# 6. Enable the bundle for one agent
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 6. Inspect current projected skills
+# 7. Inspect current projected skills
 aweskill agent list
 ```
 
@@ -161,6 +164,7 @@ aweskill agent add bundle backend --global --agent all
 ### Keep the store clean
 
 ```bash
+aweskill store where --verbose
 aweskill store backup
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 aweskill agent sync
@@ -175,9 +179,15 @@ By default, `store backup` and `store restore` include both `skills/` and `bundl
 
 ## Command Surface
 
+Core commands: `store init`, `store where`, `skill import`, `bundle create`, `agent add`, `doctor clean`
+
+<details>
+<summary>All commands</summary>
+
 | Command | Description |
 | --- | --- |
 | `aweskill store init [--scan] [--verbose]` | Create the `~/.aweskill` layout |
+| `aweskill store where [--verbose]` | Show the `~/.aweskill` location and summarize core store directories |
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
 | `aweskill skill scan [--verbose]` | Scan supported agent skill directories |
@@ -200,6 +210,8 @@ By default, `store backup` and `store restore` include both `skills/` and `bundl
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | Find and optionally remove suspicious non-store entries |
 | `aweskill doctor dedupe [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
+
+</details>
 
 ## Contributing
 
