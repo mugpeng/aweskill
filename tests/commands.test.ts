@@ -81,6 +81,39 @@ describe("commands", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  it("requires store init before running other commands", async () => {
+    const workspace = await createTempWorkspace();
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+
+    try {
+      await main(["node", "aweskill", "skill", "list"]);
+      expect(stderr).toHaveBeenCalledWith(
+        `Error: aweskill store is not initialized at ${path.join(workspace.homeDir, ".aweskill")}. Run "aweskill store init" first.`,
+      );
+      expect(process.exitCode).toBe(1);
+
+      stderr.mockClear();
+      stdout.mockClear();
+      process.exitCode = 0;
+
+      await main(["node", "aweskill", "store", "init"]);
+      expect(stderr).not.toHaveBeenCalled();
+      expect(stdout).not.toHaveBeenCalledWith(
+        expect.stringContaining(`Error: aweskill store is not initialized at ${path.join(workspace.homeDir, ".aweskill")}`),
+      );
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+  });
+
   it("creates a timestamped backup archive under ~/.aweskill/backup", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -637,6 +670,7 @@ describe("commands", () => {
     process.chdir(workspace.projectDir);
 
     try {
+      await main(["node", "aweskill", "store", "init"]);
       await main(["node", "aweskill", "agent", "add", "skill", "missing-skill"]);
     } finally {
       process.chdir(previousCwd);
@@ -685,6 +719,7 @@ describe("commands", () => {
     process.chdir(workspace.projectDir);
 
     try {
+      await main(["node", "aweskill", "store", "init"]);
       await main(["node", "aweskill", "agent", "add", "bundle", "super"]);
       await main(["node", "aweskill", "bundle", "template", "import", "missing-template"]);
     } finally {

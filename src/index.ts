@@ -26,6 +26,8 @@ import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
 import { listSupportedAgents } from "./lib/agents.js";
+import { pathExists } from "./lib/fs.js";
+import { getAweskillPaths } from "./lib/path.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
 import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
 import type { ActivationType, ImportMode, RuntimeContext, Scope } from "./types.js";
@@ -132,6 +134,31 @@ function normalizeVersionAlias(argv: string[]): string[] {
     }
     return arg;
   });
+}
+
+function isInitializationExempt(args: string[]): boolean {
+  if (args.length === 0) {
+    return true;
+  }
+
+  if (args.includes("-h") || args.includes("--help") || args.includes("-v") || args.includes("-V") || args.includes("--version")) {
+    return true;
+  }
+
+  return args[0] === "store" && args[1] === "init";
+}
+
+async function assertStoreInitialized(homeDir: string, args: string[]): Promise<void> {
+  if (isInitializationExempt(args)) {
+    return;
+  }
+
+  const { rootDir } = getAweskillPaths(homeDir);
+  if (await pathExists(rootDir)) {
+    return;
+  }
+
+  throw new Error(`aweskill store is not initialized at ${rootDir}. Run "aweskill store init" first.`);
 }
 
 
@@ -404,7 +431,10 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 export async function main(argv = process.argv) {
   const program = createProgram();
   try {
-    await program.parseAsync(normalizeVersionAlias(argv));
+    const normalizedArgv = normalizeVersionAlias(argv);
+    const context = createRuntimeContext();
+    await assertStoreInitialized(context.homeDir, normalizedArgv.slice(2));
+    await program.parseAsync(normalizedArgv);
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
     if (code === "commander.version" || code === "commander.helpDisplayed") {
