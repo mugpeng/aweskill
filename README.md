@@ -12,6 +12,10 @@
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
     <img src="https://img.shields.io/badge/agents-47_supported-0ea5a4?style=flat-square" alt="Supported agents">
     <img src="https://img.shields.io/badge/projection-symlink-1f2328?style=flat-square" alt="Projection mode">
+    <img src="https://img.shields.io/badge/platform-windows-0078D4?style=flat-square" alt="Windows">
+    <img src="https://img.shields.io/badge/platform-macos-000000?style=flat-square" alt="macOS">
+    <img src="https://img.shields.io/npm/dt/aweskill?style=flat-square" alt="npm downloads">
+    <img src="https://img.shields.io/github/stars/mugpeng/aweskill?style=flat-square" alt="GitHub stars">
     <img src="https://img.shields.io/badge/platform-local%20CLI-334155?style=flat-square" alt="Local CLI">
   </p>
 </div>
