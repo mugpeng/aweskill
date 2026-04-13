@@ -152,19 +152,21 @@ aweskill agent add bundle backend --global --agent all
 ### Keep the store clean
 
 ```bash
-aweskill store backup
+aweskill store backup --both
 aweskill agent sync
 aweskill agent recover --global --agent codex
 aweskill doctor dedupe --fix
 ```
+
+By default, `store backup` and `store restore` only operate on `skills/`. Add `--both` to include `bundles/`, and pass an optional archive path to `store backup` if you want to export to a specific location.
 
 ## Command Surface
 
 | Command | Description |
 | --- | --- |
 | `aweskill store init [--scan] [--verbose]` | Create the `~/.aweskill` layout |
-| `aweskill store backup` | Archive the central skill store |
-| `aweskill store restore <archive> [--override]` | Restore a previous backup |
+| `aweskill store backup [archive] [--both]` | Archive the central skill store, optionally to a specific path |
+| `aweskill store restore <archive> [--override] [--both]` | Restore a previous backup |
 | `aweskill skill scan [--verbose]` | Scan supported agent skill directories |
 | `aweskill skill import <path> [--mode cp\|mv] [--override]` | Import a skill or an entire skills root |
 | `aweskill skill import --scan [--mode cp\|mv] [--override]` | Import the current scan results |

@@ -152,19 +152,21 @@ aweskill agent add bundle backend --global --agent all
 ### 维护本地仓库
 
 ```bash
-aweskill store backup
+aweskill store backup --both
 aweskill agent sync
 aweskill agent recover --global --agent codex
 aweskill doctor dedupe --fix
 ```
+
+默认情况下，`store backup` 和 `store restore` 只处理 `skills/`。加上 `--both` 会同时处理 `bundles/`；如果想导出到指定位置，也可以给 `store backup` 传一个可选的 archive 路径。
 
 ## 命令面
 
 | 命令 | 说明 |
 | --- | --- |
 | `aweskill store init [--scan] [--verbose]` | 初始化 `~/.aweskill` 布局 |
-| `aweskill store backup` | 归档中央 skill 仓库 |
-| `aweskill store restore <archive> [--override]` | 从备份恢复 |
+| `aweskill store backup [archive] [--both]` | 归档中央 skill 仓库，也可导出到指定路径 |
+| `aweskill store restore <archive> [--override] [--both]` | 从备份恢复 |
 | `aweskill skill scan [--verbose]` | 扫描支持的 agent skill 目录 |
 | `aweskill skill import <path> [--mode cp\|mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
 | `aweskill skill import --scan [--mode cp\|mv] [--override]` | 导入当前扫描结果 |

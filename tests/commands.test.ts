@@ -83,6 +83,51 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(path.join(backupDir, entries[0]!));
   });
 
+  it("backs up skills and bundles to a user-provided archive path with --both", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const archivePath = path.join(workspace.projectDir, "exports", "store-backup.tar.gz");
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "backup-skill"), "Backup Skill");
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "backup-skill"], { from: "node" });
+
+    await program.parseAsync(["node", "aweskill", "store", "backup", archivePath, "--both"], { from: "node" });
+
+    await expect(access(archivePath)).resolves.toBeUndefined();
+    expect(lines.join("\n")).toContain(`Backed up skills and bundles to ${archivePath}`);
+  });
+
+  it("writes a timestamped archive into a user-provided directory", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const exportDir = path.join(workspace.projectDir, "exports");
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await mkdir(exportDir, { recursive: true });
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "backup-skill"), "Backup Skill");
+
+    await program.parseAsync(["node", "aweskill", "store", "backup", exportDir], { from: "node" });
+
+    const entries = await readdir(exportDir);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatch(/^skills-.*\.tar\.gz$/);
+    expect(lines.join("\n")).toContain(path.join(exportDir, entries[0]!));
+  });
+
   it("restore refuses conflicting skills by default", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
@@ -134,6 +179,35 @@ describe("commands", () => {
     expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
     expect(lines.join("\n")).toContain("Restored 1 skills");
     expect(lines.join("\n")).toContain("Backed up current skills to");
+  });
+
+  it("restore --both restores bundles and backs up bundles too", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "restore-me"), "Original");
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "research"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "research", "restore-me"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "backup", "--both"], { from: "node" });
+
+    const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
+    const [archive] = await readdir(backupDir);
+
+    await rm(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), { force: true });
+    await writeSkill(getSkillPath(workspace.homeDir, "current-only"), "Current Only");
+
+    await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--both", "--override"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("restore-me");
+    expect(lines.join("\n")).toContain("Restored 1 skills and 1 bundles");
+    expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
   it("lists skills with aweskill_cc-style summary lines", async () => {

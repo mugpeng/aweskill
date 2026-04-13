@@ -345,20 +345,29 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
   store
     .command("backup")
+    .argument("[archive]")
     .description("Create a timestamped archive of the central skills repository")
-    .action(async () => {
-      await runFramedCommand(" aweskill store backup ", async () => runBackup(context));
+    .option("--both", "include bundle definitions in the backup archive", false)
+    .action(async (archivePath, options) => {
+      await runFramedCommand(" aweskill store backup ", async () =>
+        runBackup(context, {
+          archivePath,
+          includeBundles: options.both,
+        }),
+      );
     });
   store
     .command("restore")
     .argument("<archive>")
     .description("Restore skills from a backup archive and auto-back up the current skills first")
     .option("--override", "replace existing skills with the archive contents", false)
+    .option("--both", "restore bundle definitions and include them in the pre-restore backup", false)
     .action(async (archivePath, options) => {
       await runFramedCommand(" aweskill store restore ", async () =>
         runRestore(context, {
           archivePath,
           override: options.override,
+          includeBundles: options.both,
         }),
       );
     });
