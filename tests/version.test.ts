@@ -1,7 +1,12 @@
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { AWESKILL_VERSION, resolveVersionForModuleUrl } from "../src/lib/version.js";
 import packageJson from "../package.json" with { type: "json" };
+
+const repoRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
 describe("version", () => {
   it("uses package.json as the single version source", () => {
@@ -9,14 +14,12 @@ describe("version", () => {
   });
 
   it("resolves version when the module lives under src/lib", () => {
-    expect(
-      resolveVersionForModuleUrl("file:///Users/peng/Desktop/Project/aweskills/src/lib/version.js"),
-    ).toBe(packageJson.version);
+    const moduleUrl = pathToFileURL(path.join(repoRoot, "src/lib/version.js")).href;
+    expect(resolveVersionForModuleUrl(moduleUrl)).toBe(packageJson.version);
   });
 
   it("resolves version when the bundled module lives under dist", () => {
-    expect(
-      resolveVersionForModuleUrl("file:///Users/peng/Desktop/Project/aweskills/dist/index.js"),
-    ).toBe(packageJson.version);
+    const moduleUrl = pathToFileURL(path.join(repoRoot, "dist/index.js")).href;
+    expect(resolveVersionForModuleUrl(moduleUrl)).toBe(packageJson.version);
   });
 });
