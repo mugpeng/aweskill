@@ -24,6 +24,7 @@ import { runRestore } from "./commands/restore.js";
 import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
+import { listSupportedAgents } from "./lib/agents.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
 import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
 import type { ActivationType, ImportMode, RuntimeContext, Scope } from "./types.js";
@@ -104,16 +105,7 @@ function formatCliErrorMessage(message: string): string {
 function writeSupportedAgents(context: RuntimeContext): void {
   const lines = [
     "Supported agents:",
-    "amp (Amp)",
-    "claude-code (Claude Code)",
-    "cline (Cline)",
-    "codex (Codex)",
-    "cursor (Cursor)",
-    "gemini-cli (Gemini CLI)",
-    "goose (Goose)",
-    "opencode (OpenCode)",
-    "roo (Roo Code)",
-    "windsurf (Windsurf)",
+    ...listSupportedAgents().map((agent) => `${agent.id} (${agent.displayName})`),
   ];
   for (const line of lines) {
     context.write(line);

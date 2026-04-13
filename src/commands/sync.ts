@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 
-import { listSupportedAgents, resolveAgentSkillsDir } from "../lib/agents.js";
+import { listSupportedAgents, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { getAweskillPaths } from "../lib/path.js";
 import { listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import type { RuntimeContext } from "../types.js";
@@ -36,6 +36,9 @@ export async function runSync(context: RuntimeContext, options: { projectDir?: s
 
   for (const { scope, dir } of baseDirs) {
     for (const agent of listSupportedAgents()) {
+      if (!supportsScope(agent.id, scope)) {
+        continue;
+      }
       const skillsDir2 = resolveAgentSkillsDir(agent.id, scope, dir);
       const managed = await listManagedSkillNames(skillsDir2, skillsDir);
       for (const [skillName] of managed) {

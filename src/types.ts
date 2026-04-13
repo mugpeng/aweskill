@@ -1,13 +1,35 @@
 export type AgentId =
+  | "adal"
   | "amp"
+  | "antigravity"
+  | "augment"
   | "claude-code"
   | "cline"
+  | "codebuddy"
+  | "command-code"
   | "codex"
+  | "copilot"
+  | "crush"
   | "cursor"
+  | "droid"
   | "gemini-cli"
   | "goose"
+  | "kiro-cli"
+  | "kilo-code"
+  | "kode"
+  | "mistral-vibe"
+  | "mux"
+  | "neovate"
+  | "openclaw"
+  | "openclaude-ide"
+  | "openhands"
   | "opencode"
+  | "qoder"
+  | "qwen-code"
+  | "replit"
   | "roo"
+  | "trae"
+  | "trae-cn"
   | "windsurf";
 export type ActivationType = "bundle" | "skill";
 export type ProjectionMode = "symlink" | "copy";
@@ -32,9 +54,11 @@ export interface AgentDefinition {
   id: AgentId;
   displayName: string;
   defaultProjectionMode: ProjectionMode;
+  supportsGlobal: boolean;
+  supportsProject: boolean;
   rootDir: (homeDir: string) => string;
-  globalSkillsDir: (homeDir: string) => string;
-  projectSkillsDir: (projectDir: string) => string;
+  globalSkillsDir?: (homeDir: string) => string;
+  projectSkillsDir?: (projectDir: string) => string;
 }
 
 export interface RuntimeContext {

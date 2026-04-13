@@ -297,6 +297,10 @@ describe("commands", () => {
       ["node", "aweskill", "agent", "add", "skill", "frontend-design", "--project", workspace.projectDir, "--agent", "cursor"],
       { from: "node" },
     );
+    await expect(lstat(path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design"))).resolves.toMatchObject({
+      isSymbolicLink: expect.any(Function),
+    });
+    expect((await lstat(path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design"))).isSymbolicLink()).toBe(true);
     const targetPath = path.join(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), "frontend-design", "SKILL.md");
     await expect(readFile(targetPath, "utf8")).resolves.toContain("Example Skill");
 
@@ -371,8 +375,27 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "agent", "supported"], { from: "node" });
 
     expect(lines[0]).toBe("Supported agents:");
+    expect(lines).toContain("augment (Augment)");
     expect(lines).toContain("codex (Codex)");
     expect(lines).toContain("cursor (Cursor)");
+    expect(lines).toContain("replit (Replit)");
+  });
+
+  it("rejects global-only operations for project-only agents", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "frontend-design"));
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "agent", "add", "skill", "frontend-design", "--global", "--agent", "replit"], { from: "node" }),
+    ).rejects.toThrow("Agent replit does not support global scope.");
   });
 
   it("supports enable bundle all as the union of all bundle skills", async () => {
@@ -1139,7 +1162,7 @@ describe("commands", () => {
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
   });
 
-  it("recover converts managed symlinks into full directories and leaves managed copies alone", async () => {
+  it("recover converts managed symlinks into full directories", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1158,7 +1181,7 @@ describe("commands", () => {
     const cursorTarget = path.join(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), "recover-me");
 
     expect((await lstat(codexTarget)).isSymbolicLink()).toBe(true);
-    expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
+    expect((await lstat(cursorTarget)).isSymbolicLink()).toBe(true);
 
     await program.parseAsync(["node", "aweskill", "agent", "recover", "--global", "--agent", "codex,cursor"], { from: "node" });
 
@@ -1166,7 +1189,8 @@ describe("commands", () => {
     expect((await lstat(cursorTarget)).isDirectory()).toBe(true);
     await expect(readFile(path.join(codexTarget, "SKILL.md"), "utf8")).resolves.toContain("Recover Me");
     await expect(readFile(path.join(cursorTarget, "SKILL.md"), "utf8")).resolves.toContain("Recover Me");
-    expect(lines.join("\n")).toContain("Recovered 1 skill projection(s)");
+    expect(lines.join("\n")).toContain("Recovered 2 skill projection(s)");
     expect(lines.join("\n")).toContain("codex:recover-me");
+    expect(lines.join("\n")).toContain("cursor:recover-me");
   });
 });

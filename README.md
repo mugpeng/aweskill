@@ -10,8 +10,8 @@
   </p>
   <p>
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
-    <img src="https://img.shields.io/badge/agents-10_supported-0ea5a4?style=flat-square" alt="Supported agents">
-    <img src="https://img.shields.io/badge/projection-symlink%20%7C%20copy-1f2328?style=flat-square" alt="Projection modes">
+    <img src="https://img.shields.io/badge/agents-32_supported-0ea5a4?style=flat-square" alt="Supported agents">
+    <img src="https://img.shields.io/badge/projection-symlink-1f2328?style=flat-square" alt="Projection mode">
     <img src="https://img.shields.io/badge/platform-local%20CLI-334155?style=flat-square" alt="Local CLI">
   </p>
 </div>
@@ -105,7 +105,7 @@ aweskill agent list
 
 That projection is the activation model.
 
-- If a managed symlink or copy exists, the skill is enabled
+- If a managed symlink exists, the skill is enabled
 - If it does not exist, the skill is disabled
 - There is no separate global activation registry to reconcile
 
@@ -113,7 +113,7 @@ That projection is the activation model.
 
 Supported agents currently include:
 
-`amp`, `claude-code`, `cline`, `codex`, `cursor`, `gemini-cli`, `goose`, `opencode`, `roo`, `windsurf`
+`adal`, `amp`, `antigravity`, `augment`, `claude-code`, `cline`, `codebuddy`, `command-code`, `codex`, `copilot`, `crush`, `cursor`, `droid`, `gemini-cli`, `goose`, `kiro-cli`, `kilo-code`, `kode`, `mistral-vibe`, `mux`, `neovate`, `openclaw`, `openclaude-ide`, `openhands`, `opencode`, `qoder`, `qwen-code`, `replit`, `roo`, `trae`, `trae-cn`, `windsurf`
 
 Key directories:
 
@@ -196,7 +196,7 @@ aweskill doctor dedupe --fix
 
 ### Managed-only removal
 
-`aweskill` removes only entries it can identify as its own managed symlinks or managed copies. It does not blindly delete arbitrary skill directories.
+`aweskill` removes only entries it can identify as its own managed symlinks. It does not blindly delete arbitrary skill directories.
 
 ## Bundle File Format
 
@@ -212,9 +212,7 @@ skills:
 ## Projection Model
 
 1. **Central source of truth for skill content**: `~/.aweskill/skills/<skill-name>/`.
-2. **`agent add`** creates, for each selected agent and scope:
-   - a **symlink** to that directory (most agents), or
-   - a **recursive copy** with a small marker file (for example Cursor).
+2. **`agent add`** creates, for each selected agent and supported scope, a **symlink** to that directory.
 3. **`agent remove`** removes only entries that are **managed by aweskill**.
 4. **`agent sync`** removes managed projections whose central skill path is missing.
 
@@ -259,16 +257,38 @@ Reference bundle templates live in [template/bundles/K-Dense-AI-scientific-skill
 
 | Agent | Global Path | Project Path | Mode |
 | --- | --- | --- | --- |
-| `amp` | `~/.amp/skills/` | `<project>/.amp/skills/` | `symlink` |
+| `adal` | `~/.adal/skills/` | `<project>/.adal/skills/` | `symlink` |
+| `amp` | `~/.agents/skills/` | `<project>/.agents/skills/` | `symlink` |
+| `antigravity` | `~/.gemini/antigravity/skills/` | `<project>/.gemini/antigravity/skills/` | `symlink` |
+| `augment` | `~/.augment/rules/` | `<project>/.augment/rules/` | `symlink` |
 | `claude-code` | `~/.claude/skills/` | `<project>/.claude/skills/` | `symlink` |
 | `cline` | `~/.cline/skills/` | `<project>/.cline/skills/` | `symlink` |
+| `codebuddy` | `~/.codebuddy/skills/` | `<project>/.codebuddy/skills/` | `symlink` |
+| `command-code` | `~/.commandcode/skills/` | `<project>/.commandcode/skills/` | `symlink` |
 | `codex` | `~/.codex/skills/` | `<project>/.codex/skills/` | `symlink` |
-| `cursor` | `~/.cursor/skills/` | `<project>/.cursor/skills/` | `copy` |
+| `copilot` | `~/.github/skills/` | `<project>/.github/skills/` | `symlink` |
+| `crush` | `~/.config/crush/skills/` | `<project>/.config/crush/skills/` | `symlink` |
+| `cursor` | `~/.cursor/skills/` | `<project>/.cursor/skills/` | `symlink` |
+| `droid` | `~/.factory/skills/` | `<project>/.factory/skills/` | `symlink` |
 | `gemini-cli` | `~/.gemini/skills/` | `<project>/.gemini/skills/` | `symlink` |
 | `goose` | `~/.goose/skills/` | `<project>/.goose/skills/` | `symlink` |
+| `kiro-cli` | `~/.kiro/skills/` | `<project>/.kiro/skills/` | `symlink` |
+| `kilo-code` | `~/.kilocode/skills/` | `<project>/.kilocode/skills/` | `symlink` |
+| `kode` | `~/.kode/skills/` | `<project>/.kode/skills/` | `symlink` |
+| `mistral-vibe` | `~/.vibe/skills/` | `<project>/.vibe/skills/` | `symlink` |
+| `mux` | `~/.mux/skills/` | `<project>/.mux/skills/` | `symlink` |
+| `neovate` | `~/.neovate/skills/` | `<project>/.neovate/skills/` | `symlink` |
+| `openclaw` | `~/.openclaw/skills/` | `<project>/.openclaw/skills/` | `symlink` |
+| `openclaude-ide` | `~/.openclaude/skills/` | `<project>/.openclaude/skills/` | `symlink` |
+| `openhands` | `~/.openhands/skills/` | `<project>/.openhands/skills/` | `symlink` |
 | `opencode` | `~/.opencode/skills/` | `<project>/.opencode/skills/` | `symlink` |
+| `qoder` | `~/.qoder/skills/` | `<project>/.qoder/skills/` | `symlink` |
+| `qwen-code` | `~/.qwen/skills/` | `<project>/.qwen/skills/` | `symlink` |
+| `replit` | `-` | `<project>/.agent/skills/` | `symlink` |
 | `roo` | `~/.roo/skills/` | `<project>/.roo/skills/` | `symlink` |
-| `windsurf` | `~/.windsurf/skills/` | `<project>/.windsurf/skills/` | `symlink` |
+| `trae` | `~/.trae/skills/` | `<project>/.trae/skills/` | `symlink` |
+| `trae-cn` | `~/.trae-cn/skills/` | `<project>/.trae-cn/skills/` | `symlink` |
+| `windsurf` | `~/.codeium/windsurf/skills/` | `<project>/.codeium/windsurf/skills/` | `symlink` |
 
 ## Related Tools
 

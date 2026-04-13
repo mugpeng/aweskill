@@ -1,7 +1,7 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
 
-import { listSupportedAgents, resolveAgentSkillsDir } from "./agents.js";
+import { listSupportedAgents, resolveAgentSkillsDir, supportsScope } from "./agents.js";
 import { listBundles, writeBundle } from "./bundles.js";
 import { getAweskillPaths, sanitizeName } from "./path.js";
 import { getSkillPath } from "./skills.js";
@@ -39,6 +39,9 @@ export async function findSkillReferences(options: {
 
   for (const { scope, dir } of baseDirs) {
     for (const agent of listSupportedAgents()) {
+      if (!supportsScope(agent.id, scope)) {
+        continue;
+      }
       const agentSkillsDir = resolveAgentSkillsDir(agent.id, scope, dir);
       const managed = await listManagedSkillNames(agentSkillsDir, skillsDir);
       if (managed.has(normalizedSkill)) {
@@ -82,6 +85,9 @@ export async function removeSkillWithReferences(options: {
 
   for (const { scope, dir } of baseDirs) {
     for (const agent of listSupportedAgents()) {
+      if (!supportsScope(agent.id, scope)) {
+        continue;
+      }
       const agentSkillsDir = resolveAgentSkillsDir(agent.id, scope, dir);
       const managed = await listManagedSkillNames(agentSkillsDir, skillsDir);
       if (managed.has(normalizedSkill)) {
