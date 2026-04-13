@@ -1,6 +1,6 @@
 import { importScannedSkills } from "../lib/import.js";
 import { scanSkills } from "../lib/scanner.js";
-import type { ImportMode, RuntimeContext, ScanCandidate } from "../types.js";
+import type { RuntimeContext, ScanCandidate } from "../types.js";
 
 function groupLabel(candidate: ScanCandidate): string {
   return candidate.scope === "global"
@@ -37,8 +37,12 @@ export function formatScanSummary(candidates: ScanCandidate[], verbose = false):
 
 export async function runScan(
   context: RuntimeContext,
-  options: { add?: boolean; mode?: ImportMode; override?: boolean; verbose?: boolean },
+  options: { add?: boolean; override?: boolean; verbose?: boolean; keepSource?: boolean; linkSource?: boolean },
 ) {
+  if (options.keepSource && options.linkSource) {
+    throw new Error("Choose either --keep-source or --link-source, not both.");
+  }
+
   const candidates = await scanSkills({
     homeDir: context.homeDir,
     projectDirs: [context.cwd],
@@ -47,11 +51,12 @@ export async function runScan(
   context.write(formatScanSummary(candidates, options.verbose));
 
   if (options.add) {
+    const linkSource = !options.keepSource;
     const result = await importScannedSkills({
       homeDir: context.homeDir,
       candidates,
-      mode: options.mode ?? "cp",
       override: options.override,
+      linkSource,
     });
     for (const warning of result.warnings) {
       context.write(`Warning: ${warning}`);
@@ -68,6 +73,11 @@ export async function runScan(
     }
     if (result.missingSources > 0) {
       context.write(`Missing source files: ${result.missingSources}`);
+    }
+    if (linkSource) {
+      context.write(`Replaced ${result.linkedSources.length} scanned source paths with aweskill-managed projections.`);
+    } else {
+      context.write("Source paths were kept in place. Re-run without --keep-source to replace scanned agent skills with aweskill-managed projections.");
     }
     return { candidates, ...result };
   }

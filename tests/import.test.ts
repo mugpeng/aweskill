@@ -1,4 +1,4 @@
-import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readlink, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -19,7 +19,6 @@ describe("import helpers", () => {
     const result = await importSkill({
       homeDir: workspace.homeDir,
       sourcePath: linkedDir,
-      mode: "cp",
     });
 
     expect(result.warnings[0]).toContain(`Source ${linkedDir} is a symlink; copied from ${realDir}`);
@@ -39,7 +38,6 @@ describe("import helpers", () => {
     const result = await importPath({
       homeDir: workspace.homeDir,
       sourcePath: sourceDir,
-      mode: "cp",
       override: false,
     });
 
@@ -48,5 +46,22 @@ describe("import helpers", () => {
     await expect(readFile(path.join(destinationDir, "SKILL.md"), "utf8")).resolves.toContain("Original");
     await expect(readFile(path.join(destinationDir, "scripts", "keep.sh"), "utf8")).resolves.toContain("keep");
     await expect(readFile(path.join(destinationDir, "scripts", "new.sh"), "utf8")).rejects.toThrow();
+  });
+
+  it("links the source directory back to the central store when requested", async () => {
+    const workspace = await createTempWorkspace();
+    const sourceDir = path.join(workspace.rootDir, "external-skill");
+
+    await writeSkill(sourceDir, "External Skill");
+
+    const result = await importSkill({
+      homeDir: workspace.homeDir,
+      sourcePath: sourceDir,
+      linkSource: true,
+    });
+
+    expect(result.linkedSourcePath).toBe(sourceDir);
+    expect((await lstat(sourceDir)).isSymbolicLink()).toBe(true);
+    expect(path.resolve(path.dirname(sourceDir), await readlink(sourceDir))).toBe(getSkillPath(workspace.homeDir, "external-skill"));
   });
 });

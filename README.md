@@ -85,7 +85,7 @@ aweskill skill scan
 
 # 4. Import a skills root or a single skill
 aweskill skill import ~/.agents/skills
-# aweskill skill import /path/to/my-skill --mode cp
+# aweskill skill import /path/to/my-skill --link-source
 
 # 5. Create a bundle
 aweskill bundle create frontend
@@ -141,8 +141,10 @@ Key directories:
 
 ```bash
 aweskill skill import ~/.agents/skills
-aweskill skill import ~/Downloads/pr-review --mode cp
+aweskill skill import ~/Downloads/pr-review
+aweskill skill import ~/Downloads/pr-review --link-source
 aweskill skill import --scan
+aweskill skill import --scan --keep-source
 ```
 
 ### Build reusable bundles
@@ -191,8 +193,8 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
 | `aweskill skill scan [--verbose]` | Scan supported agent skill directories |
-| `aweskill skill import <path> [--mode cp\|mv] [--override]` | Import a skill or an entire skills root |
-| `aweskill skill import --scan [--mode cp\|mv] [--override]` | Import the current scan results |
+| `aweskill skill import <path> [--keep-source\|--link-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default |
+| `aweskill skill import --scan [--keep-source\|--link-source] [--override]` | Import the current scan results; scanned agent paths link back to aweskill by default |
 | `aweskill skill list [--verbose]` | List skills in the central store |
 | `aweskill skill remove <skill> [--force]` | Remove one skill from the central store |
 | `aweskill bundle list [--verbose]` | List central bundles |

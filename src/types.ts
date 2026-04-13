@@ -47,7 +47,6 @@ export type AgentId =
   | "windsurf";
 export type ActivationType = "bundle" | "skill";
 export type ProjectionMode = "symlink" | "copy";
-export type ImportMode = "mv" | "cp";
 export type Scope = "global" | "project";
 
 export interface BundleDefinition {
@@ -97,6 +96,7 @@ export interface ImportResult {
   name: string;
   destination: string;
   warnings: string[];
+  linkedSourcePath?: string;
 }
 
 export interface SkillEntry {

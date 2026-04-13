@@ -1,4 +1,4 @@
-import { access, lstat, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { access, lstat, mkdir, readFile, readlink, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -1063,7 +1063,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Global scanned skills for codex: 1");
   });
 
-  it("scan --add warns when copying a symlink source", async () => {
+  it("scan import warns when copying a symlink source and links the agent path back to the central store", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1084,9 +1084,10 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain(`Warning: Source ${linkedDir} is a symlink; copied from ${realDir} to ${getSkillPath(workspace.homeDir, "aeon")}`);
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
+    expect((await lstat(linkedDir)).isSymbolicLink()).toBe(true);
   });
 
-  it("scan --add skips existing skills by default and reports them", async () => {
+  it("scan import skips existing skills by default and reports them", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1110,7 +1111,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("aeon");
   });
 
-  it("scan --add --override overwrites existing files", async () => {
+  it("scan import --override overwrites existing files", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
       cwd: workspace.projectDir,
@@ -1131,7 +1132,7 @@ describe("commands", () => {
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Replacement AEON");
   });
 
-  it("single import copies from symlink source for cp and preserves the real source for mv", async () => {
+  it("single import keeps the source by default and can link it back to the central store", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1147,20 +1148,63 @@ describe("commands", () => {
     await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
     await symlink(realDir, symlinkDir);
 
-    await program.parseAsync(["node", "aweskill", "skill", "import", symlinkDir, "--mode", "cp"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "skill", "import", symlinkDir], { from: "node" });
     expect(lines.join("\n")).toContain(`Warning: Source ${symlinkDir} is a symlink; copied from ${realDir}`);
+    expect(lines.join("\n")).toContain("Source was kept in place. Re-run with --link-source to replace it with an aweskill-managed projection.");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "linked-aeon"), "SKILL.md"), "utf8")).resolves.toContain("AEON");
+    expect((await lstat(symlinkDir)).isSymbolicLink()).toBe(true);
+    expect(path.resolve(path.dirname(symlinkDir), await readlink(symlinkDir))).toBe(realDir);
 
-    const mvProgram = createProgram({
+    const linkProgram = createProgram({
       cwd: workspace.projectDir,
       homeDir: path.join(workspace.rootDir, "other-home"),
       write: () => undefined,
       error: () => undefined,
     });
     await mkdir(path.join(workspace.rootDir, "other-home"), { recursive: true });
-    await mvProgram.parseAsync(["node", "aweskill", "skill", "import", symlinkDir, "--mode", "mv"], { from: "node" });
+    await linkProgram.parseAsync(["node", "aweskill", "skill", "import", symlinkDir, "--link-source"], { from: "node" });
     await expect(readFile(path.join(realDir, "SKILL.md"), "utf8")).resolves.toContain("AEON");
     await expect(readFile(path.join(workspace.rootDir, "other-home", ".aweskill", "skills", "linked-aeon", "SKILL.md"), "utf8")).resolves.toContain("AEON");
+    expect(path.resolve(path.dirname(symlinkDir), await readlink(symlinkDir))).toBe(
+      path.join(workspace.rootDir, "other-home", ".aweskill", "skills", "linked-aeon"),
+    );
+  });
+
+  it("scan import --keep-source preserves the original agent directory and prints guidance", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const discoveredDir = path.join(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), "aeon");
+    await mkdir(discoveredDir, { recursive: true });
+    await writeFile(path.join(discoveredDir, "SKILL.md"), "# AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "skill", "import", "--scan", "--keep-source"], { from: "node" });
+
+    expect((await lstat(discoveredDir)).isDirectory()).toBe(true);
+    expect(lines.join("\n")).toContain("Source paths were kept in place. Re-run without --keep-source to replace scanned agent skills with aweskill-managed projections.");
+  });
+
+  it("rejects conflicting source-retention flags", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(path.join(workspace.rootDir, "external", "aeon"), "AEON");
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "skill", "import", path.join(workspace.rootDir, "external", "aeon"), "--keep-source", "--link-source"], { from: "node" }),
+    ).rejects.toThrow("Choose either --keep-source or --link-source, not both.");
   });
 
   it("import imports all skills from a skills root directory", async () => {

@@ -132,7 +132,6 @@ export async function runCheck(
           await importSkill({
             homeDir: context.homeDir,
             sourcePath: skill.path,
-            mode: "mv",
           });
           centralSkills.add(skill.name);
           importedCount += 1;

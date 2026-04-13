@@ -85,7 +85,7 @@ aweskill skill scan
 
 # 4. 导入一个 skills 根目录或单个 skill
 aweskill skill import ~/.agents/skills
-# aweskill skill import /path/to/my-skill --mode cp
+# aweskill skill import /path/to/my-skill --link-source
 
 # 5. 创建 bundle
 aweskill bundle create frontend
@@ -141,8 +141,10 @@ aweskill agent add bundle frontend --global --agent codex
 
 ```bash
 aweskill skill import ~/.agents/skills
-aweskill skill import ~/Downloads/pr-review --mode cp
+aweskill skill import ~/Downloads/pr-review
+aweskill skill import ~/Downloads/pr-review --link-source
 aweskill skill import --scan
+aweskill skill import --scan --keep-source
 ```
 
 ### 构建可复用 bundle
@@ -191,8 +193,8 @@ aweskill doctor dedupe --apply
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
 | `aweskill skill scan [--verbose]` | 扫描支持的 agent skill 目录 |
-| `aweskill skill import <path> [--mode cp\|mv] [--override]` | 导入单个 skill 或整个 skills 根目录 |
-| `aweskill skill import --scan [--mode cp\|mv] [--override]` | 导入当前扫描结果 |
+| `aweskill skill import <path> [--keep-source\|--link-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录 |
+| `aweskill skill import --scan [--keep-source\|--link-source] [--override]` | 导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
 | `aweskill skill list [--verbose]` | 列出中央仓库中的 skill |
 | `aweskill skill remove <skill> [--force]` | 从中央仓库删除一个 skill |
 | `aweskill bundle list [--verbose]` | 列出 bundle |

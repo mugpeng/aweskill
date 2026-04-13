@@ -32,7 +32,7 @@ import { pathExists } from "./lib/fs.js";
 import { getAweskillPaths } from "./lib/path.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
 import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
-import type { ActivationType, ImportMode, RuntimeContext, Scope } from "./types.js";
+import type { ActivationType, RuntimeContext, Scope } from "./types.js";
 
 function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeContext {
   return {
@@ -52,13 +52,6 @@ async function runFramedCommand<T>(title: string, action: () => Promise<T>): Pro
 
 function collectAgents(value: string, previous?: string[]): string[] {
   return [...(previous ?? []), ...value.split(",").map((entry) => entry.trim()).filter(Boolean)];
-}
-
-function getMode(value: string): ImportMode {
-  if (value === "mv" || value === "cp") {
-    return value;
-  }
-  throw new Error(`Unsupported import mode: ${value}. Use "cp" or "mv".`);
 }
 
 function getActivationType(value: string): ActivationType {
@@ -198,15 +191,17 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("[path]")
     .description("Import one skill or a skills root directory")
     .option("--scan", "import scanned skills", false)
-    .option("--mode <mode>", "import mode: cp (default) or mv", getMode, "cp")
+    .option("--keep-source", "keep the source path in place after importing", false)
+    .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
     .option("--override", "overwrite existing files when importing", false)
     .action(async (sourcePath, options) => {
       await runFramedCommand(" aweskill skill import ", async () =>
         runImport(context, {
           sourcePath,
           scan: options.scan,
-          mode: options.mode,
           override: options.override,
+          keepSource: options.keepSource,
+          linkSource: options.linkSource,
         }),
       );
     });
