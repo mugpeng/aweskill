@@ -47,6 +47,18 @@ npm link
 aweskill --help
 ```
 
+## Windows Development Notes
+
+`aweskill` supports Windows as a native platform.
+
+When developing or reviewing Windows-related changes:
+
+- use Node.js 20 or later
+- prefer PowerShell for local command examples
+- remember that agent projections may be created as junctions on Windows
+- if link creation is unavailable, managed copy fallback is acceptable behavior
+- backup and restore should not depend on external Unix tools such as `tar`
+
 ## Branches
 
 The repository uses two long-lived branches:
@@ -76,6 +88,19 @@ In practice:
 - Bundles are plain YAML
 - Prefer small, well-bounded functions over large command handlers
 - Prefer improving existing command behavior over adding new top-level concepts
+
+## Bundle File Format
+
+Bundles are plain YAML stored under `~/.aweskill/bundles/<name>.yaml`:
+
+```yaml
+name: frontend
+skills:
+  - pr-review
+  - frontend-design
+```
+
+Keep the format intentionally small. If a proposal adds state that cannot be understood by opening the YAML file directly, that proposal should face a high bar.
 
 ## Contribution Guidelines
 
@@ -114,6 +139,75 @@ If a feature changes files, the user should be able to understand what changed a
 - projected skills are visible in agent directories
 
 Please avoid features that hide core state behind unnecessary abstraction.
+
+## Projection Model
+
+`aweskill` keeps its projection model deliberately simple:
+
+1. Skill content has one canonical home: `~/.aweskill/skills/<skill-name>/`
+2. `agent add` projects selected skills into agent-specific directories
+3. On Unix-like systems, that projection is normally a symlink
+4. On Windows, that projection prefers a directory junction and may fall back to a managed copy
+5. `agent remove` only deletes projections that `aweskill` can identify as managed
+6. `agent sync` removes managed projections whose central source no longer exists
+
+There is no separate global activation registry. The projected filesystem state is the activation model.
+
+### Import behavior
+
+- Default `skill import --scan` and batch `skill import` merge only missing files when the central skill already exists
+- `--override` overwrites existing central content
+- If the import source is a symlink, `aweskill` copies from the resolved real path and may emit a warning
+- Broken symlinks during batch import are reported while other items continue
+- `restore` creates a fresh backup of the current store before applying the archive
+
+### Display behavior
+
+- `skill list` shows totals and a short preview unless `--verbose`
+- `skill scan` shows per-agent totals by default and concrete entries with `--verbose`
+- `agent list` categorizes entries as `linked`, `duplicate`, and `new`
+- `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--fix` is passed
+
+### Projection examples
+
+```bash
+# Global projection for one agent
+aweskill agent add skill biopython --global --agent codex
+
+# Project-scoped projection for one agent
+aweskill agent add skill pr-review --project /path/to/repo --agent cursor
+
+# Bundle expansion writes individual managed projections
+aweskill agent add bundle backend --global --agent codex
+aweskill agent remove bundle backend --global --agent codex
+
+# Convert linked projections into copied directories
+aweskill agent recover --global --agent codex
+```
+
+## Design Tradeoffs
+
+### No global activation file
+
+`aweskill` treats projected filesystem state as the truth. This avoids a second layer of activation metadata drifting out of sync with what users can see on disk.
+
+### Bundles are expansion sets
+
+`agent add bundle <name>` expands the bundle into skill names and projects those skills. There is no separate long-lived bundle activation object after projection.
+
+### Managed-only removal
+
+`aweskill` removes only entries it can identify as its own managed projections. It does not blindly delete arbitrary directories in user-owned skill roots.
+
+### Small command surface
+
+New concepts should be rare. Prefer making `skill`, `bundle`, `agent`, `store`, and `doctor` clearer before adding more top-level CLI surface.
+
+## Repository Resources
+
+- Runtime bundles live under `~/.aweskill/bundles/`
+- In-repo template bundles live under `resources/bundle_templates/`
+- `resources/skill_archives/` is reserved for repository-level backup archives you intentionally keep in-tree for sharing or reference
 
 ## Documentation
 

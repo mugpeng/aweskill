@@ -4,6 +4,7 @@ import { getAweskillPaths, sanitizeName, splitCommaValues, uniqueSorted } from "
 import { skillExists } from "../lib/skills.js";
 import { listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
+import path from "node:path";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
@@ -170,7 +171,7 @@ export async function runDisable(
   for (const agentId of agents) {
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
     for (const skillName of skillNames) {
-      const targetPath = `${skillsDir}/${skillName}`;
+      const targetPath = path.join(skillsDir, skillName);
       const wasRemoved = await removeManagedProjection(targetPath);
       if (wasRemoved) {
         removed.push(`${agentId}:${skillName}`);

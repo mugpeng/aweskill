@@ -1,4 +1,5 @@
 import { mkdir } from "node:fs/promises";
+import path from "node:path";
 
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
@@ -100,7 +101,7 @@ export async function runEnable(
     await mkdir(skillsDir, { recursive: true });
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(context.homeDir, skillName);
-      const targetPath = `${skillsDir}/${skillName}`;
+      const targetPath = path.join(skillsDir, skillName);
       await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
     }
   }
@@ -112,11 +113,11 @@ export async function runEnable(
     const mode = getProjectionMode(agentId);
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(context.homeDir, skillName);
-      const targetPath = `${skillsDir}/${skillName}`;
+      const targetPath = path.join(skillsDir, skillName);
       const result = mode === "symlink"
         ? await createSkillSymlink(sourcePath, targetPath)
         : await createSkillCopy(sourcePath, targetPath);
-      if (result === "created") {
+      if (result.status === "created") {
         created.push(`${agentId}:${skillName}`);
       }
     }

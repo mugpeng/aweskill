@@ -95,19 +95,28 @@ aweskill agent add bundle frontend --global --agent claude-code
 aweskill agent list
 ```
 
+## Windows
+
+`aweskill` 现在已经支持 Windows 原生使用。
+
+- 需要 Node.js 20 及以上
+- 推荐使用 PowerShell 执行命令
+- 在 Windows 上，agent 投影会优先使用目录 junction；如果系统不允许创建链接，会回退到受管 copy
+- `store backup` 和 `store restore` 不再依赖系统自带 `tar`
+
+示例：
+
+```powershell
+aweskill store init
+aweskill skill scan
+aweskill agent add bundle frontend --global --agent codex
+```
+
+如果你在 Windows 上遇到路径、权限或投影问题，建议带上 shell、Node 版本和目标 agent 信息来提 issue。
+
 ## 核心模型
 
-`aweskill` 的模型很简单：
-
-1. Skill 统一保存在 `~/.aweskill/skills/<skill-name>/`
-2. Bundle 是 `~/.aweskill/bundles/<bundle>.yaml` 下的普通 YAML 文件
-3. `agent add` 会把选定的 skill 投影到各 agent 自己的 skills 目录
-
-投影状态就是启用状态：
-
-- 有托管的 symlink，就表示启用
-- 没有，就表示停用
-- 不存在额外的全局 activation 注册表
+`aweskill` 会把 `~/.aweskill/skills/` 作为唯一技能中央仓库，用 bundle 组织可复用 skill 集合，再把选中的 skill 投影到各个 agent 的技能目录。投影后的文件系统状态本身就是启用状态。
 
 ## 支持范围
 
@@ -187,76 +196,18 @@ aweskill doctor dedupe --fix
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor dedupe [--fix] [--delete]` | 查找并清理重复 skill |
 
-## 设计取舍
+## 贡献
 
-### 没有全局 activation 文件
+如果你想参与开发，请看 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。
 
-`aweskill` 直接把投影后的文件系统状态当作事实来源。这样模型更简单，也避免额外的一层 activation 元数据和实际目录状态漂移。
+那里现在集中说明了：
 
-### Bundle 是展开集合
+- 设计取舍
+- bundle 文件格式
+- 投影模型
+- 开发流程与测试要求
 
-`agent add bundle <name>` 会把 bundle 展开为多个 skill 名，再逐个投影。投影完成后，不存在一个额外长期保存的“bundle 激活对象”。
-
-### 只删除托管项
-
-`aweskill` 只删除它能够明确识别为自己创建的托管 symlink，不会盲删任意 skill 目录。
-
-## Bundle 文件格式
-
-Bundle 是 `~/.aweskill/bundles/<name>.yaml` 下的普通 YAML 文件：
-
-```yaml
-name: frontend
-skills:
-  - pr-review
-  - frontend-design
-```
-
-## 投影模型
-
-1. **Skill 内容的唯一事实来源**：`~/.aweskill/skills/<skill-name>/`
-2. **`agent add`** 会在指定 agent 和支持的 scope 下创建一个指向中央仓库的 **symlink**
-3. **`agent remove`** 只会删除能识别为 `aweskill` 托管的条目
-4. **`agent sync`** 会移除中央 skill 已不存在时留下的失效托管投影
-
-**不会**基于某个全局 YAML activation 列表做 reconcile。
-
-导入行为：
-
-- 默认 `skill import --scan` 和批量 `skill import` 只补缺失文件；`--override` 才会覆盖
-- 如果导入源是 symlink，aweskill 会从真实路径复制，并在需要时给出 warning
-- 批量导入遇到坏掉的 symlink 会继续处理其他项
-- `restore` 在恢复前会自动备份当前 `skills/`
-
-显示行为：
-
-- `skill list` 默认显示预览，`--verbose` 才显示全部
-- `skill scan` 默认显示每个 agent 的统计，`--verbose` 才列出具体 skill
-- `agent list` 会把条目分成 `linked`、`duplicate`、`new`
-- `doctor dedupe` 会把 `name`、`name-2`、`name-1.2.3` 视为同一重复族，只有传 `--fix` 才真正改文件
-
-投影示例：
-
-```bash
-# 全局范围为一个 agent 建立投影
-aweskill agent add skill biopython --global --agent codex
-
-# 项目范围为一个 agent 建立投影
-aweskill agent add skill pr-review --project /path/to/repo --agent cursor
-
-# bundle 的启用/禁用本质上都是展开成 skill 投影
-aweskill agent add bundle backend --global --agent codex
-aweskill agent remove bundle backend --global --agent codex
-
-# 把 symlink 投影恢复成完整目录
-aweskill agent recover --global --agent codex
-```
-
-## 模板与归档
-
-内置 bundle 模板现在位于 [resources/bundle_templates/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/resources/bundle_templates/K-Dense-AI-scientific-skills.yaml)。运行时 bundle 仍然位于 `~/.aweskill/bundles/`。
-
-`resources/skill_archives/` 预留给你手动维护的整仓库 `tar.gz` 归档，用于随仓库分发给其他用户。`aweskill` 不会自动生成或恢复这些归档。
+欢迎提交文档改进、测试补充和小而聚焦的功能改进。
 
 如果你希望使用一个独立于本仓库、可直接分享给其他用户的技能归档集合，可以参考 [oh-my-skills](https://github.com/mugpeng/oh-my-skills)。它是一个单独维护的备份仓库，用来存放可分发的 bundle 和整库快照归档。
 
@@ -337,7 +288,7 @@ aweskill agent recover --global --agent codex
 
 </details>
 
-## 开发
+## 开发命令
 
 ```bash
 npm install

@@ -20,6 +20,6 @@ describe("path helpers", () => {
 
   it("builds aweskill paths", () => {
     const paths = getAweskillPaths("/tmp/home");
-    expect(paths.skillsDir).toBe("/tmp/home/.aweskill/skills");
+    expect(paths.skillsDir).toBe(path.join("/tmp/home", ".aweskill", "skills"));
   });
 });

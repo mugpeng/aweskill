@@ -95,19 +95,28 @@ aweskill agent add bundle frontend --global --agent claude-code
 aweskill agent list
 ```
 
+## Windows
+
+`aweskill` now supports Windows as a native platform.
+
+- Requires Node.js 20 or later
+- PowerShell is recommended for the examples below
+- On Windows, agent projections prefer directory junctions and fall back to managed copies when links are unavailable
+- `store backup` and `store restore` no longer require a system `tar` binary
+
+Example:
+
+```powershell
+aweskill store init
+aweskill skill scan
+aweskill agent add bundle frontend --global --agent codex
+```
+
+If you run into Windows-specific path or projection issues, please open an issue with your shell, Node version, and target agent.
+
 ## Core Model
 
-`aweskill` follows a simple projection model:
-
-1. Skills live in one central repository: `~/.aweskill/skills/<skill-name>/`
-2. Bundles are plain YAML files in `~/.aweskill/bundles/<bundle>.yaml`
-3. `agent add` projects selected skills into each agent's skills directory
-
-That projection is the activation model.
-
-- If a managed symlink exists, the skill is enabled
-- If it does not exist, the skill is disabled
-- There is no separate global activation registry to reconcile
+`aweskill` keeps one central skill store in `~/.aweskill/skills/`, groups reusable skills through bundles, and projects selected skills into each agent's own skill directory. That projected filesystem state is the activation model.
 
 ## What It Supports
 
@@ -187,76 +196,18 @@ By default, `store backup` and `store restore` only operate on `skills/`. Add `-
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor dedupe [--fix] [--delete]` | Find and optionally clean duplicate skills |
 
-## Design Choices
+## Contributing
 
-### No global activation file
+If you want to contribute, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
-`aweskill` treats the projected filesystem state as the truth. This keeps the model simple and avoids a second layer of activation metadata drifting out of sync.
+That file now covers:
 
-### Bundles are expansion sets
+- design tradeoffs
+- bundle file format
+- projection model
+- development workflow and testing expectations
 
-`agent add bundle <name>` expands the bundle into skill names and projects those skills. There is no separate long-lived "bundle activation" object after projection.
-
-### Managed-only removal
-
-`aweskill` removes only entries it can identify as its own managed symlinks. It does not blindly delete arbitrary skill directories.
-
-## Bundle File Format
-
-Bundles are plain YAML under `~/.aweskill/bundles/<name>.yaml`:
-
-```yaml
-name: frontend
-skills:
-  - pr-review
-  - frontend-design
-```
-
-## Projection Model
-
-1. **Central source of truth for skill content**: `~/.aweskill/skills/<skill-name>/`.
-2. **`agent add`** creates, for each selected agent and supported scope, a **symlink** to that directory.
-3. **`agent remove`** removes only entries that are **managed by aweskill**.
-4. **`agent sync`** removes managed projections whose central skill path is missing.
-
-There is **no** reconcile pass driven by a global YAML activation list.
-
-Import behavior:
-
-- Default `skill import --scan` and batch `skill import` merge only missing files when the central skill already exists; `--override` overwrites.
-- When the source is a symlink, aweskill copies from the resolved real path and may print a warning.
-- Broken symlinks during batch import are reported; other items continue.
-- `restore` automatically creates a fresh backup of the current `skills/` tree before applying the archive.
-
-Display behavior:
-
-- `skill list` shows totals and a short preview unless `--verbose`.
-- `skill scan` shows per-agent totals by default; `--verbose` lists concrete scanned skills.
-- `agent list` categorizes `linked`, `duplicate`, and `new`; `--update` imports and relinks where needed.
-- `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only modifies files when `--fix` is passed.
-
-Projection examples:
-
-```bash
-# Global projection for one agent
-aweskill agent add skill biopython --global --agent codex
-
-# Project-scoped projection for one agent
-aweskill agent add skill pr-review --project /path/to/repo --agent cursor
-
-# Bundle expansion writes individual managed projections
-aweskill agent add bundle backend --global --agent codex
-aweskill agent remove bundle backend --global --agent codex
-
-# Convert symlink projections into copied directories
-aweskill agent recover --global --agent codex
-```
-
-## Templates And Archives
-
-Reference bundle templates now live in [resources/bundle_templates/K-Dense-AI-scientific-skills.yaml](/Users/peng/Desktop/Project/aweskills/resources/bundle_templates/K-Dense-AI-scientific-skills.yaml). Runtime bundles still live under `~/.aweskill/bundles/`.
-
-`resources/skill_archives/` is reserved for repository-level `tar.gz` backups that you want to keep in-tree and share with other users. `aweskill` does not generate or restore these archives automatically.
+Documentation, tests, and small focused improvements are all welcome.
 
 For a shareable archive collection maintained outside this repository, see [oh-my-skills](https://github.com/mugpeng/oh-my-skills), a separate backup repository for skill bundles and full-snapshot archives.
 
@@ -337,7 +288,7 @@ If you are exploring the broader skills ecosystem, these projects are worth usin
 - open skill ecosystem conventions
 - cross-agent local developer workflow tooling
 
-## Development
+## Development Commands
 
 ```bash
 npm install
