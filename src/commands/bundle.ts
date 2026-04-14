@@ -63,16 +63,23 @@ export async function runBundleDelete(context: RuntimeContext, bundleName: strin
   return deletedNames;
 }
 
-export async function runBundleAddTemplate(context: RuntimeContext, bundleName: string) {
+export async function runBundleAddTemplate(
+  context: RuntimeContext,
+  bundleName: string,
+  options: { override?: boolean } = {},
+) {
   const templateBundlesDir = await getTemplateBundlesDir();
-  const bundles = [];
+  const override = options.override ?? false;
+  const bundles: { name: string; overwritten: boolean }[] = [];
 
   for (const currentBundleName of parseNames(bundleName)) {
     const templateBundle = await readBundleFromDirectory(templateBundlesDir, currentBundleName);
 
     try {
       await readBundle(context.homeDir, templateBundle.name);
-      throw new Error(`Bundle already exists: ${templateBundle.name}`);
+      if (!override) {
+        throw new Error(`Bundle already exists: ${templateBundle.name}. Re-run with --override to replace it.`);
+      }
     } catch (error) {
       if (!(error instanceof Error) || !error.message.includes("ENOENT")) {
         if (error instanceof Error && error.message.startsWith("Bundle already exists:")) {
@@ -82,9 +89,16 @@ export async function runBundleAddTemplate(context: RuntimeContext, bundleName: 
       }
     }
 
-    bundles.push(await writeBundle(context.homeDir, templateBundle));
+    await writeBundle(context.homeDir, templateBundle);
+    bundles.push({ name: templateBundle.name, overwritten: override });
   }
 
-  context.write(bundles.map((bundle) => `Added bundle ${bundle.name} from template`).join("\n"));
+  context.write(
+    bundles
+      .map((bundle) => bundle.overwritten
+        ? `Overwrote bundle ${bundle.name} from template`
+        : `Added bundle ${bundle.name} from template`)
+      .join("\n"),
+  );
   return bundles;
 }

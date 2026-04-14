@@ -1299,6 +1299,33 @@ describe("commands", () => {
     expect((await lstat(linkedDir)).isSymbolicLink()).toBe(true);
   });
 
+  it("scan import does not count already-correct managed projections as replaced", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const realDir = path.join(workspace.rootDir, "external", "aeon");
+    const linkedDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(realDir, { recursive: true });
+    await mkdir(path.dirname(linkedDir), { recursive: true });
+    await writeFile(path.join(realDir, "SKILL.md"), "# AEON\n", "utf8");
+    await symlink(realDir, linkedDir);
+
+    await program.parseAsync(["node", "aweskill", "store", "import", "--scan"], { from: "node" });
+    expect(lines.join("\n")).toContain("Replaced 1 scanned source paths with aweskill-managed projections.");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "import", "--scan"], { from: "node" });
+    expect(lines.join("\n")).toContain("Skipped 1 existing skills");
+    expect(lines.join("\n")).not.toContain("Replaced 1 scanned source paths with aweskill-managed projections.");
+    expect(lines.join("\n")).toContain("Replaced 0 scanned source paths with aweskill-managed projections.");
+  });
+
   it("scan import skips existing skills by default and reports them", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -1532,6 +1559,48 @@ describe("commands", () => {
     const bundlePath = path.join(workspace.homeDir, ".aweskill", "bundles", "k-dense-ai-scientific-skills.yaml");
     await expect(readFile(bundlePath, "utf8")).resolves.toContain("name: k-dense-ai-scientific-skills");
     expect(lines.join("\n")).toContain("Added bundle k-dense-ai-scientific-skills from template");
+  });
+
+  it("bundle add-template suggests --override when bundle already exists", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "global"], { from: "node" });
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "bundle", "template", "import", "global"], { from: "node" }),
+    ).rejects.toThrow('Bundle already exists: global. Re-run with --override to replace it.');
+  });
+
+  it("bundle add-template --override replaces existing bundle contents", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "global"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "global", "fake-skill"], { from: "node" }).catch(() => undefined);
+    await writeFile(
+      path.join(workspace.homeDir, ".aweskill", "bundles", "global.yaml"),
+      "name: global\nskills:\n  - fake-skill\n",
+      "utf8",
+    );
+
+    await program.parseAsync(["node", "aweskill", "bundle", "template", "import", "global", "--override"], { from: "node" });
+
+    const bundlePath = path.join(workspace.homeDir, ".aweskill", "bundles", "global.yaml");
+    await expect(readFile(bundlePath, "utf8")).resolves.not.toContain("fake-skill");
+    await expect(readFile(bundlePath, "utf8")).resolves.toContain("name: global");
+    expect(lines.join("\n")).toContain("Overwrote bundle global from template");
   });
 
   it("bundle add-template supports comma-separated template names", async () => {

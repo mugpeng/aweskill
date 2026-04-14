@@ -77,8 +77,8 @@ async function relinkImportedSource(sourcePath: string, destination: string): Pr
     return undefined;
   }
 
-  await createSkillSymlink(destination, sourcePath, { allowReplaceExisting: true });
-  return sourcePath;
+  const result = await createSkillSymlink(destination, sourcePath, { allowReplaceExisting: true });
+  return result.status === "created" ? sourcePath : undefined;
 }
 
 interface BatchImportSource {

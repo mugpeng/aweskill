@@ -214,9 +214,17 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .action(async (options) => {
       await runListTemplateBundles(context, { verbose: options.verbose });
     });
-  bundleTemplate.command("import").argument("<name>").description("Copy built-in templates into the central store").action(async (name) => {
-    await runFramedCommand(" aweskill bundle template import ", async () => runBundleAddTemplate(context, name));
-  });
+  bundleTemplate
+    .command("import")
+    .argument("<name>")
+    .description("Copy built-in templates into the central store")
+    .option("--override", "overwrite existing bundles when importing templates", false)
+    .action(async (name, options) => {
+      await runFramedCommand(
+        " aweskill bundle template import ",
+        async () => runBundleAddTemplate(context, name, { override: options.override }),
+      );
+    });
 
   const agent = program.command("agent").description("Manage skills used by agents");
   agent.command("supported").description("List supported agent ids and display names").action(async () => {
