@@ -2,6 +2,7 @@ import path from "node:path";
 
 import type { AgentDefinition, AgentId, ProjectionMode, Scope } from "../types.js";
 import { pathExists } from "./fs.js";
+import { uniqueSorted } from "./path.js";
 
 function defineAgent(
   id: AgentId,
@@ -319,4 +320,69 @@ export async function detectInstalledAgents(options: {
   }
 
   return installed;
+}
+
+/** Agents to scan for `agent list` / `doctor sync` when the user does not name specific agents. */
+export async function detectAgentsForListingScope(
+  homeDir: string,
+  scope: Scope,
+  projectDir?: string,
+): Promise<AgentId[]> {
+  const installed: AgentId[] = [];
+
+  for (const agent of listSupportedAgents()) {
+    if (scope === "global") {
+      if (!agent.supportsGlobal) {
+        continue;
+      }
+      const rootPath = agent.rootDir(homeDir);
+      if (await pathExists(rootPath)) {
+        installed.push(agent.id);
+      }
+    } else {
+      if (!agent.supportsProject || !projectDir) {
+        continue;
+      }
+      const skillsPath = resolveAgentSkillsDir(agent.id, "project", projectDir);
+      if (await pathExists(skillsPath)) {
+        installed.push(agent.id);
+      }
+    }
+  }
+
+  return installed;
+}
+
+export async function resolveAgentsForListingOrSync(options: {
+  requestedAgents: string[];
+  scope: Scope;
+  homeDir: string;
+  projectDir?: string;
+}): Promise<{ agents: AgentId[]; explicit: boolean }> {
+  const wantsAll = options.requestedAgents.length === 0 || options.requestedAgents.includes("all");
+
+  if (!wantsAll) {
+    const agents = uniqueSorted(
+      options.requestedAgents.map((agent) => {
+        if (!isAgentId(agent)) {
+          throw new Error(`Unsupported agent: ${agent}`);
+        }
+        if (!supportsScope(agent, options.scope)) {
+          throw new Error(`Agent ${agent} does not support ${options.scope} scope.`);
+        }
+        return agent;
+      }),
+    );
+    return { agents, explicit: true };
+  }
+
+  const agents = await detectAgentsForListingScope(options.homeDir, options.scope, options.projectDir);
+  return { agents, explicit: false };
+}
+
+export function formatNoAgentsDetectedForScope(scope: Scope, projectDir: string | undefined): string {
+  if (scope === "global") {
+    return "No agents detected for global scope (no supported agent installation directories were found). Install an agent or pass --agent <id> to inspect a specific agent.";
+  }
+  return `No agents detected for project scope at ${projectDir}. Add project-local agent skill directories or pass --agent <id> to inspect a specific agent.`;
 }

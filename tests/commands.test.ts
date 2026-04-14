@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
 import { getSkillPath } from "../src/lib/skills.js";
+import { AWESKILL_VERSION } from "../src/lib/version.js";
 import { getTemplateBundlesDir } from "../src/lib/templates.js";
 import { createTempWorkspace, writeSkill } from "./helpers.ts";
 
@@ -67,7 +68,7 @@ describe("commands", () => {
     const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     await main(["node", "aweskill", "-V"]);
-    expect(stdout).toHaveBeenCalledWith("0.2.0\n");
+    expect(stdout).toHaveBeenCalledWith(`${AWESKILL_VERSION}\n`);
     expect(stderr).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(0);
 
@@ -76,7 +77,7 @@ describe("commands", () => {
     process.exitCode = 0;
 
     await main(["node", "aweskill", "-v"]);
-    expect(stdout).toHaveBeenCalledWith("0.2.0\n");
+    expect(stdout).toHaveBeenCalledWith(`${AWESKILL_VERSION}\n`);
     expect(stderr).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(0);
   });
@@ -1025,7 +1026,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("... and 1 more (use --verbose to show all)");
   });
 
-  it("agent list suggests doctor sync and doctor sync --apply paths in dry run mode", async () => {
+  it("agent list suggests doctor sync --apply and --remove-suspicious paths in dry run mode", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1046,9 +1047,27 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("Run aweskill doctor sync to inspect repair actions.");
     expect(lines.join("\n")).toContain("Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.");
     expect(lines.join("\n")).toContain("Suspicious agent skill entries were reported only. Re-run with aweskill doctor sync --apply --remove-suspicious to remove them.");
+  });
+
+  it("agent list and doctor sync report when no agents are detected for global scope", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "agent", "list"], { from: "node" });
+    expect(lines.join("\n")).toContain("No agents detected for global scope");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "doctor", "sync"], { from: "node" });
+    expect(lines.join("\n")).toContain("No agents detected for global scope");
   });
 
   it("check marks dot-directories and entries missing SKILL.md as suspicious", async () => {
@@ -1713,7 +1732,7 @@ describe("commands", () => {
     await expect(access(suspiciousDir)).rejects.toThrow();
   });
 
-  it("doctor sync suggests --apply and --apply --remove-suspicious in dry run mode", async () => {
+  it("doctor sync dry run suggests --apply and --apply --remove-suspicious when issues exist", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1734,7 +1753,6 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("Run aweskill doctor sync to inspect repair actions.");
     expect(lines.join("\n")).toContain("Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.");
     expect(lines.join("\n")).toContain("Suspicious agent skill entries were reported only. Re-run with aweskill doctor sync --apply --remove-suspicious to remove them.");
   });

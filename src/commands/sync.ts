@@ -1,9 +1,9 @@
 import path from "node:path";
 import { rm } from "node:fs/promises";
 
-import { isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
+import { formatNoAgentsDetectedForScope, resolveAgentsForListingOrSync, resolveAgentSkillsDir } from "../lib/agents.js";
 import { pathExists } from "../lib/fs.js";
-import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
+import { getAweskillPaths } from "../lib/path.js";
 import { resolveCanonicalSkillName } from "../lib/rmdup.js";
 import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import { createSkillSymlink, listBrokenSymlinkNames, listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
@@ -22,27 +22,6 @@ interface SyncEntry {
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
-}
-
-async function resolveAgentsForScope(
-  requestedAgents: string[],
-  scope: Scope,
-): Promise<AgentId[]> {
-  if (requestedAgents.length === 0 || requestedAgents.includes("all")) {
-    return listSupportedAgentIds().filter((agentId) => supportsScope(agentId, scope));
-  }
-
-  return uniqueSorted(
-    requestedAgents.map((agent) => {
-      if (!isAgentId(agent)) {
-        throw new Error(`Unsupported agent: ${agent}`);
-      }
-      if (!supportsScope(agent, scope)) {
-        throw new Error(`Agent ${agent} does not support ${scope} scope.`);
-      }
-      return agent;
-    }),
-  );
 }
 
 function formatSkillBlockWithSummary(title: string, skills: SyncEntry[], verbose = false): string[] {
@@ -91,7 +70,18 @@ export async function runSync(
   }
 
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-  const agents = await resolveAgentsForScope(options.agents, options.scope);
+  const { agents } = await resolveAgentsForListingOrSync({
+    requestedAgents: options.agents,
+    scope: options.scope,
+    homeDir: context.homeDir,
+    projectDir,
+  });
+
+  if (agents.length === 0) {
+    context.write(formatNoAgentsDetectedForScope(options.scope, projectDir));
+    return { relinked: [], repairedBroken: [], removedBroken: [], removedSuspicious: [], newEntries: [] };
+  }
+
   const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
   const centralSkillEntries = await listSkills(context.homeDir);
   const canonicalSkillNames = buildCentralCanonicalSkills(context.homeDir, centralSkillEntries);
@@ -205,7 +195,6 @@ export async function runSync(
 
   lines.push("");
   if (!options.apply) {
-    lines.push("Run aweskill doctor sync to inspect repair actions.");
     if (repairableCount > 0) {
       lines.push("Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.");
     }

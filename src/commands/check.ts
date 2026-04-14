@@ -1,5 +1,11 @@
-import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
-import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
+import path from "node:path";
+
+import {
+  formatNoAgentsDetectedForScope,
+  resolveAgentsForListingOrSync,
+  resolveAgentSkillsDir,
+} from "../lib/agents.js";
+import { getAweskillPaths } from "../lib/path.js";
 import { buildCanonicalSkillIndex, parseSkillName, resolveCanonicalSkillName } from "../lib/rmdup.js";
 import { getSkillSuspicionReason, listSkillEntriesInDirectory, listSkills } from "../lib/skills.js";
 import { listBrokenSymlinkNames, listManagedSkillNames } from "../lib/symlink.js";
@@ -9,34 +15,6 @@ const DEFAULT_PREVIEW_COUNT = 5;
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
-}
-
-async function resolveAgentsForScope(
-  context: RuntimeContext,
-  requestedAgents: string[],
-  scope: Scope,
-  projectDir?: string,
-): Promise<AgentId[]> {
-  if (requestedAgents.length === 0 || requestedAgents.includes("all")) {
-    const detected = await detectInstalledAgents({
-      homeDir: context.homeDir,
-      projectDir: scope === "project" ? projectDir : undefined,
-    });
-    const candidates = detected.length > 0 ? detected : listSupportedAgentIds();
-    return candidates.filter((agentId) => supportsScope(agentId, scope));
-  }
-
-  return uniqueSorted(
-    requestedAgents.map((agent) => {
-      if (!isAgentId(agent)) {
-        throw new Error(`Unsupported agent: ${agent}`);
-      }
-      if (!supportsScope(agent, scope)) {
-        throw new Error(`Agent ${agent} does not support ${scope} scope.`);
-      }
-      return agent;
-    }),
-  );
 }
 
 export type CheckCategory = "linked" | "broken" | "duplicate" | "matched" | "new" | "suspicious";
@@ -144,7 +122,17 @@ export async function runCheck(
   const centralSkillsDir = getAweskillPaths(context.homeDir).skillsDir;
 
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-  const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
+  const { agents } = await resolveAgentsForListingOrSync({
+    requestedAgents: options.agents,
+    scope: options.scope,
+    homeDir: context.homeDir,
+    projectDir,
+  });
+
+  if (agents.length === 0) {
+    context.write(formatNoAgentsDetectedForScope(options.scope, projectDir));
+    return { agents, newEntries: [] };
+  }
 
   const newEntries: string[] = [];
   let repairableCount = 0;
@@ -201,9 +189,6 @@ export async function runCheck(
   const hasRepairable = repairableCount > 0;
   const hasSuspicious = suspiciousCount > 0;
   const hasNew = newEntries.length > 0;
-  if (hasRepairable || hasSuspicious || hasNew) {
-    lines.push("Run aweskill doctor sync to inspect repair actions.");
-  }
   if (hasRepairable) {
     lines.push("Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.");
   }

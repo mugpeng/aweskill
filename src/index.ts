@@ -221,7 +221,11 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .description("Inspect agent skill directories")
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
-    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all agents detected at this scope; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
     .option("--verbose", "show all skills in each category instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
@@ -462,7 +466,11 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--remove-suspicious", "when used with --apply, remove suspicious agent entries instead of only reporting them", false)
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
-    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all agents detected at this scope; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
     .option("--verbose", "show all agent skill entries instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
