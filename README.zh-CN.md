@@ -140,7 +140,7 @@ aweskill agent add bundle frontend --global --agent codex
 - 重复项暂存区：`~/.aweskill/dup_skills/`
 - 备份目录：`~/.aweskill/backup/`
 - Bundle 文件：`~/.aweskill/bundles/*.yaml`
-- 仓库资源目录：`resources/bundle_templates/` 和 `resources/skill_archives/`
+- 内置 skill：`skills/aweskill/`、`skills/aweskill-advanced/`、`skills/aweskill-doctor/`
 
 ## 常见工作流
 
@@ -223,13 +223,7 @@ aweskill doctor sync --global --agent codex --apply
 aweskill doctor sync --global --agent codex --apply --remove-suspicious
 ```
 
-默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
-
-`aweskill` 现在也会在 `store list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除 store 中的 suspicious 条目；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
-
-`agent list` 现在统一展示 agent 侧状态：`linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious`。它不再直接执行修复。只要出现任何非 `linked` 内容，就会提示用户去运行 `aweskill doctor sync`，以及需要时运行 `aweskill doctor sync --apply` 和 `aweskill doctor sync --apply --remove-suspicious`。
-
-`doctor sync` 是 agent 侧修复命令。默认是 dry run；加上 `--apply` 才会修复 broken 投影并重连 duplicate / matched 条目；删除 suspicious 需要 `--apply --remove-suspicious`。
+所有 `doctor` 命令默认为 dry run，加上 `--apply` 才会真正修改。
 
 ## 命令面
 
@@ -267,6 +261,24 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 </details>
 
+## 内置 Skill
+
+`aweskill` 内置了三个 meta-skill，用来教 AI 编码代理直接操作 CLI。把它们导入中央仓库后，Codex、Claude Code、Cursor 等 agent 就能自动运行 aweskill 命令，无需人工介入。
+
+```bash
+aweskill store import skills/aweskill
+aweskill store import skills/aweskill-advanced
+aweskill store import skills/aweskill-doctor
+```
+
+| Skill | 面向 | 何时使用 |
+| --- | --- | --- |
+| `aweskill` | 操作面 | 日常：init、scan、import、list、remove、bundle 增删改查、基础 agent 投影 |
+| `aweskill-advanced` | 维护面 | 低频：跨 agent 投影策略、bundle 模板、recover 流程、多 scope 规划 |
+| `aweskill-doctor` | 诊断面 | 修复：`doctor clean`、`doctor dedup`、`doctor sync`，解读 broken/duplicate/suspicious |
+
+skill 目录结构与设计原则见 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。
+
 ## 贡献
 
 如果你想参与开发，请看 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。
@@ -276,6 +288,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 - 设计取舍
 - bundle 文件格式
 - 投影模型
+- 内置 skill 结构与设计原则
 - 开发流程与测试要求
 
 欢迎提交文档改进、测试补充和小而聚焦的功能改进。

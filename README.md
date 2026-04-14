@@ -140,7 +140,7 @@ Key directories:
 - Duplicate holding area: `~/.aweskill/dup_skills/`
 - Backup archive: `~/.aweskill/backup/`
 - Bundles: `~/.aweskill/bundles/*.yaml`
-- Repo resources: `resources/bundle_templates/` and `resources/skill_archives/`
+- Built-in skills: `skills/aweskill/`, `skills/aweskill-advanced/`, `skills/aweskill-doctor/`
 
 ## Common Workflows
 
@@ -223,13 +223,7 @@ aweskill doctor sync --global --agent codex --apply
 aweskill doctor sync --global --agent codex --apply --remove-suspicious
 ```
 
-By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
-
-`aweskill` also runs store hygiene checks in `store list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious store entries. `doctor dedup` is also dry-run by default and now requires `--apply` before it mutates anything.
-
-`agent list` reports agent-side findings in one view: `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious`. It does not mutate files. When it finds anything outside `linked`, it points users to `aweskill doctor sync`, `aweskill doctor sync --apply`, and `aweskill doctor sync --apply --remove-suspicious` as needed.
-
-`doctor sync` is agent-side repair command. By default it is dry-run. Add `--apply` to repair broken projections and relink duplicate / matched entries. Suspicious removal requires `--apply --remove-suspicious`.
+All `doctor` commands default to dry-run. Add `--apply` to make real changes.
 
 ## Command Surface
 
@@ -267,6 +261,24 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 
 </details>
 
+## Built-in Skills
+
+`aweskill` ships with three meta-skills that teach AI coding agents how to operate the CLI directly. Import them into your central store so agents like Codex, Claude Code, or Cursor can run aweskill commands without manual steps.
+
+```bash
+aweskill store import skills/aweskill
+aweskill store import skills/aweskill-advanced
+aweskill store import skills/aweskill-doctor
+```
+
+| Skill | Scope | When to use |
+| --- | --- | --- |
+| `aweskill` | Operations | Day-to-day: init, scan, import, list, remove, bundle CRUD, basic agent projection |
+| `aweskill-advanced` | Maintenance | Low-frequency: cross-agent projection strategy, bundle templates, recover flows, multi-scope planning |
+| `aweskill-doctor` | Diagnostics | Repair: `doctor clean`, `doctor dedup`, `doctor sync`, interpreting broken/duplicate/suspicious entries |
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the skill directory structure and design principles.
+
 ## Contributing
 
 If you want to contribute, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
@@ -276,6 +288,7 @@ That file now covers:
 - design tradeoffs
 - bundle file format
 - projection model
+- built-in skill structure and design principles
 - development workflow and testing expectations
 
 Documentation, tests, and small focused improvements are all welcome.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aweskill"
+  short_description: "Core aweskill CLI workflows for daily skill-store work."
+  default_prompt: "Use $aweskill to handle a routine aweskill CLI task in this repository."

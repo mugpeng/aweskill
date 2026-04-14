@@ -275,6 +275,38 @@ New concepts should be rare. Prefer making `skill`, `bundle`, `agent`, `store`, 
 - Runtime bundles live under `~/.aweskill/bundles/`
 - In-repo template bundles live under `resources/bundle_templates/`
 - `resources/skill_archives/` is reserved for repository-level backup archives you intentionally keep in-tree for sharing or reference
+- Built-in meta-skills live under `skills/`
+
+### Built-in Skills
+
+`aweskill` ships three meta-skills that teach AI agents how to operate the CLI:
+
+- `skills/aweskill/` — core operations (init, scan, import, list, remove, bundle CRUD, basic projection)
+- `skills/aweskill-advanced/` — low-frequency maintenance (cross-agent projection strategy, bundle templates, recover)
+- `skills/aweskill-doctor/` — diagnostics and repair (doctor clean, dedup, sync)
+
+Each skill follows this structure:
+
+```
+skills/<name>/
+├── SKILL.md          # Triggers, rules, core workflow
+├── agents/
+│   └── openai.yaml   # Agent-facing metadata (Codex / OpenAI-compatible)
+└── references/
+    └── *.md          # Flow examples, command maps, triage guides
+```
+
+- **SKILL.md** — what the skill handles, when it triggers, and when to escalate to another skill
+- **references/** — common flow examples and decision trees; loaded by the agent on demand
+- **agents/openai.yaml** — agent-facing display name and default prompt for Codex-compatible runtimes
+
+Design principles:
+
+- Facts live in one place. `aweskill` owns base rules (store paths, init requirement, install command); the other two skills reference it without duplication.
+- Rules go in SKILL.md. Examples go in references/.
+- No wrapper scripts. The aweskill CLI is the interface; skills just tell agents when and how to call it.
+
+When changing CLI behavior, update the corresponding skill files in the same PR.
 
 ## Documentation
 

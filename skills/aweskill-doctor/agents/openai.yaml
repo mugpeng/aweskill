@@ -1,0 +1,4 @@
+interface:
+  display_name: "Aweskill Doctor"
+  short_description: "Diagnosis and repair flows for aweskill store and agent state."
+  default_prompt: "Use $aweskill-doctor to diagnose or repair aweskill store or agent issues."
