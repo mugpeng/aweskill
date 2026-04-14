@@ -277,20 +277,20 @@ New concepts should be rare. Prefer making `skill`, `bundle`, `agent`, `store`, 
 - Runtime bundles live under `~/.aweskill/bundles/`
 - In-repo template bundles live under `resources/bundle_templates/`
 - `resources/skill_archives/` is reserved for repository-level backup archives you intentionally keep in-tree for sharing or reference
-- Built-in meta-skills live under `skills/`
+- Built-in meta-skills live under `resources/skills/`
 
 ### Built-in Skills
 
 `aweskill` ships three meta-skills that teach AI agents how to operate the CLI:
 
-- `skills/aweskill/` — core operations (init, scan, import, list, remove, bundle CRUD, basic projection)
-- `skills/aweskill-advanced/` — low-frequency maintenance (cross-agent projection strategy, bundle templates, recover)
-- `skills/aweskill-doctor/` — diagnostics and repair (doctor clean, dedup, sync)
+- `resources/skills/aweskill/` — core operations (init, scan, import, list, remove, bundle CRUD, basic projection)
+- `resources/skills/aweskill-advanced/` — low-frequency maintenance (cross-agent projection strategy, bundle templates, recover)
+- `resources/skills/aweskill-doctor/` — diagnostics and repair (doctor clean, dedup, sync)
 
 Each skill follows this structure:
 
 ```
-skills/<name>/
+resources/skills/<name>/
 ├── SKILL.md          # Triggers, rules, core workflow
 ├── agents/
 │   └── openai.yaml   # Agent-facing metadata (Codex / OpenAI-compatible)

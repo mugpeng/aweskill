@@ -140,7 +140,7 @@ aweskill agent add bundle frontend --global --agent codex
 - 重复项暂存区：`~/.aweskill/dup_skills/`
 - 备份目录：`~/.aweskill/backup/`
 - Bundle 文件：`~/.aweskill/bundles/*.yaml`
-- 内置 skill：`skills/aweskill/`、`skills/aweskill-advanced/`、`skills/aweskill-doctor/`
+- 内置 skill：`resources/skills/aweskill/`、`resources/skills/aweskill-advanced/`、`resources/skills/aweskill-doctor/`
 
 ## 常见工作流
 
@@ -266,9 +266,9 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 `aweskill` 内置了三个 meta-skill，用来教 AI 编码代理直接操作 CLI。把它们导入中央仓库后，Codex、Claude Code、Cursor 等 agent 就能自动运行 aweskill 命令，无需人工介入。
 
 ```bash
-aweskill store import skills/aweskill
-aweskill store import skills/aweskill-advanced
-aweskill store import skills/aweskill-doctor
+aweskill store import resources/skills/aweskill
+aweskill store import resources/skills/aweskill-advanced
+aweskill store import resources/skills/aweskill-doctor
 ```
 
 | Skill | 面向 | 何时使用 |

@@ -140,7 +140,7 @@ Key directories:
 - Duplicate holding area: `~/.aweskill/dup_skills/`
 - Backup archive: `~/.aweskill/backup/`
 - Bundles: `~/.aweskill/bundles/*.yaml`
-- Built-in skills: `skills/aweskill/`, `skills/aweskill-advanced/`, `skills/aweskill-doctor/`
+- Built-in skills: `resources/skills/aweskill/`, `resources/skills/aweskill-advanced/`, `resources/skills/aweskill-doctor/`
 
 ## Common Workflows
 
@@ -266,9 +266,9 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 `aweskill` ships with three meta-skills that teach AI coding agents how to operate the CLI directly. Import them into your central store so agents like Codex, Claude Code, or Cursor can run aweskill commands without manual steps.
 
 ```bash
-aweskill store import skills/aweskill
-aweskill store import skills/aweskill-advanced
-aweskill store import skills/aweskill-doctor
+aweskill store import resources/skills/aweskill
+aweskill store import resources/skills/aweskill-advanced
+aweskill store import resources/skills/aweskill-doctor
 ```
 
 | Skill | Scope | When to use |

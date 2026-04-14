@@ -1,5 +1,11 @@
 # change log
 
+## Unreleased
+
+### Repository layout
+
+- Moved the built-in meta-skills tree from top-level `skills/` to `resources/skills/`. Update local imports to `aweskill store import resources/skills/<name>` (see `README.md`).
+
 ## v0.2.2
 
 `v0.2.2` fixes the command reference table order in both READMEs. Since `v0.2.1`, `doctor sync` was listed before `agent recover` in the table, which placed it out of the intended alphabetical grouping. The row order has been corrected so `agent recover` appears before `doctor sync`.

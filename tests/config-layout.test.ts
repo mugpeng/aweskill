@@ -15,4 +15,12 @@ describe("config layout", () => {
     expect(packageJson.scripts.build).toContain("config/tsup.config.ts");
     expect(packageJson.scripts.test).toContain("config/vitest.config.ts");
   });
+
+  it("keeps built-in meta-skills under resources/skills/", () => {
+    const repoRoot = path.resolve(import.meta.dirname, "..");
+    const base = path.join(repoRoot, "resources", "skills");
+    for (const name of ["aweskill", "aweskill-advanced", "aweskill-doctor"]) {
+      expect(existsSync(path.join(base, name, "SKILL.md"))).toBe(true);
+    }
+  });
 });
