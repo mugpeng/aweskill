@@ -253,7 +253,7 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 | `aweskill agent supported` | List all supported agent ids, mark global install status with `✓` / `x`, and show detected global skills paths |
 | `aweskill agent add bundle\|skill ...` | Project managed skills into agent directories |
 | `aweskill agent remove bundle\|skill ... [--force]` | Remove managed projections |
-| `aweskill agent list [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Inspect `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious` entries; when `--agent` is omitted, print the detected agent set for that scope before the grouped results |
+| `aweskill agent list [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Read-only dry-run view of `doctor sync`: inspect `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious` entries; when `--agent` is omitted, print the detected agent set for that scope before the grouped results |
 | `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Dry-run by default; add `--apply` to repair broken entries and relink duplicate / matched ones, and `--apply --remove-suspicious` to also remove suspicious ones; when `--agent` is omitted, print the detected agent set for that scope first |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |

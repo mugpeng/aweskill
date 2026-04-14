@@ -1,5 +1,5 @@
 import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
-import { classifyCheckedSkill } from "./check.js";
+import { classifyCheckedSkill } from "./agent-inspection.js";
 import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
 import { createSkillSymlink, listManagedSkillNames } from "../lib/symlink.js";
 import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";

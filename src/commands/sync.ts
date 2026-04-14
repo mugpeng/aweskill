@@ -7,7 +7,7 @@ import { getAweskillPaths } from "../lib/path.js";
 import { resolveCanonicalSkillName } from "../lib/rmdup.js";
 import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import { createSkillSymlink, listBrokenSymlinkNames, listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
-import { buildCentralCanonicalSkills, classifyCheckedSkill } from "./check.js";
+import { buildCentralCanonicalSkills, classifyCheckedSkill } from "./agent-inspection.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
@@ -84,7 +84,7 @@ export async function runSync(
 
   const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
   const centralSkillEntries = await listSkills(context.homeDir);
-  const canonicalSkillNames = buildCentralCanonicalSkills(context.homeDir, centralSkillEntries);
+  const canonicalSkillNames = buildCentralCanonicalSkills(centralSkillEntries);
   const baseDir = options.scope === "global" ? context.homeDir : projectDir!;
 
   const lines: string[] = [];

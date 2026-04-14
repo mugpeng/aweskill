@@ -2008,6 +2008,37 @@ describe("commands", () => {
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
   });
 
+  it("agent list matches doctor sync dry-run for stale managed projections", async () => {
+    const workspace = await createTempWorkspace();
+    const listLines: string[] = [];
+    const syncLines: string[] = [];
+    const listProgram = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => listLines.push(message),
+      error: () => undefined,
+    });
+    const syncProgram = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => syncLines.push(message),
+      error: () => undefined,
+    });
+
+    await listProgram.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "ephemeral-skill"));
+    await listProgram.parseAsync(["node", "aweskill", "agent", "add", "skill", "ephemeral-skill", "--global", "--agent", "codex"], { from: "node" });
+    await rm(getSkillPath(workspace.homeDir, "ephemeral-skill"), { recursive: true, force: true });
+    listLines.length = 0;
+
+    await listProgram.parseAsync(["node", "aweskill", "agent", "list", "--global", "--agent", "codex"], { from: "node" });
+    await syncProgram.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
+
+    expect(listLines.join("\n")).toContain("  broken: 1");
+    expect(listLines.join("\n")).toContain("    ! ephemeral-skill");
+    expect(listLines.join("\n")).toBe(syncLines.join("\n"));
+  });
+
   it("doctor sync relinks foreign symlinks when the central store has a skill with the same name", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];

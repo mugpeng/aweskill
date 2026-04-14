@@ -216,7 +216,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 - `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
 - duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
 - examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
-- `agent list` is user-facing inspection command for agent-side state; `doctor sync` is user-facing repair command for agent-side state
+- `agent list` is read-only dry-run view of `doctor sync`; `doctor sync` is user-facing repair command for agent-side state
 - when `agent list` or `doctor sync` runs without an explicit `--agent`, output should start with the detected agent set for that scope; for project scope, include the resolved project directory in that line
 - agent-side output should be grouped by agent first, then by category (`linked`, `broken`, `duplicate`, `matched`, `new`, `suspicious`)
 - backend should still distinguish stale managed projections from broken symlinks, but both should surface as `broken` in user output

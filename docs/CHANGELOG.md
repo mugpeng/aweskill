@@ -30,6 +30,7 @@ Complex developer-facing details (backup/restore behavior semantics, hygiene che
 - Unified agent detection in `agent list` and `doctor sync`: both now auto-detect installed agents by scope instead of scanning all supported agents blindly.
 - `agent supported` now shows `✓`/`x` install status per agent and lists detected global skills paths.
 - `agent list` and `doctor sync` print the detected agent set before grouped results when `--agent` is omitted.
+- `agent list` now reuses `doctor sync` dry-run logic directly, so stale managed projections and other dry-run classifications stay consistent.
 - Added empty-result guard with actionable message when no agents are detected for the target scope.
 - Moved developer documentation from README to `docs/CONTRIBUTING.md`.
 - Updated `README.md` and `README.zh-CN.md` with built-in skill section and trimmed doctor details.

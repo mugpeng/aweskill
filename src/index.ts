@@ -13,7 +13,6 @@ import {
   runBundleShow,
 } from "./commands/bundle.js";
 import { runImport } from "./commands/import.js";
-import { runCheck } from "./commands/check.js";
 import { runDisable } from "./commands/disable.js";
 import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
@@ -239,10 +238,11 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       const scope: Scope = isProject ? "project" : "global";
       const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
       await runFramedCommand(" aweskill agent list ", async () =>
-        runCheck(context, {
+        runSync(context, {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          apply: false,
           verbose: options.verbose,
         }),
       );
