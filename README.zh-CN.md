@@ -85,14 +85,14 @@ aweskill store init
 aweskill store where --verbose
 
 # 3. 扫描已有 agent 的 skill 目录
-aweskill skill scan
+aweskill store scan
 
 # 4. 把扫描到的 agent skill 导入中央仓库
-aweskill skill import --scan
+aweskill store import --scan
 
 # 5. 导入一个 skills 根目录或单个 skill
-aweskill skill import ~/.agents/skills
-# aweskill skill import /path/to/my-skill --link-source
+aweskill store import ~/.agents/skills
+# aweskill store import /path/to/my-skill --link-source
 
 # 6. 创建 bundle
 aweskill bundle create frontend
@@ -118,7 +118,7 @@ aweskill agent list
 
 ```powershell
 aweskill store init
-aweskill skill scan
+aweskill store scan
 aweskill agent add bundle frontend --global --agent codex
 ```
 
@@ -148,19 +148,19 @@ aweskill agent add bundle frontend --global --agent codex
 
 ```bash
 # 从现有 agent skill 目录导入
-aweskill skill import ~/.agents/skills
+aweskill store import ~/.agents/skills
 
 # 导入外部 skill 目录，并保留原目录不变
-aweskill skill import ~/Downloads/pr-review
+aweskill store import ~/Downloads/pr-review
 
 # 导入外部 skill 目录，并把原目录替换成 aweskill 托管投影
-aweskill skill import ~/Downloads/pr-review --link-source
+aweskill store import ~/Downloads/pr-review --link-source
 
 # 导入扫描到的 agent skill，默认回写成 aweskill 托管投影
-aweskill skill import --scan
+aweskill store import --scan
 
 # 导入扫描到的 agent skill，但保留原 agent 目录不变
-aweskill skill import --scan --keep-source
+aweskill store import --scan --keep-source
 ```
 
 ### 构建可复用 bundle
@@ -187,6 +187,9 @@ aweskill agent add skill biopython,scanpy --global --agent codex
 
 # 把整个 bundle 投影到所有检测到的全局 agent
 aweskill agent add bundle backend --global --agent all
+
+# 把托管 symlink 恢复为完整目录
+aweskill agent recover --global --agent codex
 ```
 
 ### 维护本地仓库
@@ -204,9 +207,6 @@ aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 # 查找失效托管投影、坏链和 duplicate agent 条目
 aweskill doctor sync
 
-# 把托管 symlink 恢复为完整目录
-aweskill agent recover --global --agent codex
-
 # 清理中央仓库里的可疑条目
 aweskill doctor clean
 
@@ -219,11 +219,11 @@ aweskill doctor sync --global --agent codex --apply
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
 
-`aweskill` 现在也会在 `skill list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
+`aweskill` 现在也会在 `store list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
 
 ## 命令面
 
-核心命令：`store init`、`store where`、`skill import`、`bundle create`、`agent add`、`doctor clean`
+核心命令：`store init`、`store where`、`store import`、`bundle create`、`agent add`、`doctor clean`
 
 <details>
 <summary>全部命令</summary>
@@ -234,11 +234,11 @@ aweskill doctor sync --global --agent codex --apply
 | `aweskill store where [--verbose]` | 显示 `~/.aweskill` 位置，并汇总核心 store 目录 |
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
-| `aweskill skill scan [--verbose]` | 扫描支持的 agent skill 目录 |
-| `aweskill skill import <path> [--keep-source\|--link-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录 |
-| `aweskill skill import --scan [--keep-source\|--link-source] [--override]` | 导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
-| `aweskill skill list [--verbose]` | 列出中央仓库中的 skill |
-| `aweskill skill remove <skill> [--force]` | 从中央仓库删除一个 skill |
+| `aweskill store scan [--verbose]` | 扫描支持的 agent skill 目录 |
+| `aweskill store import <path> [--keep-source\|--link-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录 |
+| `aweskill store import --scan [--keep-source\|--link-source] [--override]` | 导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
+| `aweskill store list [--verbose]` | 列出中央仓库中的 skill |
+| `aweskill store remove <skill> [--force]` | 从中央仓库删除一个 skill |
 | `aweskill bundle list [--verbose]` | 列出 bundle |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle add <bundle> <skill>` | 向 bundle 增加一个或多个 skill |

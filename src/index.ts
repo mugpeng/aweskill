@@ -79,7 +79,7 @@ function formatCliErrorMessage(message: string): string {
     }
     const unknownSkillMatch = normalizedMessage.match(/^Unknown skill: (.+)$/);
     if (unknownSkillMatch) {
-      return `Unknown skill: ${unknownSkillMatch[1]}. Run "aweskill skill list" to see available skills.`;
+      return `Unknown skill: ${unknownSkillMatch[1]}. Run "aweskill store list" to see available skills.`;
     }
     const bundleNotFoundMatch = normalizedMessage.match(/^Bundle not found: (.+)$/);
     if (bundleNotFoundMatch) {
@@ -166,60 +166,6 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .description("Local skill orchestration CLI for AI agents")
     .version(AWESKILL_VERSION, "-v, --version", "output the version number")
     .helpOption("-h, --help", "Display help");
-
-  const skill = program.command("skill").description("Manage skills in the central store");
-  skill
-    .command("list")
-    .description("List skills in the central store")
-    .option("--verbose", "show all skills instead of a short preview", false)
-    .action(async (options) => {
-      await runListSkills(context, { verbose: options.verbose });
-    });
-  skill
-    .command("scan")
-    .description("Scan supported agent skill directories")
-    .option("--verbose", "show scanned skill details instead of per-agent totals", false)
-    .action(async (options) => {
-      await runFramedCommand(" aweskill skill scan ", async () =>
-        runScan(context, {
-          verbose: options.verbose,
-        }),
-      );
-    });
-  skill
-    .command("import")
-    .argument("[path]")
-    .description("Import one skill or a skills root directory")
-    .option("--scan", "import scanned skills", false)
-    .option("--keep-source", "keep the source path in place after importing", false)
-    .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
-    .option("--override", "overwrite existing files when importing", false)
-    .action(async (sourcePath, options) => {
-      await runFramedCommand(" aweskill skill import ", async () =>
-        runImport(context, {
-          sourcePath,
-          scan: options.scan,
-          override: options.override,
-          keepSource: options.keepSource,
-          linkSource: options.linkSource,
-        }),
-      );
-    });
-  skill
-    .command("remove")
-    .argument("<skill>")
-    .description("Remove a skill from the central store")
-    .option("--force", "remove and clean references", false)
-    .option("--project <dir>", "project config to inspect")
-    .action(async (skillName, options) => {
-      await runFramedCommand(" aweskill skill remove ", async () =>
-        runRemove(context, {
-          skillName,
-          force: options.force,
-          projectDir: options.project,
-        }),
-      );
-    });
 
   const bundle = program.command("bundle").description("Manage skill bundles");
   bundle
@@ -371,6 +317,58 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--verbose", "show scanned skill details instead of per-agent totals", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill store init ", async () => runInit(context, options));
+    });
+  store
+    .command("list")
+    .description("List skills in the central store")
+    .option("--verbose", "show all skills instead of a short preview", false)
+    .action(async (options) => {
+      await runListSkills(context, { verbose: options.verbose });
+    });
+  store
+    .command("scan")
+    .description("Scan supported agent skill directories")
+    .option("--verbose", "show scanned skill details instead of per-agent totals", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill store scan ", async () =>
+        runScan(context, {
+          verbose: options.verbose,
+        }),
+      );
+    });
+  store
+    .command("import")
+    .argument("[path]")
+    .description("Import one skill or a skills root directory")
+    .option("--scan", "import scanned skills", false)
+    .option("--keep-source", "keep the source path in place after importing", false)
+    .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
+    .option("--override", "overwrite existing files when importing", false)
+    .action(async (sourcePath, options) => {
+      await runFramedCommand(" aweskill store import ", async () =>
+        runImport(context, {
+          sourcePath,
+          scan: options.scan,
+          override: options.override,
+          keepSource: options.keepSource,
+          linkSource: options.linkSource,
+        }),
+      );
+    });
+  store
+    .command("remove")
+    .argument("<skill>")
+    .description("Remove a skill from the central store")
+    .option("--force", "remove and clean references", false)
+    .option("--project <dir>", "project config to inspect")
+    .action(async (skillName, options) => {
+      await runFramedCommand(" aweskill store remove ", async () =>
+        runRemove(context, {
+          skillName,
+          force: options.force,
+          projectDir: options.project,
+        }),
+      );
     });
   store
     .command("backup")

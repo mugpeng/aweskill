@@ -85,14 +85,14 @@ aweskill store init
 aweskill store where --verbose
 
 # 3. Scan existing agent skill directories
-aweskill skill scan
+aweskill store scan
 
 # 4. Import scanned agent skills into the central store
-aweskill skill import --scan
+aweskill store import --scan
 
 # 5. Import a skills root or a single skill
-aweskill skill import ~/.agents/skills
-# aweskill skill import /path/to/my-skill --link-source
+aweskill store import ~/.agents/skills
+# aweskill store import /path/to/my-skill --link-source
 
 # 6. Create a bundle
 aweskill bundle create frontend
@@ -118,7 +118,7 @@ Example:
 
 ```powershell
 aweskill store init
-aweskill skill scan
+aweskill store scan
 aweskill agent add bundle frontend --global --agent codex
 ```
 
@@ -148,19 +148,19 @@ Key directories:
 
 ```bash
 # Import skills from an existing agent-managed skills directory
-aweskill skill import ~/.agents/skills
+aweskill store import ~/.agents/skills
 
 # Import a standalone skill folder and keep the original directory unchanged
-aweskill skill import ~/Downloads/pr-review
+aweskill store import ~/Downloads/pr-review
 
 # Import a standalone skill folder and replace the source with an aweskill-managed projection
-aweskill skill import ~/Downloads/pr-review --link-source
+aweskill store import ~/Downloads/pr-review --link-source
 
 # Import scanned agent skills and relink their source paths by default
-aweskill skill import --scan
+aweskill store import --scan
 
 # Import scanned agent skills but keep the original agent directories unchanged
-aweskill skill import --scan --keep-source
+aweskill store import --scan --keep-source
 ```
 
 ### Build reusable bundles
@@ -187,6 +187,9 @@ aweskill agent add skill biopython,scanpy --global --agent codex
 
 # Project a whole bundle into every detected global agent directory
 aweskill agent add bundle backend --global --agent all
+
+# Turn managed symlinks back into full directories
+aweskill agent recover --global --agent codex
 ```
 
 ### Keep the store clean
@@ -204,9 +207,6 @@ aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 # Find stale managed projections, broken symlinks, and duplicate agent entries
 aweskill doctor sync
 
-# Turn managed symlinks back into full directories
-aweskill agent recover --global --agent codex
-
 # Remove suspicious entries from the central store
 aweskill doctor clean
 
@@ -219,11 +219,11 @@ aweskill doctor sync --global --agent codex --apply
 
 By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
 
-`aweskill` also runs store hygiene checks in `skill list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedup` is also dry-run by default and now requires `--apply` before it mutates anything.
+`aweskill` also runs store hygiene checks in `store list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedup` is also dry-run by default and now requires `--apply` before it mutates anything.
 
 ## Command Surface
 
-Core commands: `store init`, `store where`, `skill import`, `bundle create`, `agent add`, `doctor clean`
+Core commands: `store init`, `store where`, `store import`, `bundle create`, `agent add`, `doctor clean`
 
 <details>
 <summary>All commands</summary>
@@ -234,11 +234,11 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill store where [--verbose]` | Show the `~/.aweskill` location and summarize core store directories |
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
-| `aweskill skill scan [--verbose]` | Scan supported agent skill directories |
-| `aweskill skill import <path> [--keep-source\|--link-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default |
-| `aweskill skill import --scan [--keep-source\|--link-source] [--override]` | Import the current scan results; scanned agent paths link back to aweskill by default |
-| `aweskill skill list [--verbose]` | List skills in the central store |
-| `aweskill skill remove <skill> [--force]` | Remove one skill from the central store |
+| `aweskill store scan [--verbose]` | Scan supported agent skill directories |
+| `aweskill store import <path> [--keep-source\|--link-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default |
+| `aweskill store import --scan [--keep-source\|--link-source] [--override]` | Import the current scan results; scanned agent paths link back to aweskill by default |
+| `aweskill store list [--verbose]` | List skills in the central store |
+| `aweskill store remove <skill> [--force]` | Remove one skill from the central store |
 | `aweskill bundle list [--verbose]` | List central bundles |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle add <bundle> <skill>` | Add one or more skills to a bundle |

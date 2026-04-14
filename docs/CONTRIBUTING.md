@@ -155,8 +155,8 @@ There is no separate global activation registry. The projected filesystem state 
 
 ### Import behavior
 
-- `skill import --scan` defaults to `--link-source`
-- `skill import <path>` defaults to `--keep-source`
+- `store import --scan` defaults to `--link-source`
+- `store import <path>` defaults to `--keep-source`
 - `--link-source` replaces the source path with an aweskill-managed projection after importing
 - `--keep-source` leaves the source path in place after importing
 - `--keep-source` and `--link-source` are mutually exclusive and should error when both are passed
@@ -179,7 +179,7 @@ The canonical store should only contain:
 Contributors should preserve the shared hygiene rules used across:
 
 - `doctor clean`
-- `skill list`
+- `store list`
 - `bundle list`
 - `store backup`
 - `store restore`
@@ -203,13 +203,13 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 
 ### Display behavior
 
-- `skill list` shows totals and a short preview unless `--verbose`
-- `skill scan` shows per-agent totals by default and concrete entries with `--verbose`
+- `store list` shows totals and a short preview unless `--verbose`
+- `store scan` shows per-agent totals by default and concrete entries with `--verbose`
 - `agent list` categorizes entries as `linked`, `duplicate`, `matched`, `new`, and `suspicious`
 - `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
   - the directory or link is missing `SKILL.md`
   - the skill name is reserved, such as names that begin with `.`
-- `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
+- `store list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
 - `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
 - duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
 - examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
