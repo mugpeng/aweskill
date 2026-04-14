@@ -204,7 +204,7 @@ aweskill store backup
 # 恢复备份归档
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 
-# 查找失效托管投影、坏链和 duplicate agent 条目
+# 查找 stale、broken、duplicate、suspicious 和 new 的 agent 条目
 aweskill doctor sync
 
 # 清理中央仓库里的可疑条目
@@ -213,13 +213,18 @@ aweskill doctor clean
 # 把中央仓库里的重复 skill 移到 dup_skills
 aweskill doctor dedup --apply
 
-# 修复失效托管投影、坏链和 duplicate agent 条目
+# 修复某个 agent 下的 stale、broken 和 duplicate 条目
 aweskill doctor sync --global --agent codex --apply
+
+# 只有显式指定时才删除 suspicious agent 条目
+aweskill doctor sync --global --agent codex --apply --remove-suspicious
 ```
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
 
-`aweskill` 现在也会在 `store list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
+`aweskill` 现在也会在 `store list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除 store 中的 suspicious 条目；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
+
+`doctor sync` 现在会按 agent、按类别展示 agent 侧的问题：`stale`、`broken`、`duplicate`、`suspicious`、`new`。默认只有在加上 `--apply` 时才会修复 `stale`、`broken` 和 `duplicate`；`suspicious` 默认只报告，不自动删除，只有 `--apply --remove-suspicious` 才会删除。发现 `new` 条目时，`doctor sync` 会提示用户使用带相同 scope / agent 过滤条件的 `aweskill store import --scan` 来导入。
 
 ## 命令面
 
@@ -234,9 +239,9 @@ aweskill doctor sync --global --agent codex --apply
 | `aweskill store where [--verbose]` | 显示 `~/.aweskill` 位置，并汇总核心 store 目录 |
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
-| `aweskill store scan [--verbose]` | 扫描支持的 agent skill 目录 |
+| `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按指定 scope 和 agent 集合扫描支持的 agent skill 目录 |
 | `aweskill store import <path> [--keep-source\|--link-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录 |
-| `aweskill store import --scan [--keep-source\|--link-source] [--override]` | 导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
+| `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | 按指定 scope 和 agent 集合导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
 | `aweskill store list [--verbose]` | 列出中央仓库中的 skill |
 | `aweskill store remove <skill> [--force]` | 从中央仓库删除一个 skill |
 | `aweskill bundle list [--verbose]` | 列出 bundle |
@@ -250,7 +255,7 @@ aweskill doctor sync --global --agent codex --apply
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
 | `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`matched`、`new`、`suspicious` 状态 |
-| `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 的 skills 根目录分组查找失效托管投影、坏链和 duplicate skill，并可选修复它们 |
+| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 展示 `stale`、`broken`、`duplicate`、`suspicious`、`new` 条目；`--apply` 修复 stale / broken / duplicate，`--apply --remove-suspicious` 额外删除 suspicious |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
 | `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |

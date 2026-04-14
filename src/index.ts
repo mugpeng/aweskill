@@ -328,10 +328,19 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   store
     .command("scan")
     .description("Scan supported agent skill directories")
+    .option("--global", "scan global scope (default when no scope flag given)")
+    .option("--project [dir]", "scan project scope; uses cwd when dir is omitted")
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
     .option("--verbose", "show scanned skill details instead of per-agent totals", false)
     .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
       await runFramedCommand(" aweskill store scan ", async () =>
         runScan(context, {
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
           verbose: options.verbose,
         }),
       );
@@ -341,14 +350,23 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .argument("[path]")
     .description("Import one skill or a skills root directory")
     .option("--scan", "import scanned skills", false)
+    .option("--global", "scan global scope when used with --scan (default when no scope flag given)")
+    .option("--project [dir]", "scan project scope when used with --scan; uses cwd when dir is omitted")
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
     .option("--keep-source", "keep the source path in place after importing", false)
     .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
     .option("--override", "overwrite existing files when importing", false)
     .action(async (sourcePath, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
       await runFramedCommand(" aweskill store import ", async () =>
         runImport(context, {
           sourcePath,
           scan: options.scan,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
           override: options.override,
           keepSource: options.keepSource,
           linkSource: options.linkSource,
@@ -443,10 +461,11 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("sync")
     .description("Find stale managed projections, broken symlinks, and duplicate agent skill entries, then optionally repair them")
     .option("--apply", "remove stale managed projections, repair or remove broken symlinks, and replace duplicate agent skill entries with aweskill-managed projections", false)
+    .option("--remove-suspicious", "when used with --apply, remove suspicious agent entries instead of only reporting them", false)
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--verbose", "show all stale, broken, and duplicate agent skill entries instead of a short preview", false)
+    .option("--verbose", "show all stale, broken, duplicate, suspicious, and new agent skill entries instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -454,6 +473,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       await runFramedCommand(" aweskill doctor sync ", async () =>
         runSync(context, {
           apply: options.apply,
+          removeSuspicious: options.removeSuspicious,
           scope,
           agents: options.agent ?? [],
           projectDir,

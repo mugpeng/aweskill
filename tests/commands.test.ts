@@ -1125,6 +1125,43 @@ describe("commands", () => {
     expect(verboseLines.join("\n")).toContain("    ✓ biopython ");
   });
 
+  it("scan supports --agent and scope filters", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const projectLines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const projectProgram = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => projectLines.push(message),
+      error: () => undefined,
+    });
+
+    const globalCodexDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    const globalCursorDir = path.join(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), "cursor-skill");
+    const projectCodexDir = path.join(resolveAgentSkillsDir("codex", "project", workspace.projectDir), "project-aeon");
+    await mkdir(globalCodexDir, { recursive: true });
+    await mkdir(globalCursorDir, { recursive: true });
+    await mkdir(projectCodexDir, { recursive: true });
+    await writeFile(path.join(globalCodexDir, "SKILL.md"), "# AEON\n", "utf8");
+    await writeFile(path.join(globalCursorDir, "SKILL.md"), "# Cursor Skill\n", "utf8");
+    await writeFile(path.join(projectCodexDir, "SKILL.md"), "# Project AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "store", "scan", "--global", "--agent", "codex"], { from: "node" });
+    expect(lines.join("\n")).toContain("Global scanned skills for codex: 1");
+    expect(lines.join("\n")).not.toContain("cursor");
+    expect(lines.join("\n")).not.toContain("Project scanned skills");
+
+    await projectProgram.parseAsync(["node", "aweskill", "store", "scan", "--project", "--agent", "codex"], { from: "node" });
+    expect(projectLines.join("\n")).toContain(`Project scanned skills for codex (${workspace.projectDir}): 1`);
+    expect(projectLines.join("\n")).not.toContain("Global scanned skills");
+  });
+
   it("init --scan uses the same summary output as scan", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -1213,6 +1250,28 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "import", "--scan", "--override"], { from: "node" });
 
     await expect(readFile(path.join(existingSkillDir, "SKILL.md"), "utf8")).resolves.toContain("Replacement AEON");
+  });
+
+  it("scan import supports --agent and project scope filters", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const globalCodexDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "global-only");
+    const projectCodexDir = path.join(resolveAgentSkillsDir("codex", "project", workspace.projectDir), "project-only");
+    await mkdir(globalCodexDir, { recursive: true });
+    await mkdir(projectCodexDir, { recursive: true });
+    await writeFile(path.join(globalCodexDir, "SKILL.md"), "# Global Only\n", "utf8");
+    await writeFile(path.join(projectCodexDir, "SKILL.md"), "# Project Only\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "store", "import", "--scan", "--project", "--agent", "codex"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "project-only"), "SKILL.md"), "utf8")).resolves.toContain("Project Only");
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "global-only"), "SKILL.md"))).rejects.toThrow();
   });
 
   it("single import keeps the source by default and can link it back to the central store", async () => {
@@ -1582,27 +1641,70 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
     expect(lines.join("\n")).toContain("Agent sync findings:");
-    expect(lines.join("\n")).toContain("Duplicate agent skill entries:");
-    expect(lines.join("\n")).toContain("Exact-name duplicates:");
-    expect(lines.join("\n")).toContain("Rule-matched duplicates:");
-    expect(lines.join("\n")).toContain(`codex ${resolveAgentSkillsDir("codex", "global", workspace.homeDir)}`);
-    expect(lines.join("\n")).toContain("  - duplicate-skill");
-    expect(lines.join("\n")).toContain("  - duplicate-skill-6");
-    expect(lines.join("\n")).toContain("Dry run only. Use --apply to repair broken and duplicate agent skill entries and remove stale managed projections.");
+    expect(lines.join("\n")).toContain("Global agent skills for codex:");
+    expect(lines.join("\n")).toContain("  duplicate: 6");
+    expect(lines.join("\n")).toContain("  suspicious: 1");
+    expect(lines.join("\n")).toContain("    ~ duplicate-skill");
+    expect(lines.join("\n")).toContain("    ? .system");
+    expect(lines.join("\n")).toContain("Dry run only. Use --apply to repair stale, broken, and duplicate agent skill entries.");
     expect((await lstat(duplicateDir)).isDirectory()).toBe(true);
 
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--verbose"], { from: "node" });
-    expect(lines.join("\n")).not.toContain("Showing first 5 exact-name duplicates in codex");
-    expect(lines.join("\n")).toContain("  - duplicate-skill-6");
+    expect(lines.join("\n")).toContain("    ~ duplicate-skill-6");
 
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
     expect(lines.join("\n")).toContain("Relinked 6 duplicate agent skill entries.");
+    expect(lines.join("\n")).toContain("Suspicious agent skill entries were reported only. Re-run with --apply --remove-suspicious to remove them.");
     expect((await lstat(duplicateDir)).isSymbolicLink()).toBe(true);
     expect(path.resolve(path.dirname(duplicateDir), await readlink(duplicateDir))).toBe(getSkillPath(workspace.homeDir, "duplicate-skill-6"));
     expect((await lstat(duplicateDir6)).isSymbolicLink()).toBe(true);
     expect((await lstat(suspiciousDir)).isDirectory()).toBe(true);
+  });
+
+  it("doctor sync reports new entries and suggests store import --scan", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const newDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "aeon");
+    await mkdir(newDir, { recursive: true });
+    await writeFile(path.join(newDir, "SKILL.md"), "# AEON\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("  new: 1");
+    expect(lines.join("\n")).toContain("    + aeon");
+    expect(lines.join("\n")).toContain("Use aweskill store import --scan with the same scope and agent filters to import them.");
+  });
+
+  it("doctor sync requires --apply before --remove-suspicious and can remove suspicious entries", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    await mkdir(suspiciousDir, { recursive: true });
+    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# System\n", "utf8");
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--remove-suspicious"], { from: "node" }),
+    ).rejects.toThrow("--remove-suspicious requires --apply.");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply", "--remove-suspicious"], { from: "node" });
+    expect(lines.join("\n")).toContain("Removed 1 suspicious agent skill entry.");
+    await expect(access(suspiciousDir)).rejects.toThrow();
   });
 
   it("enable refuses to overwrite an existing unmanaged skill directory", async () => {
@@ -1750,7 +1852,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Agent sync findings:");
-    expect(lines.join("\n")).toContain("Broken symlink projections:");
+    expect(lines.join("\n")).toContain("  broken: 1");
     expect(lines.join("\n")).toContain("Removed 1 broken symlink projection.");
     await expect(readFile(path.join(projPath, "SKILL.md"), "utf8")).rejects.toThrow();
   });
@@ -1778,7 +1880,7 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("Duplicate agent skill entries:");
+    expect(lines.join("\n")).toContain("  duplicate: 1");
     expect(lines.join("\n")).toContain("Relinked 1 duplicate agent skill entry.");
     expect((await lstat(targetPath)).isSymbolicLink()).toBe(true);
     expect(path.resolve(path.dirname(targetPath), await readlink(targetPath))).toBe(getSkillPath(workspace.homeDir, "foreign-link"));
@@ -1802,9 +1904,8 @@ describe("commands", () => {
     await writeFile(path.join(targetPath, "SKILL.md"), "# Bare Agent Skill\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
-    expect(lines.join("\n")).toContain("Duplicate agent skill entries:");
-    expect(lines.join("\n")).toContain("Rule-matched duplicates:");
-    expect(lines.join("\n")).toContain("  - a-stock-analysis");
+    expect(lines.join("\n")).toContain("  duplicate: 1");
+    expect(lines.join("\n")).toContain("    ~ a-stock-analysis");
 
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
@@ -1835,9 +1936,9 @@ describe("commands", () => {
     await writeFile(path.join(selfImprovingTarget, "SKILL.md"), "# Self Improving Agent\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
-    expect(lines.join("\n")).toContain("Rule-matched duplicates:");
-    expect(lines.join("\n")).toContain("  - FFmpeg Video Editor");
-    expect(lines.join("\n")).toContain("  - Self-Improving Agent (With Self-Reflection)");
+    expect(lines.join("\n")).toContain("  duplicate: 2");
+    expect(lines.join("\n")).toContain("    ~ FFmpeg Video Editor");
+    expect(lines.join("\n")).toContain("    ~ Self-Improving Agent (With Self-Reflection)");
 
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
@@ -1863,8 +1964,8 @@ describe("commands", () => {
     await symlink("../missing/broken-link", targetPath, "dir");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
-    expect(lines.join("\n")).toContain("Broken symlink projections:");
-    expect(lines.join("\n")).toContain("  - broken-link");
+    expect(lines.join("\n")).toContain("  broken: 1");
+    expect(lines.join("\n")).toContain("    ! broken-link");
     expect(lines.join("\n")).toContain("Dry run only.");
 
     lines.length = 0;
@@ -1890,8 +1991,8 @@ describe("commands", () => {
     await symlink("../missing/orphan-link", targetPath, "dir");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
-    expect(lines.join("\n")).toContain("Broken symlink projections:");
-    expect(lines.join("\n")).toContain("  - orphan-link");
+    expect(lines.join("\n")).toContain("  broken: 1");
+    expect(lines.join("\n")).toContain("    ! orphan-link");
 
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });

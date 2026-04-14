@@ -1,6 +1,6 @@
 import { importPath, importScannedSkills } from "../lib/import.js";
 import { scanSkills } from "../lib/scanner.js";
-import type { RuntimeContext } from "../types.js";
+import type { RuntimeContext, Scope } from "../types.js";
 
 export async function runImport(
   context: RuntimeContext,
@@ -10,6 +10,9 @@ export async function runImport(
     override?: boolean;
     linkSource?: boolean;
     keepSource?: boolean;
+    scope?: Scope;
+    agents?: string[];
+    projectDir?: string;
   },
 ) {
   if (options.keepSource && options.linkSource) {
@@ -21,7 +24,9 @@ export async function runImport(
   if (options.scan) {
     const candidates = await scanSkills({
       homeDir: context.homeDir,
-      projectDirs: [context.cwd],
+      scope: options.scope ?? "global",
+      agents: options.agents,
+      projectDir: (options.scope ?? "global") === "project" ? (options.projectDir ?? context.cwd) : undefined,
     });
     const result = await importScannedSkills({
       homeDir: context.homeDir,

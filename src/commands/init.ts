@@ -8,7 +8,7 @@ export async function runInit(context: RuntimeContext, options: { scan?: boolean
   context.write(`Initialized ${context.homeDir}/.aweskill`);
 
   if (options.scan) {
-    const candidates = await scanSkills({ homeDir: context.homeDir, projectDirs: [context.cwd] });
+    const candidates = await scanSkills({ homeDir: context.homeDir, scope: "global" });
     context.write(formatScanSummary(candidates, options.verbose));
     return candidates;
   }

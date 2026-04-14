@@ -1,6 +1,6 @@
 import { importScannedSkills } from "../lib/import.js";
 import { scanSkills } from "../lib/scanner.js";
-import type { RuntimeContext, ScanCandidate } from "../types.js";
+import type { RuntimeContext, ScanCandidate, Scope } from "../types.js";
 
 function groupLabel(candidate: ScanCandidate): string {
   return candidate.scope === "global"
@@ -37,7 +37,16 @@ export function formatScanSummary(candidates: ScanCandidate[], verbose = false):
 
 export async function runScan(
   context: RuntimeContext,
-  options: { add?: boolean; override?: boolean; verbose?: boolean; keepSource?: boolean; linkSource?: boolean },
+  options: {
+    add?: boolean;
+    override?: boolean;
+    verbose?: boolean;
+    keepSource?: boolean;
+    linkSource?: boolean;
+    scope: Scope;
+    agents?: string[];
+    projectDir?: string;
+  },
 ) {
   if (options.keepSource && options.linkSource) {
     throw new Error("Choose either --keep-source or --link-source, not both.");
@@ -45,7 +54,9 @@ export async function runScan(
 
   const candidates = await scanSkills({
     homeDir: context.homeDir,
-    projectDirs: [context.cwd],
+    scope: options.scope,
+    agents: options.agents,
+    projectDir: options.scope === "project" ? (options.projectDir ?? context.cwd) : undefined,
   });
 
   context.write(formatScanSummary(candidates, options.verbose));

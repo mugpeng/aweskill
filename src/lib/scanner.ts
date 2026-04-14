@@ -1,8 +1,8 @@
 import { access, lstat, readdir, readlink } from "node:fs/promises";
 import path from "node:path";
 
-import type { ScanCandidate } from "../types.js";
-import { listSupportedAgents, supportsScope } from "./agents.js";
+import type { AgentId, ScanCandidate, Scope } from "../types.js";
+import { isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "./agents.js";
 import { pathExists } from "./fs.js";
 import { sanitizeName } from "./path.js";
 
@@ -70,21 +70,41 @@ async function scanDirectory(baseDir: string, agentId: ScanCandidate["agentId"],
   }
 }
 
+function uniqueSorted<T extends string>(items: T[]): T[] {
+  return [...new Set(items)].sort((left, right) => left.localeCompare(right));
+}
+
+export function resolveRequestedAgents(requestedAgents: string[], scope: Scope): AgentId[] {
+  if (requestedAgents.length === 0 || requestedAgents.includes("all")) {
+    return listSupportedAgentIds().filter((agentId) => supportsScope(agentId, scope));
+  }
+
+  return uniqueSorted(
+    requestedAgents.map((agent) => {
+      if (!isAgentId(agent)) {
+        throw new Error(`Unsupported agent: ${agent}`);
+      }
+      if (!supportsScope(agent, scope)) {
+        throw new Error(`Agent ${agent} does not support ${scope} scope.`);
+      }
+      return agent;
+    }),
+  );
+}
+
 export async function scanSkills(options: {
   homeDir: string;
-  projectDirs?: string[];
+  scope: Scope;
+  agents?: string[];
+  projectDir?: string;
 }): Promise<ScanCandidate[]> {
   const results: ScanCandidate[] = [];
+  const agents = resolveRequestedAgents(options.agents ?? [], options.scope);
 
-  for (const agent of listSupportedAgents()) {
-    if (supportsScope(agent.id, "global")) {
-      results.push(...(await scanDirectory(agent.globalSkillsDir!(options.homeDir), agent.id, "global")));
-    }
-    for (const projectDir of options.projectDirs ?? []) {
-      if (supportsScope(agent.id, "project")) {
-        results.push(...(await scanDirectory(agent.projectSkillsDir!(projectDir), agent.id, "project", projectDir)));
-      }
-    }
+  for (const agentId of agents) {
+    const baseDir = options.scope === "global" ? options.homeDir : options.projectDir!;
+    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+    results.push(...(await scanDirectory(skillsDir, agentId, options.scope, options.projectDir)));
   }
 
   return results.sort((left, right) => left.path.localeCompare(right.path));
