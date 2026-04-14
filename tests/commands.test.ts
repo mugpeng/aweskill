@@ -406,10 +406,18 @@ describe("commands", () => {
     await writeFile(path.join(workspace.homeDir, ".aweskill", "bundles", "._global"), "junk\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "store", "list"], { from: "node" });
-    await program.parseAsync(["node", "aweskill", "bundle", "list"], { from: "node" });
-
     expect(lines.join("\n")).toContain("Suspicious store entries detected:");
     expect(lines.join("\n")).toContain("Run \"aweskill doctor clean\"");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "bundle", "list"], { from: "node" });
+    expect(lines.join("\n")).toContain("Suspicious store entries detected:");
+    expect(lines.join("\n")).toContain("Run \"aweskill doctor clean\"");
+
+    lines.length = 0;
+    await rm(path.join(workspace.homeDir, ".aweskill", "bundles", "._global"), { force: true });
+    await program.parseAsync(["node", "aweskill", "bundle", "list"], { from: "node" });
+    expect(lines.join("\n")).not.toContain("Suspicious store entries detected:");
   });
 
   it("lists bundles with preview by default and full details with --verbose", async () => {

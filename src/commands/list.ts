@@ -51,7 +51,13 @@ function formatBundleLines(title: string, bundles: { name: string; skills: strin
 
 export async function runListBundles(context: RuntimeContext, options: { verbose?: boolean } = {}) {
   const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(context.homeDir);
-  const { validBundles: bundles, findings } = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeSkills: true });
+  const { validBundles: bundles, findings } = await scanStoreHygiene({
+    rootDir,
+    skillsDir,
+    bundlesDir,
+    includeSkills: false,
+    includeBundles: true,
+  });
   context.write([...formatBundleLines("Bundles in central repo", bundles, options.verbose), ...formatHygieneHint(findings)].join("\n"));
   return bundles;
 }
