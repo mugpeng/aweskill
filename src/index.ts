@@ -300,6 +300,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option("--force", "replace existing duplicate, foreign, or unmanaged targets in agent directories", false)
     .action(async (type, targetName, options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -311,6 +312,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          force: options.force,
         }),
       );
     });
@@ -324,7 +326,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
     .option(
       "--force",
-      "with skill: remove projection even when this skill is in a bundle that still has other members enabled here",
+      "with skill: remove a single bundle member or delete duplicate, foreign, or unmanaged targets in agent directories",
       false,
     )
     .action(async (type, targetName, options) => {

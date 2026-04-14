@@ -19,7 +19,7 @@ export interface DuplicateGroup {
 
 const NUMERIC_SUFFIX_PATTERN = /^(.*?)-(\d+(?:\.\d+)*)$/;
 
-function parseSkillName(name: string): ParsedSkillName {
+export function parseSkillName(name: string): ParsedSkillName {
   const match = name.match(NUMERIC_SUFFIX_PATTERN);
   if (!match) {
     return {
@@ -47,7 +47,7 @@ function compareNumericKeys(left: number[], right: number[]): number {
   return 0;
 }
 
-function choosePreferredSkill(entries: SkillEntry[]): SkillEntry {
+export function choosePreferredSkill(entries: SkillEntry[]): SkillEntry {
   return [...entries].sort((left, right) => {
     const leftParsed = parseSkillName(left.name);
     const rightParsed = parseSkillName(right.name);
@@ -68,6 +68,36 @@ function choosePreferredSkill(entries: SkillEntry[]): SkillEntry {
 
     return left.name.localeCompare(right.name);
   })[0]!;
+}
+
+export function buildCanonicalSkillIndex(entries: SkillEntry[]): Map<string, SkillEntry> {
+  const grouped = new Map<string, SkillEntry[]>();
+
+  for (const entry of entries) {
+    const parsed = parseSkillName(entry.name);
+    const bucket = grouped.get(parsed.baseName) ?? [];
+    bucket.push(entry);
+    grouped.set(parsed.baseName, bucket);
+  }
+
+  const canonical = new Map<string, SkillEntry>();
+  for (const [baseName, group] of grouped) {
+    canonical.set(baseName, choosePreferredSkill(group));
+  }
+
+  return canonical;
+}
+
+export function resolveCanonicalSkillName(
+  skillName: string,
+  canonicalSkills: Map<string, Pick<SkillEntry, "name">>,
+): string | undefined {
+  if (canonicalSkills.has(skillName)) {
+    return canonicalSkills.get(skillName)!.name;
+  }
+
+  const parsed = parseSkillName(skillName);
+  return canonicalSkills.get(parsed.baseName)?.name;
 }
 
 export async function findDuplicateSkills(homeDir: string): Promise<DuplicateGroup[]> {

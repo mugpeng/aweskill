@@ -4,7 +4,7 @@ import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSk
 import { pathExists } from "../lib/fs.js";
 import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
 import { createSkillSymlink, listBrokenSymlinkNames, listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
-import { classifyCheckedSkill } from "./check.js";
+import { buildCentralCanonicalSkills, classifyCheckedSkill } from "./check.js";
 import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
@@ -83,10 +83,12 @@ export async function runSync(
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
   const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
   const centralSkillEntries = await listSkills(context.homeDir);
-  const centralSkills = new Set(centralSkillEntries.map((skill) => skill.name));
+  const centralSkillNames = new Set(centralSkillEntries.map((skill) => skill.name));
+  const canonicalSkillNames = buildCentralCanonicalSkills(context.homeDir, centralSkillEntries);
   const baseDir = options.scope === "global" ? context.homeDir : projectDir!;
 
-  const duplicateGroups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[] = [];
+  const exactDuplicateGroups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[] = [];
+  const familyDuplicateGroups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[] = [];
   const brokenGroups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[] = [];
   const staleGroups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[] = [];
   const relinked: string[] = [];
@@ -99,9 +101,10 @@ export async function runSync(
     const managed = await listManagedSkillNames(skillsDir, centralSkillsDir);
     const brokenSymlinks = await listBrokenSymlinkNames(skillsDir);
     const skills = await listSkillEntriesInDirectory(skillsDir);
-    const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, centralSkills));
+    const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, canonicalSkillNames));
 
-    const duplicateNames: string[] = [];
+    const exactDuplicateNames: string[] = [];
+    const familyDuplicateNames: string[] = [];
     const brokenNames = Array.from(brokenSymlinks).sort((left, right) => left.localeCompare(right));
     const staleNames: string[] = [];
 
@@ -111,8 +114,9 @@ export async function runSync(
       }
 
       const targetPath = path.join(skillsDir, skillName);
-      if (centralSkills.has(skillName)) {
-        await createSkillSymlink(getSkillPath(context.homeDir, skillName), targetPath, {
+      const canonicalName = canonicalSkillNames.get(skillName)?.name;
+      if (canonicalName) {
+        await createSkillSymlink(getSkillPath(context.homeDir, canonicalName), targetPath, {
           allowReplaceExisting: true,
         });
         repairedBroken.push(`${agentId}:${skillName}`);
@@ -134,12 +138,16 @@ export async function runSync(
         continue;
       }
 
-      duplicateNames.push(skill.name);
+      if (skill.duplicateKind === "family") {
+        familyDuplicateNames.push(skill.name);
+      } else {
+        exactDuplicateNames.push(skill.name);
+      }
       if (!options.apply) {
         continue;
       }
 
-      await createSkillSymlink(getSkillPath(context.homeDir, skill.name), skill.path, {
+      await createSkillSymlink(getSkillPath(context.homeDir, skill.canonicalName ?? skill.name), skill.path, {
         allowReplaceExisting: true,
       });
       relinked.push(`${agentId}:${skill.name}`);
@@ -165,8 +173,11 @@ export async function runSync(
       }
     }
 
-    if (duplicateNames.length > 0) {
-      duplicateGroups.push({ agentId, skillsDir, skillNames: duplicateNames });
+    if (exactDuplicateNames.length > 0) {
+      exactDuplicateGroups.push({ agentId, skillsDir, skillNames: exactDuplicateNames });
+    }
+    if (familyDuplicateNames.length > 0) {
+      familyDuplicateGroups.push({ agentId, skillsDir, skillNames: familyDuplicateNames });
     }
     if (brokenNames.length > 0) {
       brokenGroups.push({ agentId, skillsDir, skillNames: brokenNames });
@@ -203,15 +214,31 @@ export async function runSync(
 
   lines.push("");
 
-  const duplicateLines = formatGroupedEntries("Duplicate agent skill entries:", duplicateGroups, {
+  const exactDuplicateLines = formatGroupedEntries("Exact-name duplicates:", exactDuplicateGroups, {
     verbose: options.verbose,
-    noun: "duplicate agent skill entries",
+    noun: "exact-name duplicates",
   });
-  if (duplicateLines.length === 0) {
+  const familyDuplicateLines = formatGroupedEntries("Duplicate-family matches:", familyDuplicateGroups, {
+    verbose: options.verbose,
+    noun: "duplicate-family matches",
+  });
+  if (exactDuplicateLines.length === 0 && familyDuplicateLines.length === 0) {
     lines.push("Duplicate agent skill entries:");
     lines.push("(none)");
   } else {
-    lines.push(...duplicateLines);
+    lines.push("Duplicate agent skill entries:");
+    if (exactDuplicateLines.length === 0) {
+      lines.push("Exact-name duplicates:");
+      lines.push("(none)");
+    } else {
+      lines.push(...exactDuplicateLines);
+    }
+    if (familyDuplicateLines.length === 0) {
+      lines.push("Duplicate-family matches:");
+      lines.push("(none)");
+    } else {
+      lines.push(...familyDuplicateLines);
+    }
   }
 
   lines.push("");
@@ -219,7 +246,16 @@ export async function runSync(
   if (!options.apply) {
     lines.push("Dry run only. Use --apply to repair broken and duplicate agent skill entries and remove stale managed projections.");
     context.write(lines.join("\n"));
-    return { staleGroups, brokenGroups, duplicateGroups, removed, removedBroken, repairedBroken, relinked };
+    return {
+      staleGroups,
+      brokenGroups,
+      exactDuplicateGroups,
+      familyDuplicateGroups,
+      removed,
+      removedBroken,
+      repairedBroken,
+      relinked,
+    };
   }
 
   lines.push(`Removed ${removed.length} stale projection(s).`);
@@ -227,5 +263,14 @@ export async function runSync(
   lines.push(`Removed ${removedBroken.length} broken symlink projection${removedBroken.length === 1 ? "" : "s"}.`);
   lines.push(`Relinked ${relinked.length} duplicate agent skill entr${relinked.length === 1 ? "y" : "ies"}.`);
   context.write(lines.join("\n"));
-  return { staleGroups, brokenGroups, duplicateGroups, removed, removedBroken, repairedBroken, relinked };
+  return {
+    staleGroups,
+    brokenGroups,
+    exactDuplicateGroups,
+    familyDuplicateGroups,
+    removed,
+    removedBroken,
+    repairedBroken,
+    relinked,
+  };
 }
