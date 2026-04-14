@@ -624,13 +624,16 @@ describe("commands", () => {
       error: () => undefined,
     });
 
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+
     await program.parseAsync(["node", "aweskill", "agent", "supported"], { from: "node" });
 
     expect(lines[0]).toBe("Supported agents:");
-    expect(lines).toContain("augment (Augment)");
-    expect(lines).toContain("codex (Codex)");
-    expect(lines).toContain("cursor (Cursor)");
-    expect(lines).toContain("replit (Replit)");
+    expect(lines[1]).toBe("Detected 1 installed global agent: codex");
+    expect(lines).toContain(`✓ codex (Codex) ${resolveAgentSkillsDir("codex", "global", workspace.homeDir)}`);
+    expect(lines).toContain("x augment (Augment)");
+    expect(lines).toContain("x cursor (Cursor)");
+    expect(lines).toContain("x replit (Replit)");
   });
 
   it("rejects global-only operations for project-only agents", async () => {
@@ -1068,6 +1071,62 @@ describe("commands", () => {
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync"], { from: "node" });
     expect(lines.join("\n")).toContain("No agents detected for global scope");
+  });
+
+  it("agent list reports detected agents at global scope when --agent is omitted", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+    await mkdir(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), { recursive: true });
+
+    await program.parseAsync(["node", "aweskill", "agent", "list"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Detected 2 agents for global scope: codex, cursor");
+  });
+
+  it("agent list reports detected agents at project scope when --agent is omitted", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "project", workspace.projectDir), { recursive: true });
+    await mkdir(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), { recursive: true });
+
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--project"], { from: "node" });
+
+    expect(lines.join("\n")).toContain(`Detected 2 agents for project scope at ${workspace.projectDir}: codex, cursor`);
+  });
+
+  it("agent list does not report detected agents when --agent is explicit", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
+
+    expect(lines.join("\n")).not.toContain("Detected agents for ");
   });
 
   it("check marks dot-directories and entries missing SKILL.md as suspicious", async () => {
@@ -1755,6 +1814,49 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain("Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.");
     expect(lines.join("\n")).toContain("Suspicious agent skill entries were reported only. Re-run with aweskill doctor sync --apply --remove-suspicious to remove them.");
+  });
+
+  it("doctor sync reports detected agents for global and project scopes when --agent is omitted", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+    await mkdir(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), { recursive: true });
+
+    await program.parseAsync(["node", "aweskill", "doctor", "sync"], { from: "node" });
+    expect(lines.join("\n")).toContain("Detected 2 agents for global scope: codex, cursor");
+
+    lines.length = 0;
+    await mkdir(resolveAgentSkillsDir("codex", "project", workspace.projectDir), { recursive: true });
+    await mkdir(resolveAgentSkillsDir("cursor", "project", workspace.projectDir), { recursive: true });
+
+    await program.parseAsync(["node", "aweskill", "doctor", "sync", "--project"], { from: "node" });
+    expect(lines.join("\n")).toContain(`Detected 2 agents for project scope at ${workspace.projectDir}: codex, cursor`);
+  });
+
+  it("doctor sync does not report detected agents when --agent is explicit", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await mkdir(resolveAgentSkillsDir("codex", "global", workspace.homeDir), { recursive: true });
+
+    await program.parseAsync(["node", "aweskill", "doctor", "sync", "--agent", "codex"], { from: "node" });
+
+    expect(lines.join("\n")).not.toContain("Detected agents for ");
   });
 
   it("enable refuses to overwrite an existing unmanaged skill directory", async () => {

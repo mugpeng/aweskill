@@ -250,11 +250,11 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill bundle show <name>` | 查看 bundle 内容 |
 | `aweskill bundle template list [--verbose]` | 列出内置 bundle 模板 |
 | `aweskill bundle template import <name>` | 把内置模板复制到本地仓库 |
-| `aweskill agent supported` | 列出支持的 agent id 和显示名 |
+| `aweskill agent supported` | 列出全部支持的 agent id，用 `✓` / `x` 标记 global 安装状态，并显示已检测到的 global skills 路径 |
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
-| `aweskill agent list [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 检查 `linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious` 状态，并在需要时提示用户运行 `doctor sync` |
-| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 默认 dry run；加上 `--apply` 修复 broken 并重连 duplicate / matched，`--apply --remove-suspicious` 额外删除 suspicious |
+| `aweskill agent list [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 检查 `linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious` 状态；省略 `--agent` 时，先输出当前 scope 检测到的 agent 集合，再输出分组结果 |
+| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 默认 dry run；加上 `--apply` 修复 broken 并重连 duplicate / matched，`--apply --remove-suspicious` 额外删除 suspicious；省略 `--agent` 时，先输出当前 scope 检测到的 agent 集合 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
 | `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |

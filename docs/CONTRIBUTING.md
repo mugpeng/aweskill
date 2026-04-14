@@ -208,6 +208,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 - `store scan` shows per-agent totals by default and concrete entries with `--verbose`
 - `store scan` defaults to `global` scope unless `--project` is selected explicitly
 - `agent list` categorizes entries as `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious`
+- `agent supported` lists the full supported agent set, uses `✓` for detected global installations and `x` for unsupported or not-detected global installations in the current environment, and appends the global skills directory for detected entries
 - `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
   - the directory or link is missing `SKILL.md`
   - the skill name is reserved, such as names that begin with `.`
@@ -216,6 +217,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 - duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
 - examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
 - `agent list` is user-facing inspection command for agent-side state; `doctor sync` is user-facing repair command for agent-side state
+- when `agent list` or `doctor sync` runs without an explicit `--agent`, output should start with the detected agent set for that scope; for project scope, include the resolved project directory in that line
 - agent-side output should be grouped by agent first, then by category (`linked`, `broken`, `duplicate`, `matched`, `new`, `suspicious`)
 - backend should still distinguish stale managed projections from broken symlinks, but both should surface as `broken` in user output
 - `agent list` should stay read-only and point users to `doctor sync`, `doctor sync --apply`, and `doctor sync --apply --remove-suspicious` when relevant

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { rm } from "node:fs/promises";
 
-import { formatNoAgentsDetectedForScope, resolveAgentsForListingOrSync, resolveAgentSkillsDir } from "../lib/agents.js";
+import { formatDetectedAgentsForScope, formatNoAgentsDetectedForScope, resolveAgentsForListingOrSync, resolveAgentSkillsDir } from "../lib/agents.js";
 import { pathExists } from "../lib/fs.js";
 import { getAweskillPaths } from "../lib/path.js";
 import { resolveCanonicalSkillName } from "../lib/rmdup.js";
@@ -70,7 +70,7 @@ export async function runSync(
   }
 
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-  const { agents } = await resolveAgentsForListingOrSync({
+  const { agents, explicit } = await resolveAgentsForListingOrSync({
     requestedAgents: options.agents,
     scope: options.scope,
     homeDir: context.homeDir,
@@ -88,6 +88,9 @@ export async function runSync(
   const baseDir = options.scope === "global" ? context.homeDir : projectDir!;
 
   const lines: string[] = [];
+  if (!explicit) {
+    lines.push(formatDetectedAgentsForScope(options.scope, agents, projectDir));
+  }
   const relinked: string[] = [];
   const repairedBroken: string[] = [];
   const removedBroken: string[] = [];

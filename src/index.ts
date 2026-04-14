@@ -27,7 +27,7 @@ import { runSync } from "./commands/sync.js";
 import { runClean } from "./commands/clean.js";
 import { runStoreWhere } from "./commands/where.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
-import { listSupportedAgents } from "./lib/agents.js";
+import { listSupportedAgentsWithGlobalStatus } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
 import { getAweskillPaths } from "./lib/path.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
@@ -100,11 +100,18 @@ function formatCliErrorMessage(message: string): string {
   return `Missing required argument <${argName}>.${hint ? ` ${hint}` : ""}`;
 }
 
-function writeSupportedAgents(context: RuntimeContext): void {
-  const lines = [
-    "Supported agents:",
-    ...listSupportedAgents().map((agent) => `${agent.id} (${agent.displayName})`),
-  ];
+async function writeSupportedAgents(context: RuntimeContext): Promise<void> {
+  const lines = ["Supported agents:"];
+  const agents = await listSupportedAgentsWithGlobalStatus(context.homeDir);
+  const installedAgents = agents.filter((agent) => agent.installed).map((agent) => agent.id);
+  lines.push(
+    `Detected ${installedAgents.length} installed global agent${installedAgents.length === 1 ? "" : "s"}: ${
+      installedAgents.length > 0 ? installedAgents.join(", ") : "none"
+    }`,
+  );
+  for (const agent of agents) {
+    lines.push(agent.installed ? `✓ ${agent.id} (${agent.displayName}) ${agent.skillsDir}` : `x ${agent.id} (${agent.displayName})`);
+  }
   for (const line of lines) {
     context.write(line);
   }
@@ -214,7 +221,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 
   const agent = program.command("agent").description("Manage skills used by agents");
   agent.command("supported").description("List supported agent ids and display names").action(async () => {
-    writeSupportedAgents(context);
+    await writeSupportedAgents(context);
   });
   agent
     .command("list")

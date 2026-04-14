@@ -38,6 +38,7 @@ function emitMessage(line: string) {
     || trimmed === "Scanned skills:"
     || trimmed === "Duplicate skill groups in central repo:"
     || trimmed === "Bundles:"
+    || trimmed === "Supported agents:"
     || trimmed.startsWith("Global skills for ")
     || trimmed.startsWith("Project skills for ")
   ) {
@@ -84,6 +85,21 @@ function emitMessage(line: string) {
     const name = rest.slice(0, firstSpace);
     const location = rest.slice(firstSpace + 1);
     console.log(`  ${pc.green("✓")} ${pc.cyan(name)} ${pc.dim(location)}`);
+    return;
+  }
+
+  if (line.startsWith("✓ ")) {
+    const rest = line.slice(2);
+    const firstSpace = rest.indexOf(" ");
+    const name = firstSpace === -1 ? rest : rest.slice(0, firstSpace);
+    const location = firstSpace === -1 ? "" : rest.slice(firstSpace + 1);
+    console.log(`${pc.green("✓")} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
+    return;
+  }
+
+  if (line.startsWith("x ")) {
+    const rest = line.slice(2);
+    console.log(`${pc.red("x")} ${pc.cyan(rest)}`);
     return;
   }
 

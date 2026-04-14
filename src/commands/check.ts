@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import {
+  formatDetectedAgentsForScope,
   formatNoAgentsDetectedForScope,
   resolveAgentsForListingOrSync,
   resolveAgentSkillsDir,
@@ -122,7 +123,7 @@ export async function runCheck(
   const centralSkillsDir = getAweskillPaths(context.homeDir).skillsDir;
 
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-  const { agents } = await resolveAgentsForListingOrSync({
+  const { agents, explicit } = await resolveAgentsForListingOrSync({
     requestedAgents: options.agents,
     scope: options.scope,
     homeDir: context.homeDir,
@@ -132,6 +133,10 @@ export async function runCheck(
   if (agents.length === 0) {
     context.write(formatNoAgentsDetectedForScope(options.scope, projectDir));
     return { agents, newEntries: [] };
+  }
+
+  if (!explicit) {
+    lines.push(formatDetectedAgentsForScope(options.scope, agents, projectDir));
   }
 
   const newEntries: string[] = [];

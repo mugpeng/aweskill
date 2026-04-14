@@ -271,6 +271,14 @@ export function listSupportedAgentIds(): AgentId[] {
   return listSupportedAgents().map((agent) => agent.id);
 }
 
+export function formatDetectedAgentsForScope(scope: Scope, agents: AgentId[], projectDir?: string): string {
+  const countLabel = `${agents.length} agent${agents.length === 1 ? "" : "s"}`;
+  if (scope === "global") {
+    return `Detected ${countLabel} for global scope: ${agents.join(", ")}`;
+  }
+  return `Detected ${countLabel} for project scope at ${projectDir}: ${agents.join(", ")}`;
+}
+
 export function supportsScope(agentId: AgentId, scope: Scope): boolean {
   const definition = getAgentDefinition(agentId);
   return scope === "global" ? definition.supportsGlobal : definition.supportsProject;
@@ -320,6 +328,41 @@ export async function detectInstalledAgents(options: {
   }
 
   return installed;
+}
+
+export async function listSupportedAgentsWithGlobalStatus(homeDir: string): Promise<Array<{
+  id: AgentId;
+  displayName: string;
+  installed: boolean;
+  skillsDir?: string;
+}>> {
+  const results: Array<{
+    id: AgentId;
+    displayName: string;
+    installed: boolean;
+    skillsDir?: string;
+  }> = [];
+
+  for (const agent of listSupportedAgents()) {
+    if (!agent.supportsGlobal || !agent.globalSkillsDir) {
+      results.push({
+        id: agent.id,
+        displayName: agent.displayName,
+        installed: false,
+      });
+      continue;
+    }
+
+    const skillsDir = agent.globalSkillsDir(homeDir);
+    results.push({
+      id: agent.id,
+      displayName: agent.displayName,
+      installed: await pathExists(agent.rootDir(homeDir)),
+      skillsDir,
+    });
+  }
+
+  return results;
 }
 
 /** Agents to scan for `agent list` / `doctor sync` when the user does not name specific agents. */
