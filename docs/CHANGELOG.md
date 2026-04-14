@@ -1,5 +1,24 @@
 # change log
 
+## v0.2.0
+
+`v0.2.0` is the release where `aweskill` turns its agent-side maintenance path into a more unified repair flow. Since `v0.1.9`, the CLI gained `doctor sync`, tightened duplicate classification, and made projection and cleanup behavior more consistent across the agent commands that inspect or repair local skill directories.
+
+### This is the release where `doctor sync` becomes the main repair entrypoint.
+
+`doctor sync` now bundles the logic for finding and repairing agent-side issues into one command path. It is designed to inspect local agent skill directories, classify the problems it finds, and apply safe repairs where the CLI can do so deterministically.
+
+### This is the release where duplicate detection gets more precise.
+
+Duplicate handling now distinguishes canonical duplicates, rule-matched duplicates, and safer projections more carefully. The matching flow also uses alphanumeric-only keys for duplicate comparison, which makes the classification less sensitive to formatting noise in path names.
+
+### Highlights
+
+- Added unified `aweskill doctor sync` for finding and repairing agent issues.
+- Improved duplicate classification and display for canonical and rule-matched duplicates.
+- Tightened duplicate matching with alphanumeric-only comparison keys.
+- Made projection and cleanup behavior more consistent across the agent command set.
+
 ## v0.1.9
 
 `v0.1.9` is the release where `aweskill` gets stricter about agent-side hygiene and adds a direct repair path for duplicate agent entries. Since `v0.1.8`, the CLI learned to classify suspicious agent skills before trying to import or relink them, and it now exposes a dedicated `doctor relink` command to turn duplicate agent directories back into managed projections.

@@ -2,7 +2,7 @@ import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSk
 import { listBundles, readBundle } from "../lib/bundles.js";
 import { getAweskillPaths, sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
 import { skillExists } from "../lib/skills.js";
-import { listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
+import { inspectProjectionTarget, listManagedSkillNames, removeProjectionTarget } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 import path from "node:path";
 
@@ -135,9 +135,9 @@ export async function runDisable(
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
   const skillNames = await resolveSkillNames(context, options.type, options.name);
+  const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
 
   if (splitCommaValues(options.name).map((name) => sanitizeName(name)).includes("all") && options.type === "skill") {
-    const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
     const scopedManaged = await Promise.all(
       agents.map(async (agentId) => {
         const agentSkillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
@@ -167,12 +167,38 @@ export async function runDisable(
     }
   }
 
+  for (const agentId of agents) {
+    const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
+    for (const skillName of skillNames) {
+      const targetPath = path.join(skillsDir, skillName);
+      const status = await inspectProjectionTarget(targetPath, { centralSkillsDir });
+      if (status.kind === "missing" || status.kind === "managed_symlink" || status.kind === "managed_copy") {
+        continue;
+      }
+      if (status.kind === "foreign_symlink" && !options.force) {
+        throw new Error(
+          `Target path is a symlink that is not managed by aweskill: ${targetPath}. ` +
+            `Re-run with --force to remove it.`,
+        );
+      }
+      if (status.kind === "directory" && !options.force) {
+        throw new Error(`Target path already exists as a directory: ${targetPath}. Re-run with --force to remove it.`);
+      }
+      if (status.kind === "file" && !options.force) {
+        throw new Error(`Target path already exists as a file: ${targetPath}. Re-run with --force to remove it.`);
+      }
+    }
+  }
+
   const removed: string[] = [];
   for (const agentId of agents) {
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
     for (const skillName of skillNames) {
       const targetPath = path.join(skillsDir, skillName);
-      const wasRemoved = await removeManagedProjection(targetPath);
+      const wasRemoved = await removeProjectionTarget(targetPath, {
+        force: options.force,
+        centralSkillsDir,
+      });
       if (wasRemoved) {
         removed.push(`${agentId}:${skillName}`);
       }

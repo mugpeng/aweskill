@@ -3,7 +3,7 @@
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
   <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.9-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.0-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -12,13 +12,13 @@
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
     <img src="https://img.shields.io/badge/agents-47_supported-0ea5a4?style=flat-square" alt="Supported agents">
     <img src="https://img.shields.io/badge/projection-symlink-1f2328?style=flat-square" alt="Projection mode">
-    <img src="https://img.shields.io/badge/platform-windows-0078D4?style=flat-square" alt="Windows">
-    <img src="https://img.shields.io/badge/platform-macos-000000?style=flat-square" alt="macOS">
+    <img src="https://img.shields.io/badge/OS-windows%20%26%20macOS-0078D4?style=flat-square" alt="Windows and macOS">
     <img src="https://img.shields.io/npm/dt/aweskill?style=flat-square" alt="npm downloads">
     <img src="https://img.shields.io/github/stars/mugpeng/aweskill?style=flat-square" alt="GitHub stars">
     <img src="https://img.shields.io/badge/platform-local%20CLI-334155?style=flat-square" alt="Local CLI">
   </p>
 </div>
+
 
 `aweskill` 是一个本地 CLI，用来在多个 AI 编码代理之间管理、组织和投影技能。
 
@@ -46,7 +46,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.1.9
+npm install -g aweskill@0.2.0
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -72,7 +72,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.9.tgz
+npm install -g ./aweskill-0.2.0.tgz
 ```
 
 ## 快速开始
@@ -201,8 +201,8 @@ aweskill store backup
 # 恢复备份归档
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 
-# 删除中央仓库已不存在来源的托管投影
-aweskill agent sync
+# 查找失效托管投影、坏链和 duplicate agent 条目
+aweskill doctor sync
 
 # 把托管 symlink 恢复为完整目录
 aweskill agent recover --global --agent codex
@@ -211,15 +211,15 @@ aweskill agent recover --global --agent codex
 aweskill doctor clean
 
 # 把中央仓库里的重复 skill 移到 dup_skills
-aweskill doctor dedupe --apply
+aweskill doctor dedup --apply
 
-# 把 agent 目录里的 duplicate 条目重新变成 aweskill 托管投影
-aweskill doctor relink --global --agent codex --apply
+# 修复失效托管投影、坏链和 duplicate agent 条目
+aweskill doctor sync --global --agent codex --apply
 ```
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
 
-`aweskill` 现在也会在 `skill list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedupe` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
+`aweskill` 现在也会在 `skill list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
 
 ## 命令面
 
@@ -249,12 +249,11 @@ aweskill doctor relink --global --agent codex --apply
 | `aweskill agent supported` | 列出支持的 agent id 和显示名 |
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
-| `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new`、`suspicious` 状态 |
-| `aweskill agent sync` | 删除失效托管投影 |
+| `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`matched`、`new`、`suspicious` 状态 |
+| `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 的 skills 根目录分组查找失效托管投影、坏链和 duplicate skill，并可选修复它们 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
-| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | 查找并可选清理不规范的 store 条目 |
-| `aweskill doctor dedupe [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
-| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>]` | 查找 agent 目录里的 duplicate skill，并可选重新链接回中央仓库 |
+| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
+| `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
 
 </details>
 

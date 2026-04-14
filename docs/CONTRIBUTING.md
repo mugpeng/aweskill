@@ -149,7 +149,7 @@ Please avoid features that hide core state behind unnecessary abstraction.
 3. On Unix-like systems, that projection is normally a symlink
 4. On Windows, that projection prefers a directory junction and may fall back to a managed copy
 5. `agent remove` only deletes projections that `aweskill` can identify as managed
-6. `agent sync` removes managed projections whose central source no longer exists
+6. `doctor sync` removes stale managed projections, repairs duplicate agent entries, and repairs or removes broken symlinks
 
 There is no separate global activation registry. The projected filesystem state is the activation model.
 
@@ -196,8 +196,8 @@ The intended command model is:
 - `doctor clean` is the user-facing hygiene scanner
 - `doctor clean` defaults to dry run
 - `doctor clean --apply` removes suspicious entries
-- `doctor dedupe` also defaults to dry run
-- `doctor dedupe --apply` is required before mutating state
+- `doctor dedup` also defaults to dry run
+- `doctor dedup --apply` is required before mutating state
 
 If you change hygiene rules, update all consumers together. Backup, restore, and list flows should not silently drift away from `doctor clean`.
 
@@ -205,14 +205,16 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 
 - `skill list` shows totals and a short preview unless `--verbose`
 - `skill scan` shows per-agent totals by default and concrete entries with `--verbose`
-- `agent list` categorizes entries as `linked`, `duplicate`, `new`, and `suspicious`
+- `agent list` categorizes entries as `linked`, `duplicate`, `matched`, `new`, and `suspicious`
 - `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
   - the directory or link is missing `SKILL.md`
   - the skill name is reserved, such as names that begin with `.`
 - `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
-- `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
-- `doctor relink` is the user-facing repair command for duplicate agent skill entries
-- `doctor relink` should only act on `duplicate` entries and must skip `suspicious` entries
+- `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
+- duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
+- examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
+- `doctor sync` is the user-facing repair command for stale managed projections, broken symlinks, and duplicate agent skill entries
+- `doctor sync` should relink duplicate entries, repair broken symlinks when the central store has a same-name skill, remove broken symlinks otherwise, and skip `suspicious` entries
 - `backup` and `restore` report suspicious entries they skipped
 
 ### Projection examples
@@ -255,7 +257,7 @@ When reading agent skill directories, contributors should use the same notion of
 - suspicious entries should not be imported, relinked, or counted as new skills
 - warning text should explain why the entry was skipped
 
-This rule should stay consistent across `agent list`, `agent list --update`, `doctor relink`, and any future agent-side maintenance flow.
+This rule should stay consistent across `agent list`, `agent list --update`, `doctor sync`, and any future agent-side maintenance flow.
 
 ### Small command surface
 
@@ -312,7 +314,7 @@ Skills should have a canonical home in `~/.aweskill/skills/`.
 
 ### Minimal surprise
 
-The user should be able to predict what `add`, `remove`, `sync`, `recover`, and `dedupe` will do without reading implementation code.
+The user should be able to predict what `add`, `remove`, `sync`, `recover`, and `dedup` will do without reading implementation code.
 
 ### Small command surface
 

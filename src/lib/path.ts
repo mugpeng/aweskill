@@ -13,6 +13,14 @@ export function sanitizeName(input: string): string {
     .slice(0, 80);
 }
 
+export function stripVersionSuffix(input: string): string {
+  return input.replace(/-\d+(?:\.\d+)*$/, "");
+}
+
+export function getDuplicateMatchKey(input: string): string {
+  return stripVersionSuffix(sanitizeName(input)).replace(/[^a-z0-9]+/g, "");
+}
+
 export function expandHomePath(targetPath: string, homeDir = homedir()): string {
   if (targetPath === "~") {
     return homeDir;

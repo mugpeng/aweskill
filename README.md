@@ -3,7 +3,7 @@
   <h1>aweskill: One Skill Store for All Your Coding Agents</h1>
   <p><strong>Local skill orchestration CLI for AI coding agents.</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.1.9-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.0-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
@@ -12,13 +12,13 @@
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
     <img src="https://img.shields.io/badge/agents-47_supported-0ea5a4?style=flat-square" alt="Supported agents">
     <img src="https://img.shields.io/badge/projection-symlink-1f2328?style=flat-square" alt="Projection mode">
-    <img src="https://img.shields.io/badge/platform-windows-0078D4?style=flat-square" alt="Windows">
-    <img src="https://img.shields.io/badge/platform-macos-000000?style=flat-square" alt="macOS">
+		<img src="https://img.shields.io/badge/OS-windows%20%26%20macOS-0078D4?style=flat-square" alt="Windows and macOS">
     <img src="https://img.shields.io/npm/dt/aweskill?style=flat-square" alt="npm downloads">
     <img src="https://img.shields.io/github/stars/mugpeng/aweskill?style=flat-square" alt="GitHub stars">
     <img src="https://img.shields.io/badge/platform-local%20CLI-334155?style=flat-square" alt="Local CLI">
   </p>
 </div>
+
 
 `aweskill` is a local CLI for managing, bundling, and projecting skills across AI coding agents.
 
@@ -30,7 +30,7 @@ Instead of copying the same skill folders into every tool by hand, `aweskill` ke
 - **Bundle-based organization** for reusable skill sets
 - **Multi-agent projection** across Codex, Claude Code, Cursor, Gemini CLI, and more
 - **Managed enable/disable model** without a separate global activation file
-- **Backup, restore, dedupe, and recovery** built into the CLI
+- **Backup, restore, dedup, and recovery** built into the CLI
 
 ## Install
 
@@ -46,7 +46,7 @@ aweskill --help
 To pin a specific release:
 
 ```bash
-npm install -g aweskill@0.1.9
+npm install -g aweskill@0.2.0
 ```
 
 Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -72,7 +72,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.1.9.tgz
+npm install -g ./aweskill-0.2.0.tgz
 ```
 
 ## Quick Start
@@ -201,8 +201,8 @@ aweskill store backup
 # Restore a backup archive into the current store
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 
-# Remove stale managed projections whose central source is gone
-aweskill agent sync
+# Find stale managed projections, broken symlinks, and duplicate agent entries
+aweskill doctor sync
 
 # Turn managed symlinks back into full directories
 aweskill agent recover --global --agent codex
@@ -211,15 +211,15 @@ aweskill agent recover --global --agent codex
 aweskill doctor clean
 
 # Move duplicate central-store skills into dup_skills
-aweskill doctor dedupe --apply
+aweskill doctor dedup --apply
 
-# Relink duplicate agent entries back to aweskill-managed projections
-aweskill doctor relink --global --agent codex --apply
+# Repair stale managed projections, broken symlinks, and duplicate agent entries
+aweskill doctor sync --global --agent codex --apply
 ```
 
 By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
 
-`aweskill` also runs store hygiene checks in `skill list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedupe` is also dry-run by default and now requires `--apply` before it mutates anything.
+`aweskill` also runs store hygiene checks in `skill list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedup` is also dry-run by default and now requires `--apply` before it mutates anything.
 
 ## Command Surface
 
@@ -249,12 +249,11 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill agent supported` | List supported agent ids and display names |
 | `aweskill agent add bundle\|skill ...` | Project managed skills into agent directories |
 | `aweskill agent remove bundle\|skill ... [--force]` | Remove managed projections |
-| `aweskill agent list [...]` | Inspect linked, duplicate, new, and suspicious entries |
-| `aweskill agent sync` | Remove stale managed projections |
+| `aweskill agent list [...]` | Inspect linked, duplicate, matched, new, and suspicious entries |
+| `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Find stale managed projections, broken symlinks, and duplicate agent skill entries, grouped by agent skill root, and optionally repair them |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
-| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | Find and optionally remove suspicious non-store entries |
-| `aweskill doctor dedupe [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
-| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>]` | Find duplicate agent skill entries and optionally relink them to the central store |
+| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |
+| `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
 
 </details>
 

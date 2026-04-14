@@ -5,8 +5,33 @@ import { createSkillSymlink, listManagedSkillNames } from "../lib/symlink.js";
 import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
+const DEFAULT_PREVIEW_COUNT = 5;
+
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
+}
+
+function formatDuplicateGroups(
+  groups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[],
+  verbose = false,
+): string[] {
+  const lines: string[] = ["Duplicate agent skill entries:"];
+
+  for (const group of groups) {
+    lines.push(`${group.agentId} ${group.skillsDir}: ${group.skillNames.length}`);
+    const preview = verbose ? group.skillNames : group.skillNames.slice(0, DEFAULT_PREVIEW_COUNT);
+    if (!verbose && group.skillNames.length > preview.length) {
+      lines.push(`Showing first ${preview.length} duplicate agent skill entries in ${group.agentId} (use --verbose to show all)`);
+    }
+    for (const skillName of preview) {
+      lines.push(`  - ${skillName}`);
+    }
+    if (!verbose && group.skillNames.length > preview.length) {
+      lines.push(`... and ${group.skillNames.length - preview.length} more (use --verbose to show all)`);
+    }
+  }
+
+  return lines;
 }
 
 async function resolveAgentsForScope(
@@ -44,6 +69,7 @@ export async function runRelink(
     agents: string[];
     projectDir?: string;
     apply?: boolean;
+    verbose?: boolean;
   },
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
@@ -55,6 +81,7 @@ export async function runRelink(
 
   const duplicates: string[] = [];
   const relinked: string[] = [];
+  const duplicateGroups: { agentId: AgentId; skillsDir: string; skillNames: string[] }[] = [];
 
   for (const agentId of agents) {
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
@@ -62,12 +89,14 @@ export async function runRelink(
     const skills = await listSkillEntriesInDirectory(skillsDir);
     const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, centralSkills));
 
+    const groupSkillNames: string[] = [];
     for (const skill of checked) {
       if (skill.category !== "duplicate") {
         continue;
       }
 
       duplicates.push(`${agentId}:${skill.name} ${skill.path}`);
+      groupSkillNames.push(skill.name);
       if (!options.apply) {
         continue;
       }
@@ -77,6 +106,14 @@ export async function runRelink(
       });
       relinked.push(`${agentId}:${skill.name}`);
     }
+
+    if (groupSkillNames.length > 0) {
+      duplicateGroups.push({
+        agentId,
+        skillsDir,
+        skillNames: groupSkillNames,
+      });
+    }
   }
 
   if (duplicates.length === 0) {
@@ -84,10 +121,7 @@ export async function runRelink(
     return { duplicates, relinked };
   }
 
-  const lines = ["Duplicate agent skill entries:"];
-  for (const entry of duplicates) {
-    lines.push(`  - ${entry}`);
-  }
+  const lines = formatDuplicateGroups(duplicateGroups, options.verbose);
 
   if (!options.apply) {
     lines.push("");

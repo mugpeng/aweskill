@@ -8,6 +8,14 @@ interface CopyMarker {
   sourcePath: string;
 }
 
+export type ProjectionTargetStatus =
+  | { kind: "missing" }
+  | { kind: "managed_symlink"; sourcePath: string; matchesSource: boolean }
+  | { kind: "managed_copy"; sourcePath: string; matchesSource: boolean }
+  | { kind: "foreign_symlink"; sourcePath: string }
+  | { kind: "directory" }
+  | { kind: "file" };
+
 export interface ProjectionResult {
   status: "created" | "skipped";
   mode: "symlink" | "copy";
@@ -57,50 +65,75 @@ function shouldFallbackToCopy(error: unknown, platform = process.platform): bool
   return code === "EPERM" || code === "EACCES" || code === "EINVAL" || code === "UNKNOWN";
 }
 
+export async function inspectProjectionTarget(
+  targetPath: string,
+  options: { centralSkillsDir?: string; sourcePath?: string } = {},
+): Promise<ProjectionTargetStatus> {
+  const existing = await tryLstat(targetPath);
+  if (!existing) {
+    return { kind: "missing" };
+  }
+
+  const centralRoot = options.centralSkillsDir ? path.resolve(options.centralSkillsDir) : undefined;
+  const expectedSource = options.sourcePath ? path.resolve(options.sourcePath) : undefined;
+
+  if (existing.isSymbolicLink()) {
+    const currentTarget = await readlink(targetPath);
+    const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
+    if (centralRoot && resolvedCurrent.startsWith(centralRoot)) {
+      return {
+        kind: "managed_symlink",
+        sourcePath: resolvedCurrent,
+        matchesSource: expectedSource ? resolvedCurrent === expectedSource : true,
+      };
+    }
+    return { kind: "foreign_symlink", sourcePath: resolvedCurrent };
+  }
+
+  if (existing.isDirectory()) {
+    const marker = await readCopyMarker(targetPath);
+    if (marker) {
+      return {
+        kind: "managed_copy",
+        sourcePath: marker.sourcePath,
+        matchesSource: expectedSource ? marker.sourcePath === expectedSource : true,
+      };
+    }
+    return { kind: "directory" };
+  }
+
+  return { kind: "file" };
+}
+
 export async function assertProjectionTargetSafe(
   mode: "symlink" | "copy",
   sourcePath: string,
   targetPath: string,
   options: { allowReplaceExisting?: boolean } = {},
 ): Promise<void> {
-  const existing = await tryLstat(targetPath);
-  if (!existing) {
+  const status = await inspectProjectionTarget(targetPath, { sourcePath });
+  if (status.kind === "missing") {
     return;
   }
 
   if (mode === "symlink") {
-    if (!existing.isSymbolicLink()) {
-      if (existing.isDirectory()) {
-        const marker = await readCopyMarker(targetPath);
-        if (marker && marker.sourcePath === path.resolve(sourcePath)) {
-          return;
-        }
-      }
-      if (options.allowReplaceExisting) {
-        return;
-      }
-      throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
-    }
-
-    const currentTarget = await readlink(targetPath);
-    const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
-    if (resolvedCurrent === path.resolve(sourcePath)) {
+    if ((status.kind === "managed_symlink" || status.kind === "managed_copy") && status.matchesSource) {
       return;
     }
-    return;
-  }
-
-  if (existing.isSymbolicLink()) {
-    return;
-  }
-
-  const marker = await readCopyMarker(targetPath);
-  if (!marker) {
     if (options.allowReplaceExisting) {
       return;
     }
-    throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
+    throw new Error(`Refusing to overwrite non-symlink target: ${targetPath}`);
   }
+
+  if (status.kind === "managed_symlink" || status.kind === "managed_copy") {
+    return;
+  }
+
+  if (options.allowReplaceExisting) {
+    return;
+  }
+  throw new Error(`Refusing to overwrite unmanaged directory: ${targetPath}`);
 }
 
 export async function createSkillSymlink(
@@ -192,6 +225,47 @@ export async function removeManagedProjection(targetPath: string): Promise<boole
   return false;
 }
 
+export async function removeProjectionTarget(
+  targetPath: string,
+  options: { force?: boolean; centralSkillsDir?: string } = {},
+): Promise<boolean> {
+  const status = await inspectProjectionTarget(targetPath, { centralSkillsDir: options.centralSkillsDir });
+  if (status.kind === "missing") {
+    return false;
+  }
+
+  if (status.kind === "managed_symlink") {
+    await unlink(targetPath);
+    return true;
+  }
+
+  if (status.kind === "managed_copy" || status.kind === "directory") {
+    if (status.kind === "directory" && !options.force) {
+      return false;
+    }
+    await rm(targetPath, { force: true, recursive: true });
+    return true;
+  }
+
+  if (status.kind === "foreign_symlink") {
+    if (!options.force) {
+      return false;
+    }
+    await unlink(targetPath);
+    return true;
+  }
+
+  if (status.kind === "file") {
+    if (!options.force) {
+      return false;
+    }
+    await rm(targetPath, { force: true });
+    return true;
+  }
+
+  return false;
+}
+
 export async function listManagedSkillNames(
   skillsDir: string,
   centralSkillsDir: string,
@@ -221,6 +295,35 @@ export async function listManagedSkillNames(
         if (marker) {
           result.set(entry.name, "copy");
         }
+      }
+    }
+  } catch {
+    return result;
+  }
+
+  return result;
+}
+
+export async function listBrokenSymlinkNames(skillsDir: string): Promise<Set<string>> {
+  const result = new Set<string>();
+
+  try {
+    const entries = await readdir(skillsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const targetPath = path.join(skillsDir, entry.name);
+      const stats = await tryLstat(targetPath);
+      if (!stats?.isSymbolicLink()) {
+        continue;
+      }
+
+      try {
+        const currentTarget = await readlink(targetPath);
+        const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
+        if (!(await tryLstat(resolvedCurrent))) {
+          result.add(entry.name);
+        }
+      } catch {
+        result.add(entry.name);
       }
     }
   } catch {

@@ -3,9 +3,9 @@ import path from "node:path";
 
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
+import { getAweskillPaths, sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
 import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
-import { assertProjectionTargetSafe, createSkillCopy, createSkillSymlink } from "../lib/symlink.js";
-import { sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
+import { createSkillCopy, createSkillSymlink, inspectProjectionTarget } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
@@ -88,12 +88,14 @@ export async function runEnable(
     scope: Scope;
     agents: string[];
     projectDir?: string;
+    force?: boolean;
   },
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
   const skillNames = await resolveSkillNames(context, options.type, options.name);
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
+  const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
 
   // Preflight: check all targets are safe before touching any
   for (const agentId of agents) {
@@ -102,7 +104,37 @@ export async function runEnable(
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(context.homeDir, skillName);
       const targetPath = path.join(skillsDir, skillName);
-      await assertProjectionTargetSafe(getProjectionMode(agentId), sourcePath, targetPath);
+      const status = await inspectProjectionTarget(targetPath, { centralSkillsDir, sourcePath });
+      if (status.kind === "missing") {
+        continue;
+      }
+      if (status.kind === "managed_symlink" || status.kind === "managed_copy") {
+        if (status.matchesSource && !options.force) {
+          throw new Error(
+            `Target path is already an aweskill-managed projection for ${skillName}: ${targetPath}. ` +
+              `Re-run with --force to recreate it.`,
+          );
+        }
+        continue;
+      }
+      if (status.kind === "foreign_symlink" && !options.force) {
+        throw new Error(
+          `Target path is a symlink that is not managed by aweskill: ${targetPath}. ` +
+            `Re-run with --force to replace it with an aweskill-managed projection.`,
+        );
+      }
+      if (status.kind === "directory" && !options.force) {
+        throw new Error(
+          `Target path already exists as a directory: ${targetPath}. ` +
+            `Re-run with --force to replace it with an aweskill-managed projection.`,
+        );
+      }
+      if (status.kind === "file" && !options.force) {
+        throw new Error(
+          `Target path already exists as a file: ${targetPath}. ` +
+            `Re-run with --force to replace it with an aweskill-managed projection.`,
+        );
+      }
     }
   }
 
@@ -115,8 +147,8 @@ export async function runEnable(
       const sourcePath = getSkillPath(context.homeDir, skillName);
       const targetPath = path.join(skillsDir, skillName);
       const result = mode === "symlink"
-        ? await createSkillSymlink(sourcePath, targetPath)
-        : await createSkillCopy(sourcePath, targetPath);
+        ? await createSkillSymlink(sourcePath, targetPath, { allowReplaceExisting: options.force })
+        : await createSkillCopy(sourcePath, targetPath, { allowReplaceExisting: options.force });
       if (result.status === "created") {
         created.push(`${agentId}:${skillName}`);
       }

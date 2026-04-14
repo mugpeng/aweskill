@@ -1,6 +1,7 @@
 import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { importSkill } from "../lib/import.js";
 import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
+import { buildCanonicalSkillIndex, parseSkillName, resolveCanonicalSkillName } from "../lib/rmdup.js";
 import { getSkillSuspicionReason, listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import { listManagedSkillNames, createSkillSymlink } from "../lib/symlink.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
@@ -39,7 +40,7 @@ async function resolveAgentsForScope(
   );
 }
 
-export type CheckCategory = "linked" | "duplicate" | "new" | "suspicious";
+export type CheckCategory = "linked" | "duplicate" | "matched" | "new" | "suspicious";
 
 interface CheckedSkill {
   name: string;
@@ -47,6 +48,8 @@ interface CheckedSkill {
   category: CheckCategory;
   hasSKILLMd: boolean;
   suspicionReason?: string;
+  duplicateKind?: "exact" | "family";
+  canonicalName?: string;
 }
 
 function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verbose = false): string[] {
@@ -58,6 +61,7 @@ function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verb
   const categories: Array<{ title: string; marker: string; key: CheckCategory }> = [
     { title: "  linked", marker: "✓", key: "linked" },
     { title: "  duplicate", marker: "!", key: "duplicate" },
+    { title: "  matched", marker: "~", key: "matched" },
     { title: "  new", marker: "+", key: "new" },
     { title: "  suspicious", marker: "?", key: "suspicious" },
   ];
@@ -80,7 +84,7 @@ function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verb
 export function classifyCheckedSkill(
   skill: { name: string; path: string; hasSKILLMd: boolean },
   managed: Map<string, "symlink" | "copy">,
-  centralSkills: Set<string>,
+  canonicalSkillNames: Map<string, { name: string }>,
 ): CheckedSkill {
   const suspicionReason = getSkillSuspicionReason(skill);
   if (suspicionReason) {
@@ -94,10 +98,21 @@ export function classifyCheckedSkill(
   }
 
   let category: CheckCategory = "new";
+  let duplicateKind: CheckedSkill["duplicateKind"];
+  let canonicalName: string | undefined;
   if (managed.has(skill.name)) {
     category = "linked";
-  } else if (centralSkills.has(skill.name)) {
-    category = "duplicate";
+  } else {
+    canonicalName = resolveCanonicalSkillName(skill.name, canonicalSkillNames);
+    if (canonicalName) {
+      category = canonicalName === skill.name ? "duplicate" : "matched";
+      duplicateKind = canonicalName === skill.name ? "exact" : "family";
+    }
+  }
+
+  if (category === "linked") {
+    const parsed = parseSkillName(skill.name);
+    canonicalName = canonicalSkillNames.get(parsed.baseName)?.name;
   }
 
   return {
@@ -105,7 +120,23 @@ export function classifyCheckedSkill(
     path: skill.path,
     category,
     hasSKILLMd: skill.hasSKILLMd,
+    duplicateKind,
+    canonicalName,
   };
+}
+
+export function buildCentralCanonicalSkills(homeDir: string, centralSkillEntries: Awaited<ReturnType<typeof listSkills>>): Map<string, { name: string }> {
+  return buildCanonicalSkillIndex(centralSkillEntries);
+}
+
+function getCanonicalProjectionPath(homeDir: string, skill: CheckedSkill): string {
+  return getSkillPath(homeDir, skill.canonicalName ?? skill.name);
+}
+
+export async function relinkCheckedSkillToCentral(homeDir: string, skill: CheckedSkill): Promise<void> {
+  await createSkillSymlink(getCanonicalProjectionPath(homeDir, skill), skill.path, {
+    allowReplaceExisting: true,
+  });
 }
 
 export async function runCheck(
@@ -120,7 +151,7 @@ export async function runCheck(
 ) {
   const lines: string[] = [];
   const centralSkillEntries = await listSkills(context.homeDir);
-  const centralSkills = new Set(centralSkillEntries.map((skill) => skill.name));
+  const canonicalSkillNames = buildCentralCanonicalSkills(context.homeDir, centralSkillEntries);
 
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
@@ -133,7 +164,7 @@ export async function runCheck(
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
     const managed = await listManagedSkillNames(skillsDir, getAweskillPaths(context.homeDir).skillsDir);
     const skills = await listSkillEntriesInDirectory(skillsDir);
-    const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, centralSkills));
+    const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, canonicalSkillNames));
 
     if (options.update) {
       for (const skill of checked) {
@@ -155,13 +186,11 @@ export async function runCheck(
             homeDir: context.homeDir,
             sourcePath: skill.path,
           });
-          centralSkills.add(skill.name);
+          canonicalSkillNames.set(skill.name, { name: skill.name });
           importedCount += 1;
         }
 
-        await createSkillSymlink(getSkillPath(context.homeDir, skill.name), skill.path, {
-          allowReplaceExisting: true,
-        });
+        await relinkCheckedSkillToCentral(context.homeDir, skill);
         updated.push(`${agentId}:${skill.name}`);
       }
     }

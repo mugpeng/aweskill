@@ -26,7 +26,6 @@ import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { runClean } from "./commands/clean.js";
 import { runStoreWhere } from "./commands/where.js";
-import { runRelink } from "./commands/relink.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
 import { listSupportedAgents } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
@@ -301,6 +300,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option("--force", "replace existing duplicate, foreign, or unmanaged targets in agent directories", false)
     .action(async (type, targetName, options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -312,6 +312,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          force: options.force,
         }),
       );
     });
@@ -325,7 +326,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
     .option(
       "--force",
-      "with skill: remove projection even when this skill is in a bundle that still has other members enabled here",
+      "with skill: remove a single bundle member or delete duplicate, foreign, or unmanaged targets in agent directories",
       false,
     )
     .action(async (type, targetName, options) => {
@@ -342,13 +343,6 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           force: options.force,
         }),
       );
-    });
-  agent
-    .command("sync")
-    .description("Remove stale managed projections whose source skill no longer exists")
-    .option("--project <dir>", "also check this project directory")
-    .action(async (options) => {
-      await runFramedCommand(" aweskill agent sync ", async () => runSync(context, { projectDir: options.project }));
     });
   agent
     .command("recover")
@@ -423,22 +417,24 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--apply", "remove suspicious entries instead of reporting only", false)
     .option("--skills-only", "scan only skills/", false)
     .option("--bundles-only", "scan only bundles/", false)
+    .option("--verbose", "show all suspicious entries instead of a short preview", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill doctor clean ", async () =>
         runClean(context, {
           apply: options.apply,
           skillsOnly: options.skillsOnly,
           bundlesOnly: options.bundlesOnly,
+          verbose: options.verbose,
         }),
       );
     });
   doctor
-    .command("dedupe")
+    .command("dedup")
     .description("Find or remove duplicate central-store skills with numeric/version suffixes")
     .option("--apply", "move duplicate skills into dup_skills (or delete them with --delete)", false)
     .option("--delete", "when used with --apply, permanently delete duplicates instead of moving them", false)
     .action(async (options) => {
-      await runFramedCommand(" aweskill doctor dedupe ", async () =>
+      await runFramedCommand(" aweskill doctor dedup ", async () =>
         runRmdup(context, {
           apply: options.apply,
           delete: options.delete,
@@ -446,22 +442,24 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       );
     });
   doctor
-    .command("relink")
-    .description("Find duplicate agent skill entries and optionally relink them to the central store")
-    .option("--apply", "replace duplicate agent skill entries with aweskill-managed projections", false)
+    .command("sync")
+    .description("Find stale managed projections, broken symlinks, and duplicate agent skill entries, then optionally repair them")
+    .option("--apply", "remove stale managed projections, repair or remove broken symlinks, and replace duplicate agent skill entries with aweskill-managed projections", false)
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option("--verbose", "show all stale, broken, and duplicate agent skill entries instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
       const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
-      await runFramedCommand(" aweskill doctor relink ", async () =>
-        runRelink(context, {
+      await runFramedCommand(" aweskill doctor sync ", async () =>
+        runSync(context, {
           apply: options.apply,
           scope,
           agents: options.agent ?? [],
           projectDir,
+          verbose: options.verbose,
         }),
       );
     });
