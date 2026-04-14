@@ -67,7 +67,7 @@ describe("commands", () => {
     const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     await main(["node", "aweskill", "-V"]);
-    expect(stdout).toHaveBeenCalledWith("0.1.9\n");
+    expect(stdout).toHaveBeenCalledWith("0.2.0\n");
     expect(stderr).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(0);
 
@@ -76,7 +76,7 @@ describe("commands", () => {
     process.exitCode = 0;
 
     await main(["node", "aweskill", "-v"]);
-    expect(stdout).toHaveBeenCalledWith("0.1.9\n");
+    expect(stdout).toHaveBeenCalledWith("0.2.0\n");
     expect(stderr).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(0);
   });
