@@ -201,8 +201,8 @@ aweskill store backup
 # Restore a backup archive into the current store
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 
-# Remove stale managed projections whose central source is gone
-aweskill agent sync
+# Find stale managed projections, broken symlinks, and duplicate agent entries
+aweskill doctor sync
 
 # Turn managed symlinks back into full directories
 aweskill agent recover --global --agent codex
@@ -213,8 +213,8 @@ aweskill doctor clean
 # Move duplicate central-store skills into dup_skills
 aweskill doctor dedup --apply
 
-# Relink duplicate agent entries back to aweskill-managed projections
-aweskill doctor relink --global --agent codex --apply
+# Repair stale managed projections, broken symlinks, and duplicate agent entries
+aweskill doctor sync --global --agent codex --apply
 ```
 
 By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
@@ -250,11 +250,10 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill agent add bundle\|skill ...` | Project managed skills into agent directories |
 | `aweskill agent remove bundle\|skill ... [--force]` | Remove managed projections |
 | `aweskill agent list [...]` | Inspect linked, duplicate, new, and suspicious entries |
-| `aweskill agent sync` | Remove stale managed projections |
+| `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Find stale managed projections, broken symlinks, and duplicate agent skill entries, grouped by agent skill root, and optionally repair them |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |
 | `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
-| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Find duplicate agent skill entries, grouped by agent skill root, and optionally relink them to the central store |
 
 </details>
 

@@ -201,8 +201,8 @@ aweskill store backup
 # 恢复备份归档
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 
-# 删除中央仓库已不存在来源的托管投影
-aweskill agent sync
+# 查找失效托管投影、坏链和 duplicate agent 条目
+aweskill doctor sync
 
 # 把托管 symlink 恢复为完整目录
 aweskill agent recover --global --agent codex
@@ -213,8 +213,8 @@ aweskill doctor clean
 # 把中央仓库里的重复 skill 移到 dup_skills
 aweskill doctor dedup --apply
 
-# 把 agent 目录里的 duplicate 条目重新变成 aweskill 托管投影
-aweskill doctor relink --global --agent codex --apply
+# 修复失效托管投影、坏链和 duplicate agent 条目
+aweskill doctor sync --global --agent codex --apply
 ```
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
@@ -250,11 +250,10 @@ aweskill doctor relink --global --agent codex --apply
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
 | `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new`、`suspicious` 状态 |
-| `aweskill agent sync` | 删除失效托管投影 |
+| `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 的 skills 根目录分组查找失效托管投影、坏链和 duplicate skill，并可选修复它们 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
 | `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
-| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 的 skills 根目录分组查找 duplicate skill，并可选重新链接回中央仓库 |
 
 </details>
 

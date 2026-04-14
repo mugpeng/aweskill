@@ -149,7 +149,7 @@ Please avoid features that hide core state behind unnecessary abstraction.
 3. On Unix-like systems, that projection is normally a symlink
 4. On Windows, that projection prefers a directory junction and may fall back to a managed copy
 5. `agent remove` only deletes projections that `aweskill` can identify as managed
-6. `agent sync` removes managed projections whose central source no longer exists
+6. `doctor sync` removes stale managed projections, repairs duplicate agent entries, and repairs or removes broken symlinks
 
 There is no separate global activation registry. The projected filesystem state is the activation model.
 
@@ -211,8 +211,8 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
   - the skill name is reserved, such as names that begin with `.`
 - `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
 - `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
-- `doctor relink` is the user-facing repair command for duplicate agent skill entries
-- `doctor relink` should only act on `duplicate` entries and must skip `suspicious` entries
+- `doctor sync` is the user-facing repair command for stale managed projections, broken symlinks, and duplicate agent skill entries
+- `doctor sync` should relink duplicate entries, repair broken symlinks when the central store has a same-name skill, remove broken symlinks otherwise, and skip `suspicious` entries
 - `backup` and `restore` report suspicious entries they skipped
 
 ### Projection examples
@@ -255,7 +255,7 @@ When reading agent skill directories, contributors should use the same notion of
 - suspicious entries should not be imported, relinked, or counted as new skills
 - warning text should explain why the entry was skipped
 
-This rule should stay consistent across `agent list`, `agent list --update`, `doctor relink`, and any future agent-side maintenance flow.
+This rule should stay consistent across `agent list`, `agent list --update`, `doctor sync`, and any future agent-side maintenance flow.
 
 ### Small command surface
 

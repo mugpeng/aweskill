@@ -229,3 +229,32 @@ export async function listManagedSkillNames(
 
   return result;
 }
+
+export async function listBrokenSymlinkNames(skillsDir: string): Promise<Set<string>> {
+  const result = new Set<string>();
+
+  try {
+    const entries = await readdir(skillsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const targetPath = path.join(skillsDir, entry.name);
+      const stats = await tryLstat(targetPath);
+      if (!stats?.isSymbolicLink()) {
+        continue;
+      }
+
+      try {
+        const currentTarget = await readlink(targetPath);
+        const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
+        if (!(await tryLstat(resolvedCurrent))) {
+          result.add(entry.name);
+        }
+      } catch {
+        result.add(entry.name);
+      }
+    }
+  } catch {
+    return result;
+  }
+
+  return result;
+}

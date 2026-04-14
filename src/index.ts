@@ -26,7 +26,6 @@ import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
 import { runClean } from "./commands/clean.js";
 import { runStoreWhere } from "./commands/where.js";
-import { runRelink } from "./commands/relink.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
 import { listSupportedAgents } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
@@ -344,13 +343,6 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       );
     });
   agent
-    .command("sync")
-    .description("Remove stale managed projections whose source skill no longer exists")
-    .option("--project <dir>", "also check this project directory")
-    .action(async (options) => {
-      await runFramedCommand(" aweskill agent sync ", async () => runSync(context, { projectDir: options.project }));
-    });
-  agent
     .command("recover")
     .description("Convert aweskill-managed symlink projections into full skill directories")
     .option("--global", "recover global scope (default when no scope flag given)")
@@ -448,19 +440,19 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       );
     });
   doctor
-    .command("relink")
-    .description("Find duplicate agent skill entries and optionally relink them to the central store")
-    .option("--apply", "replace duplicate agent skill entries with aweskill-managed projections", false)
+    .command("sync")
+    .description("Find stale managed projections, broken symlinks, and duplicate agent skill entries, then optionally repair them")
+    .option("--apply", "remove stale managed projections, repair or remove broken symlinks, and replace duplicate agent skill entries with aweskill-managed projections", false)
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--verbose", "show all duplicate agent skill entries instead of a short preview", false)
+    .option("--verbose", "show all stale, broken, and duplicate agent skill entries instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
       const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
-      await runFramedCommand(" aweskill doctor relink ", async () =>
-        runRelink(context, {
+      await runFramedCommand(" aweskill doctor sync ", async () =>
+        runSync(context, {
           apply: options.apply,
           scope,
           agents: options.agent ?? [],
