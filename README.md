@@ -204,8 +204,8 @@ aweskill store backup
 # Restore a backup archive into the current store
 aweskill store restore ~/Downloads/aweskill-backup.tar.gz
 
-# Find stale, broken, duplicate, suspicious, and new agent entries
-aweskill doctor sync
+# Inspect agent entries and categories
+aweskill agent list
 
 # Remove suspicious entries from the central store
 aweskill doctor clean
@@ -213,18 +213,23 @@ aweskill doctor clean
 # Move duplicate central-store skills into dup_skills
 aweskill doctor dedup --apply
 
-# Repair stale, broken, and duplicate agent entries for one agent
-aweskill doctor sync --global --agent codex --apply
+# Repair broken / duplicate / matched agent entries for one agent
+aweskill agent list --global --agent codex --sync
 
 # Remove suspicious agent entries only when explicitly requested
-aweskill doctor sync --global --agent codex --apply --remove-suspicious
+aweskill agent list --global --agent codex --sync --remove-suspicious
+
+# Compatibility alias for old workflow
+aweskill doctor sync --global --agent codex --apply
 ```
 
 By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
 
 `aweskill` also runs store hygiene checks in `store list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious store entries. `doctor dedup` is also dry-run by default and now requires `--apply` before it mutates anything.
 
-`doctor sync` now reports agent-side findings per agent and per category: `stale`, `broken`, `duplicate`, `suspicious`, and `new`. By default it only repairs stale, broken, and duplicate entries when `--apply` is used. Suspicious agent entries are reported only; removing them requires `--apply --remove-suspicious`. When `new` entries are found, `doctor sync` points users to `aweskill store import --scan` with matching scope and agent filters.
+`agent list` now reports agent-side findings in one view: `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious`. `--sync` repairs broken projections and relinks duplicate / matched entries. Suspicious agent entries are reported only; removing them requires `--sync --remove-suspicious`. When `new` entries are found, `agent list` points users to `aweskill store import --scan` with matching scope and agent filters.
+
+`doctor sync` remains available as a compatibility alias for `agent list --sync`. It uses the same backend behavior and output, but keeps the older `--apply` flag shape.
 
 ## Command Surface
 
@@ -254,8 +259,8 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 | `aweskill agent supported` | List supported agent ids and display names |
 | `aweskill agent add bundle\|skill ...` | Project managed skills into agent directories |
 | `aweskill agent remove bundle\|skill ... [--force]` | Remove managed projections |
-| `aweskill agent list [...]` | Inspect linked, duplicate, matched, new, and suspicious entries |
-| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Report agent-side `stale`, `broken`, `duplicate`, `suspicious`, and `new` entries per agent; `--apply` repairs stale, broken, and duplicate entries, and `--apply --remove-suspicious` also removes suspicious ones |
+| `aweskill agent list [--sync] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Inspect `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious` entries; `--sync` repairs broken entries and relinks duplicate / matched ones, and `--sync --remove-suspicious` also removes suspicious ones |
+| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Compatibility alias for `aweskill agent list --sync` |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |
 | `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |

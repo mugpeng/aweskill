@@ -218,11 +218,13 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   });
   agent
     .command("list")
-    .description("Inspect agent skill directories and optionally normalize them")
+    .description("Inspect agent skill directories and optionally sync managed fixes")
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--update", "import missing skills into the central store and relink duplicate/new skills while skipping suspicious entries", false)
+    .option("--sync", "repair broken projections, relink duplicate and matched entries, and report suspicious and new entries", false)
+    .option("--update", "deprecated alias for --sync", false)
+    .option("--remove-suspicious", "when used with --sync, remove suspicious agent entries instead of only reporting them", false)
     .option("--verbose", "show all skills in each category instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
@@ -233,7 +235,9 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          sync: options.sync,
           update: options.update,
+          removeSuspicious: options.removeSuspicious,
           verbose: options.verbose,
         }),
       );
@@ -459,13 +463,13 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
   doctor
     .command("sync")
-    .description("Find stale managed projections, broken symlinks, and duplicate agent skill entries, then optionally repair them")
-    .option("--apply", "remove stale managed projections, repair or remove broken symlinks, and replace duplicate agent skill entries with aweskill-managed projections", false)
+    .description("Compatibility alias for agent list --sync")
+    .option("--apply", "same as agent list --sync", false)
     .option("--remove-suspicious", "when used with --apply, remove suspicious agent entries instead of only reporting them", false)
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--verbose", "show all stale, broken, duplicate, suspicious, and new agent skill entries instead of a short preview", false)
+    .option("--verbose", "show all agent skill entries instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";

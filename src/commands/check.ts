@@ -1,9 +1,11 @@
+import path from "node:path";
+import { rm } from "node:fs/promises";
+
 import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
-import { importSkill } from "../lib/import.js";
 import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
 import { buildCanonicalSkillIndex, parseSkillName, resolveCanonicalSkillName } from "../lib/rmdup.js";
 import { getSkillSuspicionReason, listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
-import { listManagedSkillNames, createSkillSymlink } from "../lib/symlink.js";
+import { createSkillSymlink, listBrokenSymlinkNames, listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
@@ -40,7 +42,7 @@ async function resolveAgentsForScope(
   );
 }
 
-export type CheckCategory = "linked" | "duplicate" | "matched" | "new" | "suspicious";
+export type CheckCategory = "linked" | "broken" | "duplicate" | "matched" | "new" | "suspicious";
 
 interface CheckedSkill {
   name: string;
@@ -60,6 +62,7 @@ function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verb
   const lines = [title];
   const categories: Array<{ title: string; marker: string; key: CheckCategory }> = [
     { title: "  linked", marker: "✓", key: "linked" },
+    { title: "  broken", marker: "!", key: "broken" },
     { title: "  duplicate", marker: "!", key: "duplicate" },
     { title: "  matched", marker: "~", key: "matched" },
     { title: "  new", marker: "+", key: "new" },
@@ -129,7 +132,7 @@ export function buildCentralCanonicalSkills(homeDir: string, centralSkillEntries
   return buildCanonicalSkillIndex(centralSkillEntries);
 }
 
-function getCanonicalProjectionPath(homeDir: string, skill: CheckedSkill): string {
+function getCanonicalProjectionPath(homeDir: string, skill: CheckedSkill | { canonicalName?: string; name: string }): string {
   return getSkillPath(homeDir, skill.canonicalName ?? skill.name);
 }
 
@@ -145,53 +148,100 @@ export async function runCheck(
     scope: Scope;
     agents: string[];
     projectDir?: string;
+    sync?: boolean;
     update?: boolean;
+    removeSuspicious?: boolean;
     verbose?: boolean;
   },
 ) {
+  const sync = Boolean(options.sync || options.update);
+  if (options.removeSuspicious && !sync) {
+    throw new Error("--remove-suspicious requires --sync.");
+  }
+
   const lines: string[] = [];
   const centralSkillEntries = await listSkills(context.homeDir);
   const canonicalSkillNames = buildCentralCanonicalSkills(context.homeDir, centralSkillEntries);
+  const centralSkillsDir = getAweskillPaths(context.homeDir).skillsDir;
 
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
-  const updated: string[] = [];
-  const skipped: string[] = [];
-  let importedCount = 0;
+
+  const relinked: string[] = [];
+  const repairedBroken: string[] = [];
+  const removedBroken: string[] = [];
+  const removedSuspicious: string[] = [];
+  const newEntries: string[] = [];
+
+  if (options.update) {
+    context.write('Warning: --update is deprecated; use --sync.');
+  }
 
   for (const agentId of agents) {
     const baseDir = options.scope === "global" ? context.homeDir : projectDir!;
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
-    const managed = await listManagedSkillNames(skillsDir, getAweskillPaths(context.homeDir).skillsDir);
+    const managed = await listManagedSkillNames(skillsDir, centralSkillsDir);
+    const brokenSymlinks = await listBrokenSymlinkNames(skillsDir);
     const skills = await listSkillEntriesInDirectory(skillsDir);
-    const checked = skills.map((skill) => classifyCheckedSkill(skill, managed, canonicalSkillNames));
+    const checked: CheckedSkill[] = [];
 
-    if (options.update) {
-      for (const skill of checked) {
-        if (skill.category === "linked") {
-          continue;
+    for (const skillName of Array.from(brokenSymlinks).sort((left, right) => left.localeCompare(right))) {
+      const targetPath = path.join(skillsDir, skillName);
+      checked.push({
+        name: skillName,
+        path: targetPath,
+        category: "broken",
+        hasSKILLMd: false,
+      });
+
+      if (!sync) {
+        continue;
+      }
+
+      const canonicalName = resolveCanonicalSkillName(skillName, canonicalSkillNames);
+      if (canonicalName) {
+        await createSkillSymlink(getSkillPath(context.homeDir, canonicalName), targetPath, {
+          allowReplaceExisting: true,
+        });
+        repairedBroken.push(`${agentId}:${skillName}`);
+        continue;
+      }
+
+      const wasRemoved = await removeManagedProjection(targetPath);
+      if (wasRemoved) {
+        removedBroken.push(`${agentId}:${skillName}`);
+      }
+    }
+
+    for (const skill of skills) {
+      if (brokenSymlinks.has(skill.name)) {
+        continue;
+      }
+
+      const checkedSkill = classifyCheckedSkill(skill, managed, canonicalSkillNames);
+      checked.push(checkedSkill);
+
+      if (!sync) {
+        if (checkedSkill.category === "new") {
+          newEntries.push(`${agentId}:${checkedSkill.name}`);
         }
+        continue;
+      }
 
-        if (skill.category === "suspicious") {
-          const reason = skill.suspicionReason === "reserved-name"
-            ? `reserved skill name in ${skill.path}`
-            : `missing SKILL.md in ${skill.path}`;
-          context.write(`Warning: Skipping ${agentId}:${skill.name}; ${reason}`);
-          skipped.push(`${agentId}:${skill.name}`);
-          continue;
-        }
+      if (checkedSkill.category === "duplicate" || checkedSkill.category === "matched") {
+        await relinkCheckedSkillToCentral(context.homeDir, checkedSkill);
+        relinked.push(`${agentId}:${checkedSkill.name}`);
+        continue;
+      }
 
-        if (skill.category === "new") {
-          await importSkill({
-            homeDir: context.homeDir,
-            sourcePath: skill.path,
-          });
-          canonicalSkillNames.set(skill.name, { name: skill.name });
-          importedCount += 1;
-        }
+      if (checkedSkill.category === "suspicious" && options.removeSuspicious) {
+        await rm(checkedSkill.path, { recursive: true, force: true });
+        removedSuspicious.push(`${agentId}:${checkedSkill.name}`);
+        continue;
+      }
 
-        await relinkCheckedSkillToCentral(context.homeDir, skill);
-        updated.push(`${agentId}:${skill.name}`);
+      if (checkedSkill.category === "new") {
+        newEntries.push(`${agentId}:${checkedSkill.name}`);
       }
     }
 
@@ -202,17 +252,26 @@ export async function runCheck(
     lines.push(...formatSkillBlockWithSummary(title, checked, options.verbose));
   }
 
-  if (options.update) {
-    lines.push("");
-    lines.push(`Updated ${updated.length} skills`);
-    if (importedCount > 0) {
-      lines.push(`Imported ${importedCount} new skills into the central repo`);
+  lines.push("");
+  if (!sync) {
+    const hasNew = newEntries.length > 0;
+    if (hasNew) {
+      lines.push("New agent skill entries found. Use aweskill store import --scan with same scope and agent filters to import them.");
     }
-    if (skipped.length > 0) {
-      lines.push(`Skipped ${skipped.length} entries: ${skipped.join(", ")}`);
+  } else {
+    lines.push(`Repaired ${repairedBroken.length} broken symlink projection${repairedBroken.length === 1 ? "" : "s"}.`);
+    lines.push(`Removed ${removedBroken.length} broken projection${removedBroken.length === 1 ? "" : "s"}.`);
+    lines.push(`Relinked ${relinked.length} duplicate or matched agent skill entr${relinked.length === 1 ? "y" : "ies"}.`);
+    if (options.removeSuspicious) {
+      lines.push(`Removed ${removedSuspicious.length} suspicious agent skill entr${removedSuspicious.length === 1 ? "y" : "ies"}.`);
+    } else {
+      lines.push("Suspicious agent skill entries were reported only. Re-run with --sync --remove-suspicious to remove them.");
+    }
+    if (newEntries.length > 0) {
+      lines.push("New agent skill entries were found. Use aweskill store import --scan with same scope and agent filters to import them.");
     }
   }
 
   context.write(lines.join("\n").trim());
-  return { agents, updated, importedCount, skipped };
+  return { agents, relinked, repairedBroken, removedBroken, removedSuspicious, newEntries };
 }
