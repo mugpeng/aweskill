@@ -205,7 +205,7 @@ export async function runSync(
       lines.push("Suspicious agent skill entries were reported only. Re-run with aweskill doctor sync --apply --remove-suspicious to remove them.");
     }
     if (newEntries.length > 0) {
-      lines.push("New agent skill entries found. Use aweskill store import --scan with same scope and agent filters to import them.");
+      lines.push("New agent skill entries found. Use aweskill store scan --import with same scope and agent filters to import them.");
     }
   } else {
     lines.push(`Repaired ${repairedBroken.length} broken symlink projection${repairedBroken.length === 1 ? "" : "s"}.`);
@@ -217,7 +217,7 @@ export async function runSync(
       lines.push("Suspicious agent skill entries were reported only. Re-run with --apply --remove-suspicious to remove them.");
     }
     if (newEntries.length > 0) {
-      lines.push("New agent skill entries were found. Use aweskill store import --scan with same scope and agent filters to import them.");
+      lines.push("New agent skill entries were found. Use aweskill store scan --import with same scope and agent filters to import them.");
     }
   }
 

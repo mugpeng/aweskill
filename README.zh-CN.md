@@ -157,10 +157,10 @@ aweskill store import ~/Downloads/pr-review
 aweskill store import ~/Downloads/pr-review --link-source
 
 # 导入扫描到的 agent skill，默认回写成 aweskill 托管投影
-aweskill store import --scan
+aweskill store scan --import
 
 # 导入扫描到的 agent skill，但保留原 agent 目录不变
-aweskill store import --scan --keep-source
+aweskill store scan --import --keep-source
 ```
 
 ### 构建可复用 bundle

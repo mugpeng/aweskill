@@ -987,7 +987,7 @@ describe("commands", () => {
     await expect(readFile(path.join(duplicateDir, "SKILL.md"), "utf8")).resolves.toContain("Central Duplicate");
     await expect(readFile(path.join(newDir, "SKILL.md"), "utf8")).resolves.toContain("Brand New");
     expect(lines.join("\n")).toContain("Relinked 1 duplicate or matched agent skill entry.");
-    expect(lines.join("\n")).toContain("New agent skill entries were found. Use aweskill store import --scan with same scope and agent filters to import them.");
+    expect(lines.join("\n")).toContain("New agent skill entries were found. Use aweskill store scan --import with same scope and agent filters to import them.");
   });
 
   it("doctor sync --apply relinks duplicate-family matches to canonical central skill", async () => {
@@ -1517,7 +1517,7 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
   });
 
-  it("scan --add reports broken symlink sources and finishes with a missing count", async () => {
+  it("scan --import reports broken symlink sources and finishes with a missing count", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const errors: string[] = [];
@@ -1537,7 +1537,7 @@ describe("commands", () => {
     await symlink(validDir, validLink);
     await symlink(path.join(workspace.rootDir, "missing", "broken-skill"), brokenLink);
 
-    await program.parseAsync(["node", "aweskill", "store", "import", "--scan"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "scan", "--import"], { from: "node" });
 
     expect(errors.join("\n")).toContain(`Error: Broken symlink for broken-skill`);
     expect(lines.join("\n")).toContain("Imported 1 skills");
@@ -1627,6 +1627,41 @@ describe("commands", () => {
       expect(lines.join("\n")).toContain("Added bundle temporary-science from template");
     } finally {
       await rm(temporaryTemplatePath, { force: true });
+    }
+  });
+
+  it('prints an explicit error for the removed top-level "skill" command even with help flags', async () => {
+    const workspace = await createTempWorkspace();
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "skill"]);
+      expect(process.exitCode).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith('Error: Top-level command "skill" was removed. Use "aweskill store ..." instead.');
+
+      errorSpy.mockClear();
+      process.exitCode = 0;
+      await main(["node", "aweskill", "skill", "-h"]);
+      expect(process.exitCode).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith('Error: Top-level command "skill" was removed. Use "aweskill store ..." instead.');
+
+      errorSpy.mockClear();
+      process.exitCode = 0;
+      await main(["node", "aweskill", "skill", "--help"]);
+      expect(process.exitCode).toBe(1);
+      expect(errorSpy).toHaveBeenCalledWith('Error: Top-level command "skill" was removed. Use "aweskill store ..." instead.');
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
     }
   });
 
@@ -1842,7 +1877,7 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain("  new: 1");
     expect(lines.join("\n")).toContain("    + aeon");
-    expect(lines.join("\n")).toContain("Use aweskill store import --scan with same scope and agent filters to import them.");
+    expect(lines.join("\n")).toContain("Use aweskill store scan --import with same scope and agent filters to import them.");
   });
 
   it("doctor sync requires --apply before --remove-suspicious and can remove suspicious entries", async () => {

@@ -155,8 +155,8 @@ There is no separate global activation registry. The projected filesystem state 
 
 ### Import behavior
 
-- `store import --scan` defaults to `--link-source`
-- `store scan` and `store import --scan` accept the same `--global|--project [dir]` and `--agent <agent>` filters used by agent-side commands
+- `store scan --import` defaults to `--link-source`
+- `store scan --import` and `store import --scan` accept the same `--global|--project [dir]` and `--agent <agent>` filters used by agent-side commands
 - `store import <path>` defaults to `--keep-source`
 - `--link-source` replaces the source path with an aweskill-managed projection after importing
 - `--keep-source` leaves the source path in place after importing
@@ -207,6 +207,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 - `store list` shows totals and a short preview unless `--verbose`
 - `store scan` shows per-agent totals by default and concrete entries with `--verbose`
 - `store scan` defaults to `global` scope unless `--project` is selected explicitly
+- `store scan --import` imports scan results immediately and defaults to relinking scanned paths unless `--keep-source` is passed
 - `agent list` categorizes entries as `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious`
 - `agent supported` lists the full supported agent set, uses `✓` for detected global installations and `x` for unsupported or not-detected global installations in the current environment, and appends the global skills directory for detected entries
 - `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
@@ -222,7 +223,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 - backend should still distinguish stale managed projections from broken symlinks, but both should surface as `broken` in user output
 - `agent list` should stay read-only and point users to `doctor sync`, `doctor sync --apply`, and `doctor sync --apply --remove-suspicious` when relevant
 - `doctor sync --apply` should relink duplicate and matched entries, repair broken symlinks when the central store has a same-name skill, remove broken projections otherwise, and report suspicious entries unless `--apply --remove-suspicious` is set
-- `agent list` should report `new` entries and suggest `aweskill store import --scan` with matching scope and agent filters
+- `agent list` should report `new` entries and suggest `aweskill store scan --import` with matching scope and agent filters
 - `backup` and `restore` report suspicious entries they skipped
 
 ### Projection examples

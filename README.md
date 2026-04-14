@@ -87,8 +87,8 @@ aweskill store where --verbose
 # 3. Scan existing agent skill directories
 aweskill store scan
 
-# 4. Import scanned agent skills into the central store
-aweskill store import --scan
+# 4. Scan and import discovered agent skills into the central store
+aweskill store scan --import
 
 # 5. Import a skills root or a single skill
 aweskill store import ~/.agents/skills
@@ -157,10 +157,10 @@ aweskill store import ~/Downloads/pr-review
 aweskill store import ~/Downloads/pr-review --link-source
 
 # Import scanned agent skills and relink their source paths by default
-aweskill store import --scan
+aweskill store scan --import
 
 # Import scanned agent skills but keep the original agent directories unchanged
-aweskill store import --scan --keep-source
+aweskill store scan --import --keep-source
 ```
 
 ### Build reusable bundles
@@ -238,7 +238,7 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 | `aweskill store where [--verbose]` | Show the `~/.aweskill` location and summarize core store directories |
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
-| `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Scan supported agent skill directories for a chosen scope and agent set |
+| `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | Scan supported agent skill directories for a chosen scope and agent set; add `--import` to immediately import scan results into the central store |
 | `aweskill store import <path> [--keep-source\|--link-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | Import the current scan results for a chosen scope and agent set; scanned agent paths link back to aweskill by default |
 | `aweskill store list [--verbose]` | List skills in the central store |

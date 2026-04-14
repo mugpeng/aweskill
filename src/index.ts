@@ -149,6 +149,12 @@ function isInitializationExempt(args: string[]): boolean {
   return args[0] === "store" && args[1] === "init";
 }
 
+function assertLegacySkillCommandRemoved(args: string[]): void {
+  if (args[0] === "skill") {
+    throw new Error('Top-level command "skill" was removed. Use "aweskill store ..." instead.');
+  }
+}
+
 async function assertStoreInitialized(homeDir: string, args: string[]): Promise<void> {
   if (isInitializationExempt(args)) {
     return;
@@ -348,6 +354,9 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--global", "scan global scope (default when no scope flag given)")
     .option("--project [dir]", "scan project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option("--import", "scan and then import the discovered skills into the central store", false)
+    .option("--keep-source", "when used with --import, keep the source path in place after importing", false)
+    .option("--override", "when used with --import, overwrite existing files while importing", false)
     .option("--verbose", "show scanned skill details instead of per-agent totals", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
@@ -358,6 +367,9 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          import: options.import,
+          keepSource: options.keepSource,
+          override: options.override,
           verbose: options.verbose,
         }),
       );
@@ -512,7 +524,9 @@ export async function main(argv = process.argv) {
   try {
     const normalizedArgv = normalizeVersionAlias(argv);
     const context = createRuntimeContext();
-    await assertStoreInitialized(context.homeDir, normalizedArgv.slice(2));
+    const commandArgs = normalizedArgv.slice(2);
+    assertLegacySkillCommandRemoved(commandArgs);
+    await assertStoreInitialized(context.homeDir, commandArgs);
     await program.parseAsync(normalizedArgv);
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;

@@ -38,7 +38,7 @@ export function formatScanSummary(candidates: ScanCandidate[], verbose = false):
 export async function runScan(
   context: RuntimeContext,
   options: {
-    add?: boolean;
+    import?: boolean;
     override?: boolean;
     verbose?: boolean;
     keepSource?: boolean;
@@ -61,7 +61,7 @@ export async function runScan(
 
   context.write(formatScanSummary(candidates, options.verbose));
 
-  if (options.add) {
+  if (options.import) {
     const linkSource = !options.keepSource;
     const result = await importScannedSkills({
       homeDir: context.homeDir,
