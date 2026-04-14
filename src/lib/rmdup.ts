@@ -7,6 +7,7 @@ import { listSkills } from "./skills.js";
 
 interface ParsedSkillName {
   baseName: string;
+  matchKey: string;
   numericKey?: number[];
   hasNumericSuffix: boolean;
 }
@@ -24,13 +25,15 @@ export function parseSkillName(name: string): ParsedSkillName {
   const match = normalizedName.match(NUMERIC_SUFFIX_PATTERN);
   if (!match) {
     return {
-      baseName: getDuplicateMatchKey(name),
+      baseName: stripVersionSuffix(normalizedName),
+      matchKey: getDuplicateMatchKey(name),
       hasNumericSuffix: false,
     };
   }
 
   return {
-    baseName: getDuplicateMatchKey(name),
+    baseName: stripVersionSuffix(normalizedName),
+    matchKey: getDuplicateMatchKey(name),
     hasNumericSuffix: true,
     numericKey: match[2].split(".").map((part) => Number.parseInt(part, 10)),
   };
@@ -76,9 +79,9 @@ export function buildCanonicalSkillIndex(entries: SkillEntry[]): Map<string, Ski
 
   for (const entry of entries) {
     const parsed = parseSkillName(entry.name);
-    const bucket = grouped.get(parsed.baseName) ?? [];
+    const bucket = grouped.get(parsed.matchKey) ?? [];
     bucket.push(entry);
-    grouped.set(parsed.baseName, bucket);
+    grouped.set(parsed.matchKey, bucket);
   }
 
   const canonical = new Map<string, SkillEntry>();
@@ -98,7 +101,7 @@ export function resolveCanonicalSkillName(
   }
 
   const parsed = parseSkillName(skillName);
-  return canonicalSkills.get(parsed.baseName)?.name;
+  return canonicalSkills.get(parsed.matchKey)?.name;
 }
 
 export async function findDuplicateSkills(homeDir: string): Promise<DuplicateGroup[]> {
@@ -107,9 +110,9 @@ export async function findDuplicateSkills(homeDir: string): Promise<DuplicateGro
 
   for (const skill of skills) {
     const parsed = parseSkillName(skill.name);
-    const bucket = grouped.get(parsed.baseName) ?? [];
+    const bucket = grouped.get(parsed.matchKey) ?? [];
     bucket.push(skill);
-    grouped.set(parsed.baseName, bucket);
+    grouped.set(parsed.matchKey, bucket);
   }
 
   const duplicates: DuplicateGroup[] = [];
@@ -124,7 +127,7 @@ export async function findDuplicateSkills(homeDir: string): Promise<DuplicateGro
       .sort((left, right) => left.name.localeCompare(right.name));
 
     if (removed.length > 0) {
-      duplicates.push({ baseName, kept, removed });
+      duplicates.push({ baseName: parseSkillName(kept.name).baseName, kept, removed });
     }
   }
 

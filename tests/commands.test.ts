@@ -1813,7 +1813,7 @@ describe("commands", () => {
     expect(path.resolve(path.dirname(targetPath), await readlink(targetPath))).toBe(getSkillPath(workspace.homeDir, "a-stock-analysis-1.0.0"));
   });
 
-  it("doctor sync matches human-readable names to slugged versioned central skills", async () => {
+  it("doctor sync matches names by comparing text after removing symbols", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1825,24 +1825,24 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "ffmpeg-video-editor-1.0.0"), "Versioned Canonical");
-    await writeSkill(getSkillPath(workspace.homeDir, "seo-1.0.3"), "Versioned SEO");
+    await writeSkill(getSkillPath(workspace.homeDir, "self-improving-agent-with-self-reflection"), "Versioned Self Improving");
 
     const ffmpegTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "FFmpeg Video Editor");
-    const seoTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "SEO (Site Audit + Content Writer + Competitor Analysis)");
+    const selfImprovingTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "Self-Improving Agent (With Self-Reflection)");
     await mkdir(ffmpegTarget, { recursive: true });
-    await mkdir(seoTarget, { recursive: true });
+    await mkdir(selfImprovingTarget, { recursive: true });
     await writeFile(path.join(ffmpegTarget, "SKILL.md"), "# FFmpeg Video Editor\n", "utf8");
-    await writeFile(path.join(seoTarget, "SKILL.md"), "# SEO\n", "utf8");
+    await writeFile(path.join(selfImprovingTarget, "SKILL.md"), "# Self Improving Agent\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
     expect(lines.join("\n")).toContain("Rule-matched duplicates:");
     expect(lines.join("\n")).toContain("  - FFmpeg Video Editor");
-    expect(lines.join("\n")).toContain("  - SEO (Site Audit + Content Writer + Competitor Analysis)");
+    expect(lines.join("\n")).toContain("  - Self-Improving Agent (With Self-Reflection)");
 
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
     expect(path.resolve(path.dirname(ffmpegTarget), await readlink(ffmpegTarget))).toBe(getSkillPath(workspace.homeDir, "ffmpeg-video-editor-1.0.0"));
-    expect(path.resolve(path.dirname(seoTarget), await readlink(seoTarget))).toBe(getSkillPath(workspace.homeDir, "seo-1.0.3"));
+    expect(path.resolve(path.dirname(selfImprovingTarget), await readlink(selfImprovingTarget))).toBe(getSkillPath(workspace.homeDir, "self-improving-agent-with-self-reflection"));
   });
 
   it("doctor sync relinks broken symlinks when the central store has a skill with the same name", async () => {

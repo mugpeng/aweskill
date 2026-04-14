@@ -18,20 +18,7 @@ export function stripVersionSuffix(input: string): string {
 }
 
 export function getDuplicateMatchKey(input: string): string {
-  const trimmed = input.trim();
-  const parentheticalHead = trimmed.match(/^(.+?)\s*\(.+\)$/)?.[1];
-  const normalized = stripVersionSuffix(sanitizeName(trimmed));
-  const normalizedHead = parentheticalHead ? stripVersionSuffix(sanitizeName(parentheticalHead)) : "";
-  if (normalizedHead && (normalized === normalizedHead || normalized.startsWith(`${normalizedHead}-`))) {
-    return normalizedHead;
-  }
-
-  const segments = normalized.split("-").filter(Boolean);
-  if (segments.length >= 5 && segments[0] && segments[0].length <= 8) {
-    return segments[0];
-  }
-
-  return normalized;
+  return stripVersionSuffix(sanitizeName(input)).replace(/[^a-z0-9]+/g, "");
 }
 
 export function expandHomePath(targetPath: string, homeDir = homedir()): string {

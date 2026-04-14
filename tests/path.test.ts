@@ -13,11 +13,11 @@ describe("path helpers", () => {
     expect(stripVersionSuffix("ffmpeg-video-editor-1.0.0")).toBe("ffmpeg-video-editor");
   });
 
-  it("builds duplicate match keys for human-readable and versioned names", () => {
-    expect(getDuplicateMatchKey("FFmpeg Video Editor")).toBe("ffmpeg-video-editor");
-    expect(getDuplicateMatchKey("ffmpeg-video-editor-1.0.0")).toBe("ffmpeg-video-editor");
-    expect(getDuplicateMatchKey("SEO (Site Audit + Content Writer + Competitor Analysis)")).toBe("seo");
-    expect(getDuplicateMatchKey("seo-1.0.3")).toBe("seo");
+  it("builds duplicate match keys by comparing text after removing symbols", () => {
+    expect(getDuplicateMatchKey("FFmpeg Video Editor")).toBe("ffmpegvideoeditor");
+    expect(getDuplicateMatchKey("ffmpeg-video-editor-1.0.0")).toBe("ffmpegvideoeditor");
+    expect(getDuplicateMatchKey("Self-Improving Agent (With Self-Reflection)")).toBe("selfimprovingagentwithselfreflection");
+    expect(getDuplicateMatchKey("self-improving-agent-with-self-reflection")).toBe("selfimprovingagentwithselfreflection");
   });
 
   it("expands home prefixes", () => {

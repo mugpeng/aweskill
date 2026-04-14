@@ -5,6 +5,7 @@ import { pathExists } from "../lib/fs.js";
 import { getAweskillPaths, uniqueSorted } from "../lib/path.js";
 import { createSkillSymlink, listBrokenSymlinkNames, listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
 import { buildCentralCanonicalSkills, classifyCheckedSkill } from "./check.js";
+import { resolveCanonicalSkillName } from "../lib/rmdup.js";
 import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
 import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
@@ -114,7 +115,7 @@ export async function runSync(
       }
 
       const targetPath = path.join(skillsDir, skillName);
-      const canonicalName = canonicalSkillNames.get(skillName)?.name;
+      const canonicalName = resolveCanonicalSkillName(skillName, canonicalSkillNames);
       if (canonicalName) {
         await createSkillSymlink(getSkillPath(context.homeDir, canonicalName), targetPath, {
           allowReplaceExisting: true,

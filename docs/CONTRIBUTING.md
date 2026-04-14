@@ -211,6 +211,8 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
   - the skill name is reserved, such as names that begin with `.`
 - `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
 - `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
+- duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
+- examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
 - `doctor sync` is the user-facing repair command for stale managed projections, broken symlinks, and duplicate agent skill entries
 - `doctor sync` should relink duplicate entries, repair broken symlinks when the central store has a same-name skill, remove broken symlinks otherwise, and skip `suspicious` entries
 - `backup` and `restore` report suspicious entries they skipped
