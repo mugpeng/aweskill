@@ -249,7 +249,7 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill agent supported` | List supported agent ids and display names |
 | `aweskill agent add bundle\|skill ...` | Project managed skills into agent directories |
 | `aweskill agent remove bundle\|skill ... [--force]` | Remove managed projections |
-| `aweskill agent list [...]` | Inspect linked, duplicate, new, and suspicious entries |
+| `aweskill agent list [...]` | Inspect linked, duplicate, matched, new, and suspicious entries |
 | `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Find stale managed projections, broken symlinks, and duplicate agent skill entries, grouped by agent skill root, and optionally repair them |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |

@@ -249,7 +249,7 @@ aweskill doctor sync --global --agent codex --apply
 | `aweskill agent supported` | 列出支持的 agent id 和显示名 |
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
-| `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new`、`suspicious` 状态 |
+| `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`matched`、`new`、`suspicious` 状态 |
 | `aweskill doctor sync [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 的 skills 根目录分组查找失效托管投影、坏链和 duplicate skill，并可选修复它们 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |

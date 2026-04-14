@@ -2,7 +2,7 @@ import { mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { SkillEntry } from "../types.js";
-import { getAweskillPaths } from "./path.js";
+import { getAweskillPaths, getDuplicateMatchKey, sanitizeName, stripVersionSuffix } from "./path.js";
 import { listSkills } from "./skills.js";
 
 interface ParsedSkillName {
@@ -20,16 +20,17 @@ export interface DuplicateGroup {
 const NUMERIC_SUFFIX_PATTERN = /^(.*?)-(\d+(?:\.\d+)*)$/;
 
 export function parseSkillName(name: string): ParsedSkillName {
-  const match = name.match(NUMERIC_SUFFIX_PATTERN);
+  const normalizedName = sanitizeName(name);
+  const match = normalizedName.match(NUMERIC_SUFFIX_PATTERN);
   if (!match) {
     return {
-      baseName: name,
+      baseName: getDuplicateMatchKey(name),
       hasNumericSuffix: false,
     };
   }
 
   return {
-    baseName: match[1],
+    baseName: getDuplicateMatchKey(name),
     hasNumericSuffix: true,
     numericKey: match[2].split(".").map((part) => Number.parseInt(part, 10)),
   };

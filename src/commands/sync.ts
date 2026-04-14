@@ -134,7 +134,7 @@ export async function runSync(
         continue;
       }
 
-      if (skill.category !== "duplicate") {
+      if (skill.category !== "duplicate" && skill.category !== "matched") {
         continue;
       }
 
@@ -218,9 +218,9 @@ export async function runSync(
     verbose: options.verbose,
     noun: "exact-name duplicates",
   });
-  const familyDuplicateLines = formatGroupedEntries("Duplicate-family matches:", familyDuplicateGroups, {
+  const familyDuplicateLines = formatGroupedEntries("Rule-matched duplicates:", familyDuplicateGroups, {
     verbose: options.verbose,
-    noun: "duplicate-family matches",
+    noun: "rule-matched duplicates",
   });
   if (exactDuplicateLines.length === 0 && familyDuplicateLines.length === 0) {
     lines.push("Duplicate agent skill entries:");
@@ -234,7 +234,7 @@ export async function runSync(
       lines.push(...exactDuplicateLines);
     }
     if (familyDuplicateLines.length === 0) {
-      lines.push("Duplicate-family matches:");
+      lines.push("Rule-matched duplicates:");
       lines.push("(none)");
     } else {
       lines.push(...familyDuplicateLines);

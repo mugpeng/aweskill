@@ -205,7 +205,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 
 - `skill list` shows totals and a short preview unless `--verbose`
 - `skill scan` shows per-agent totals by default and concrete entries with `--verbose`
-- `agent list` categorizes entries as `linked`, `duplicate`, `new`, and `suspicious`
+- `agent list` categorizes entries as `linked`, `duplicate`, `matched`, `new`, and `suspicious`
 - `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
   - the directory or link is missing `SKILL.md`
   - the skill name is reserved, such as names that begin with `.`

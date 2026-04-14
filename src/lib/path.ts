@@ -13,6 +13,27 @@ export function sanitizeName(input: string): string {
     .slice(0, 80);
 }
 
+export function stripVersionSuffix(input: string): string {
+  return input.replace(/-\d+(?:\.\d+)*$/, "");
+}
+
+export function getDuplicateMatchKey(input: string): string {
+  const trimmed = input.trim();
+  const parentheticalHead = trimmed.match(/^(.+?)\s*\(.+\)$/)?.[1];
+  const normalized = stripVersionSuffix(sanitizeName(trimmed));
+  const normalizedHead = parentheticalHead ? stripVersionSuffix(sanitizeName(parentheticalHead)) : "";
+  if (normalizedHead && (normalized === normalizedHead || normalized.startsWith(`${normalizedHead}-`))) {
+    return normalizedHead;
+  }
+
+  const segments = normalized.split("-").filter(Boolean);
+  if (segments.length >= 5 && segments[0] && segments[0].length <= 8) {
+    return segments[0];
+  }
+
+  return normalized;
+}
+
 export function expandHomePath(targetPath: string, homeDir = homedir()): string {
   if (targetPath === "~") {
     return homeDir;

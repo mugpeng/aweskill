@@ -40,7 +40,7 @@ async function resolveAgentsForScope(
   );
 }
 
-export type CheckCategory = "linked" | "duplicate" | "new" | "suspicious";
+export type CheckCategory = "linked" | "duplicate" | "matched" | "new" | "suspicious";
 
 interface CheckedSkill {
   name: string;
@@ -61,6 +61,7 @@ function formatSkillBlockWithSummary(title: string, skills: CheckedSkill[], verb
   const categories: Array<{ title: string; marker: string; key: CheckCategory }> = [
     { title: "  linked", marker: "✓", key: "linked" },
     { title: "  duplicate", marker: "!", key: "duplicate" },
+    { title: "  matched", marker: "~", key: "matched" },
     { title: "  new", marker: "+", key: "new" },
     { title: "  suspicious", marker: "?", key: "suspicious" },
   ];
@@ -104,7 +105,7 @@ export function classifyCheckedSkill(
   } else {
     canonicalName = resolveCanonicalSkillName(skill.name, canonicalSkillNames);
     if (canonicalName) {
-      category = "duplicate";
+      category = canonicalName === skill.name ? "duplicate" : "matched";
       duplicateKind = canonicalName === skill.name ? "exact" : "family";
     }
   }

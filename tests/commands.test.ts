@@ -866,7 +866,7 @@ describe("commands", () => {
     );
   });
 
-  it("checks global agent skills and categorizes linked, duplicate, new, and suspicious entries", async () => {
+  it("checks global agent skills and categorizes linked, duplicate, matched, new, and suspicious entries", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -894,6 +894,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Global skills for codex:");
     expect(lines.join("\n")).toContain("  linked: 1");
     expect(lines.join("\n")).toContain("  duplicate: 1");
+    expect(lines.join("\n")).toContain("  matched: 0");
     expect(lines.join("\n")).toContain("  new: 1");
     expect(lines.join("\n")).toContain("  suspicious: 1");
     expect(lines.join("\n")).toContain(`    ✓ linked-skill`);
@@ -902,7 +903,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(`    ? .system`);
   });
 
-  it("treats duplicate-family matches as duplicates in agent list", async () => {
+  it("categorizes duplicate-family matches as matched in agent list", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -921,8 +922,9 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("  duplicate: 1");
-    expect(lines.join("\n")).toContain("    ! a-stock-analysis");
+    expect(lines.join("\n")).toContain("  duplicate: 0");
+    expect(lines.join("\n")).toContain("  matched: 1");
+    expect(lines.join("\n")).toContain("    ~ a-stock-analysis");
     expect(lines.join("\n")).not.toContain("    + a-stock-analysis");
   });
 
@@ -1582,7 +1584,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Agent sync findings:");
     expect(lines.join("\n")).toContain("Duplicate agent skill entries:");
     expect(lines.join("\n")).toContain("Exact-name duplicates:");
-    expect(lines.join("\n")).toContain("Duplicate-family matches:");
+    expect(lines.join("\n")).toContain("Rule-matched duplicates:");
     expect(lines.join("\n")).toContain(`codex ${resolveAgentSkillsDir("codex", "global", workspace.homeDir)}`);
     expect(lines.join("\n")).toContain("  - duplicate-skill");
     expect(lines.join("\n")).toContain("  - duplicate-skill-6");
@@ -1782,7 +1784,7 @@ describe("commands", () => {
     expect(path.resolve(path.dirname(targetPath), await readlink(targetPath))).toBe(getSkillPath(workspace.homeDir, "foreign-link"));
   });
 
-  it("doctor sync shows duplicate-family matches under duplicate agent skill entries and relinks them to the canonical central skill", async () => {
+  it("doctor sync shows rule-matched duplicates under duplicate agent skill entries and relinks them to the canonical central skill", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1801,7 +1803,7 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
     expect(lines.join("\n")).toContain("Duplicate agent skill entries:");
-    expect(lines.join("\n")).toContain("Duplicate-family matches:");
+    expect(lines.join("\n")).toContain("Rule-matched duplicates:");
     expect(lines.join("\n")).toContain("  - a-stock-analysis");
 
     lines.length = 0;
@@ -1809,6 +1811,38 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Relinked 1 duplicate agent skill entry.");
     expect((await lstat(targetPath)).isSymbolicLink()).toBe(true);
     expect(path.resolve(path.dirname(targetPath), await readlink(targetPath))).toBe(getSkillPath(workspace.homeDir, "a-stock-analysis-1.0.0"));
+  });
+
+  it("doctor sync matches human-readable names to slugged versioned central skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "ffmpeg-video-editor-1.0.0"), "Versioned Canonical");
+    await writeSkill(getSkillPath(workspace.homeDir, "seo-1.0.3"), "Versioned SEO");
+
+    const ffmpegTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "FFmpeg Video Editor");
+    const seoTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "SEO (Site Audit + Content Writer + Competitor Analysis)");
+    await mkdir(ffmpegTarget, { recursive: true });
+    await mkdir(seoTarget, { recursive: true });
+    await writeFile(path.join(ffmpegTarget, "SKILL.md"), "# FFmpeg Video Editor\n", "utf8");
+    await writeFile(path.join(seoTarget, "SKILL.md"), "# SEO\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
+    expect(lines.join("\n")).toContain("Rule-matched duplicates:");
+    expect(lines.join("\n")).toContain("  - FFmpeg Video Editor");
+    expect(lines.join("\n")).toContain("  - SEO (Site Audit + Content Writer + Competitor Analysis)");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex", "--apply"], { from: "node" });
+    expect(path.resolve(path.dirname(ffmpegTarget), await readlink(ffmpegTarget))).toBe(getSkillPath(workspace.homeDir, "ffmpeg-video-editor-1.0.0"));
+    expect(path.resolve(path.dirname(seoTarget), await readlink(seoTarget))).toBe(getSkillPath(workspace.homeDir, "seo-1.0.3"));
   });
 
   it("doctor sync relinks broken symlinks when the central store has a skill with the same name", async () => {
