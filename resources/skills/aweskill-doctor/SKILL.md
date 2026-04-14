@@ -1,6 +1,6 @@
 ---
 name: aweskill-doctor
-description: Diagnose and fix skill store problems — broken projections, duplicates, stale entries, sync issues. Use when skills report suspicious, broken, duplicate, matched, or new entries, or when agent list shows anything outside linked. Handles doctor clean, dedup, sync, and agent-side repair. Trigger when skill installation or projection produces errors, warnings, or unexpected state.
+description: Diagnose and fix skill store problems — broken projections, duplicates, stale entries, sync issues. Use when skills report suspicious, broken, duplicate, matched, or new entries, or when agent list shows anything outside linked. Handles doctor clean, dedup, sync, and agent-side repair. Trigger when skill installation or projection produces errors, warnings, or unexpected state. 中文触发词：技能诊断、技能修复、损坏投影、重复技能、同步问题、异常条目、doctor clean、doctor dedup、doctor sync。
 ---
 
 # Aweskill Doctor

@@ -1,6 +1,6 @@
 ---
 name: aweskill-advanced
-description: Handle advanced skill maintenance — cross-agent projection, multi-scope skill deployment, bundle template workflows, and recover flows. Use when skill tasks go beyond routine operations: multi-agent projection strategy, global vs project scope decisions, template import chains, or any multi-step skill management that requires planning. Escalate from aweskill when single-command operations are insufficient.
+description: Handle advanced skill maintenance — cross-agent projection, multi-scope skill deployment, bundle template workflows, and recover flows. Use when skill tasks go beyond routine operations: multi-agent projection strategy, global vs project scope decisions, template import chains, or any multi-step skill management that requires planning. Escalate from aweskill when single-command operations are insufficient. 中文触发词：高级技能管理、多 agent 投影、全局/项目 scope、bundle 模板、recover、跨代理规划、技能迁移。
 ---
 
 # Aweskill Advanced
