@@ -211,7 +211,7 @@ aweskill agent recover --global --agent codex
 aweskill doctor clean
 
 # 把中央仓库里的重复 skill 移到 dup_skills
-aweskill doctor dedupe --apply
+aweskill doctor dedup --apply
 
 # 把 agent 目录里的 duplicate 条目重新变成 aweskill 托管投影
 aweskill doctor relink --global --agent codex --apply
@@ -219,7 +219,7 @@ aweskill doctor relink --global --agent codex --apply
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
 
-`aweskill` 现在也会在 `skill list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedupe` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
+`aweskill` 现在也会在 `skill list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
 
 ## 命令面
 
@@ -252,9 +252,9 @@ aweskill doctor relink --global --agent codex --apply
 | `aweskill agent list [...]` | 检查 `linked`、`duplicate`、`new`、`suspicious` 状态 |
 | `aweskill agent sync` | 删除失效托管投影 |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
-| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | 查找并可选清理不规范的 store 条目 |
-| `aweskill doctor dedupe [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
-| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>]` | 查找 agent 目录里的 duplicate skill，并可选重新链接回中央仓库 |
+| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
+| `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
+| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按 agent 的 skills 根目录分组查找 duplicate skill，并可选重新链接回中央仓库 |
 
 </details>
 

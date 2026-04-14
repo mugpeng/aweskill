@@ -423,22 +423,24 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--apply", "remove suspicious entries instead of reporting only", false)
     .option("--skills-only", "scan only skills/", false)
     .option("--bundles-only", "scan only bundles/", false)
+    .option("--verbose", "show all suspicious entries instead of a short preview", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill doctor clean ", async () =>
         runClean(context, {
           apply: options.apply,
           skillsOnly: options.skillsOnly,
           bundlesOnly: options.bundlesOnly,
+          verbose: options.verbose,
         }),
       );
     });
   doctor
-    .command("dedupe")
+    .command("dedup")
     .description("Find or remove duplicate central-store skills with numeric/version suffixes")
     .option("--apply", "move duplicate skills into dup_skills (or delete them with --delete)", false)
     .option("--delete", "when used with --apply, permanently delete duplicates instead of moving them", false)
     .action(async (options) => {
-      await runFramedCommand(" aweskill doctor dedupe ", async () =>
+      await runFramedCommand(" aweskill doctor dedup ", async () =>
         runRmdup(context, {
           apply: options.apply,
           delete: options.delete,
@@ -452,6 +454,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option("--verbose", "show all duplicate agent skill entries instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
@@ -462,6 +465,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
+          verbose: options.verbose,
         }),
       );
     });

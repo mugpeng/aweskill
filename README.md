@@ -30,7 +30,7 @@ Instead of copying the same skill folders into every tool by hand, `aweskill` ke
 - **Bundle-based organization** for reusable skill sets
 - **Multi-agent projection** across Codex, Claude Code, Cursor, Gemini CLI, and more
 - **Managed enable/disable model** without a separate global activation file
-- **Backup, restore, dedupe, and recovery** built into the CLI
+- **Backup, restore, dedup, and recovery** built into the CLI
 
 ## Install
 
@@ -211,7 +211,7 @@ aweskill agent recover --global --agent codex
 aweskill doctor clean
 
 # Move duplicate central-store skills into dup_skills
-aweskill doctor dedupe --apply
+aweskill doctor dedup --apply
 
 # Relink duplicate agent entries back to aweskill-managed projections
 aweskill doctor relink --global --agent codex --apply
@@ -219,7 +219,7 @@ aweskill doctor relink --global --agent codex --apply
 
 By default, `store backup` and `store restore` include both `skills/` and `bundles/`. `store restore` accepts either a `.tar.gz` archive or an unpacked backup directory containing `skills/`. Existing skills and bundles are skipped by default and summarized at the end; use `--override` to replace them. Use `--skills-only` if you want a skills-only backup or restore flow.
 
-`aweskill` also runs store hygiene checks in `skill list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedupe` is also dry-run by default and now requires `--apply` before it mutates anything.
+`aweskill` also runs store hygiene checks in `skill list`, `bundle list`, `store backup`, and `store restore`. If suspicious files are found, the CLI will summarize them and suggest `aweskill doctor clean`. `doctor clean` is dry-run by default; add `--apply` to remove suspicious entries. `doctor dedup` is also dry-run by default and now requires `--apply` before it mutates anything.
 
 ## Command Surface
 
@@ -252,9 +252,9 @@ Core commands: `store init`, `store where`, `skill import`, `bundle create`, `ag
 | `aweskill agent list [...]` | Inspect linked, duplicate, new, and suspicious entries |
 | `aweskill agent sync` | Remove stale managed projections |
 | `aweskill agent recover` | Convert managed symlinks into full directories |
-| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only]` | Find and optionally remove suspicious non-store entries |
-| `aweskill doctor dedupe [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
-| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>]` | Find duplicate agent skill entries and optionally relink them to the central store |
+| `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |
+| `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
+| `aweskill doctor relink [--apply] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Find duplicate agent skill entries, grouped by agent skill root, and optionally relink them to the central store |
 
 </details>
 

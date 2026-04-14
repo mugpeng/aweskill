@@ -196,8 +196,8 @@ The intended command model is:
 - `doctor clean` is the user-facing hygiene scanner
 - `doctor clean` defaults to dry run
 - `doctor clean --apply` removes suspicious entries
-- `doctor dedupe` also defaults to dry run
-- `doctor dedupe --apply` is required before mutating state
+- `doctor dedup` also defaults to dry run
+- `doctor dedup --apply` is required before mutating state
 
 If you change hygiene rules, update all consumers together. Backup, restore, and list flows should not silently drift away from `doctor clean`.
 
@@ -210,7 +210,7 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
   - the directory or link is missing `SKILL.md`
   - the skill name is reserved, such as names that begin with `.`
 - `skill list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
-- `doctor dedupe` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
+- `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
 - `doctor relink` is the user-facing repair command for duplicate agent skill entries
 - `doctor relink` should only act on `duplicate` entries and must skip `suspicious` entries
 - `backup` and `restore` report suspicious entries they skipped
@@ -312,7 +312,7 @@ Skills should have a canonical home in `~/.aweskill/skills/`.
 
 ### Minimal surprise
 
-The user should be able to predict what `add`, `remove`, `sync`, `recover`, and `dedupe` will do without reading implementation code.
+The user should be able to predict what `add`, `remove`, `sync`, `recover`, and `dedup` will do without reading implementation code.
 
 ### Small command surface
 
