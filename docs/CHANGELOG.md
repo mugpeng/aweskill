@@ -1,5 +1,13 @@
 # change log
 
+## v0.2.2
+
+`v0.2.2` fixes the command reference table order in both READMEs. Since `v0.2.1`, `doctor sync` was listed before `agent recover` in the table, which placed it out of the intended alphabetical grouping. The row order has been corrected so `agent recover` appears before `doctor sync`.
+
+### Highlights
+
+- Fixed command reference table row order in `README.md` and `README.zh-CN.md`.
+
 ## v0.2.1
 
 `v0.2.1` is the release where `aweskill` gets its own built-in meta-skills and a cleaner documentation split. Since `v0.2.0`, the CLI renamed its top-level command group from `skill` to `store`, unified agent-side inspection and repair under `doctor sync`, and added three meta-skills that teach AI coding agents how to operate the CLI directly.
