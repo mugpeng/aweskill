@@ -1,5 +1,35 @@
 # change log
 
+## v0.2.1
+
+`v0.2.1` is the release where `aweskill` gets its own built-in meta-skills and a cleaner documentation split. Since `v0.2.0`, the CLI renamed its top-level command group from `skill` to `store`, unified agent-side inspection and repair under `doctor sync`, and added three meta-skills that teach AI coding agents how to operate the CLI directly.
+
+### This is the release where aweskill teaches agents to use itself.
+
+Three meta-skills now live under `skills/` in the repository: `aweskill` (day-to-day operations), `aweskill-advanced` (low-frequency maintenance and projection strategy), and `aweskill-doctor` (diagnostics and repair). Each skill contains a `SKILL.md` with triggers and rules, a `references/` directory with flow examples and decision trees, and an `agents/openai.yaml` for Codex-compatible runtimes. Users can import them with `aweskill store import skills/<name>` and project them to any supported agent.
+
+### This is the release where the command surface gets renamed.
+
+The old top-level `skill` command group was replaced with a unified `store` group (`store init`, `store where`, `store scan`, `store import`, `store list`, `store remove`). All existing behavior is preserved under the new names.
+
+### This is the release where agent list becomes read-only and doctor sync handles repair.
+
+`agent list` is now a pure inspection command that classifies entries as `linked`, `broken`, `duplicate`, `matched`, `new`, or `suspicious` without mutating anything. All repair logic moved to `doctor sync`, which is dry-run by default and requires `--apply` to make changes. `doctor sync` also gained `--global`/`--project` scope and `--agent` filters, matching the same filter model used by `store scan` and `store import --scan`.
+
+### This is the release where documentation gets a clearer split.
+
+Complex developer-facing details (backup/restore behavior semantics, hygiene check integration, doctor dry-run mechanics) moved from the README to `docs/CONTRIBUTING.md`. The built-in skill structure and design principles are also documented there. Both English and Chinese READMEs were updated in parallel.
+
+### Highlights
+
+- Added three built-in meta-skills: `aweskill`, `aweskill-advanced`, `aweskill-doctor`.
+- Renamed `skill` top-level commands to `store` (`store init`, `store where`, `store scan`, `store import`, `store list`, `store remove`).
+- Made `agent list` read-only; all repair now goes through `doctor sync`.
+- Added scope and agent filters to `store scan`, `store import --scan`, and `doctor sync`.
+- Added `broken` category for stale managed projections.
+- Moved developer documentation from README to `docs/CONTRIBUTING.md`.
+- Updated `README.md` and `README.zh-CN.md` with built-in skill section and trimmed doctor details.
+
 ## v0.2.0
 
 `v0.2.0` is the release where `aweskill` turns its agent-side maintenance path into a more unified repair flow. Since `v0.1.9`, the CLI gained `doctor sync`, tightened duplicate classification, and made projection and cleanup behavior more consistent across the agent commands that inspect or repair local skill directories.
