@@ -46,7 +46,7 @@ aweskill --help
 To pin a specific release:
 
 ```bash
-npm install -g aweskill@0.2.0
+npm install -g aweskill@0.2.1
 ```
 
 Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)

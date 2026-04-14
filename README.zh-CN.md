@@ -46,7 +46,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.2.0
+npm install -g aweskill@0.2.1
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
