@@ -213,23 +213,23 @@ aweskill doctor clean
 # 把中央仓库里的重复 skill 移到 dup_skills
 aweskill doctor dedup --apply
 
+# 先看某个 agent 下有哪些可修项
+aweskill doctor sync --global --agent codex
+
 # 修复某个 agent 下的 broken / duplicate / matched 条目
-aweskill agent list --global --agent codex --sync
+aweskill doctor sync --global --agent codex --apply
 
 # 只有显式指定时才删除 suspicious agent 条目
-aweskill agent list --global --agent codex --sync --remove-suspicious
-
-# 兼容旧接口
-aweskill doctor sync --global --agent codex --apply
+aweskill doctor sync --global --agent codex --apply --remove-suspicious
 ```
 
 默认情况下，`store backup` 和 `store restore` 会同时处理 `skills/` 和 `bundles/`。`store restore` 既可以接收 `.tar.gz` 归档，也可以接收一个已经解包、且包含 `skills/` 的目录。遇到同名 skill 或 bundle 时，默认会跳过并在最后汇总；如果需要覆盖，使用 `--override`。如果你只想处理 `skills/`，可以使用 `--skills-only`。
 
 `aweskill` 现在也会在 `store list`、`bundle list`、`store backup` 和 `store restore` 中执行 store hygiene 检查。发现可疑文件时，CLI 会给出汇总并提示运行 `aweskill doctor clean`。`doctor clean` 默认是 dry run，加上 `--apply` 才会真正删除 store 中的 suspicious 条目；`doctor dedup` 现在也默认是 dry run，需要显式加 `--apply` 才会修改文件。
 
-`agent list` 现在统一展示 agent 侧状态：`linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious`。加上 `--sync` 后，会修复 broken 投影，并重连 duplicate / matched 条目。`suspicious` 默认只报告，不自动删除，只有 `--sync --remove-suspicious` 才会删除。发现 `new` 条目时，`agent list` 会提示用户使用带相同 scope / agent 过滤条件的 `aweskill store import --scan` 来导入。
+`agent list` 现在统一展示 agent 侧状态：`linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious`。它不再直接执行修复。只要出现任何非 `linked` 内容，就会提示用户去运行 `aweskill doctor sync`，以及需要时运行 `aweskill doctor sync --apply` 和 `aweskill doctor sync --apply --remove-suspicious`。
 
-`doctor sync` 仍保留，作为 `agent list --sync` 的兼容别名。后端行为和输出一致，只是继续使用旧的 `--apply` 形式。
+`doctor sync` 是 agent 侧修复命令。默认是 dry run；加上 `--apply` 才会修复 broken 投影并重连 duplicate / matched 条目；删除 suspicious 需要 `--apply --remove-suspicious`。
 
 ## 命令面
 
@@ -259,8 +259,8 @@ aweskill doctor sync --global --agent codex --apply
 | `aweskill agent supported` | 列出支持的 agent id 和显示名 |
 | `aweskill agent add bundle\|skill ...` | 把托管 skill 投影到 agent 目录 |
 | `aweskill agent remove bundle\|skill ... [--force]` | 删除托管投影 |
-| `aweskill agent list [--sync] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 检查 `linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious` 状态；`--sync` 修复 broken 并重连 duplicate / matched，`--sync --remove-suspicious` 额外删除 suspicious |
-| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | `aweskill agent list --sync` 的兼容别名 |
+| `aweskill agent list [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 检查 `linked`、`broken`、`duplicate`、`matched`、`new`、`suspicious` 状态，并在需要时提示用户运行 `doctor sync` |
+| `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 默认 dry run；加上 `--apply` 修复 broken 并重连 duplicate / matched，`--apply --remove-suspicious` 额外删除 suspicious |
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
 | `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |

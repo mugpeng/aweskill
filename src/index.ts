@@ -218,13 +218,10 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   });
   agent
     .command("list")
-    .description("Inspect agent skill directories and optionally sync managed fixes")
+    .description("Inspect agent skill directories")
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--sync", "repair broken projections, relink duplicate and matched entries, and report suspicious and new entries", false)
-    .option("--update", "deprecated alias for --sync", false)
-    .option("--remove-suspicious", "when used with --sync, remove suspicious agent entries instead of only reporting them", false)
     .option("--verbose", "show all skills in each category instead of a short preview", false)
     .action(async (options) => {
       const isProject = options.project !== undefined;
@@ -235,9 +232,6 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           scope,
           agents: options.agent ?? [],
           projectDir,
-          sync: options.sync,
-          update: options.update,
-          removeSuspicious: options.removeSuspicious,
           verbose: options.verbose,
         }),
       );
@@ -463,8 +457,8 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
   doctor
     .command("sync")
-    .description("Compatibility alias for agent list --sync")
-    .option("--apply", "same as agent list --sync", false)
+    .description("Inspect and optionally repair agent-side projections; dry-run by default")
+    .option("--apply", "repair broken projections and relink duplicate and matched entries", false)
     .option("--remove-suspicious", "when used with --apply, remove suspicious agent entries instead of only reporting them", false)
     .option("--global", "check global scope (default when no scope flag given)")
     .option("--project [dir]", "check project scope; uses cwd when dir is omitted")

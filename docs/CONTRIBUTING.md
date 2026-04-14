@@ -149,7 +149,7 @@ Please avoid features that hide core state behind unnecessary abstraction.
 3. On Unix-like systems, that projection is normally a symlink
 4. On Windows, that projection prefers a directory junction and may fall back to a managed copy
 5. `agent remove` only deletes projections that `aweskill` can identify as managed
-6. `agent list` is primary agent-side inspection command; `agent list --sync` repairs broken entries and relinks duplicate / matched entries; `doctor sync` is compatibility alias
+6. `agent list` is primary agent-side inspection command; `doctor sync` is agent-side repair command and defaults to dry run
 
 There is no separate global activation registry. The projected filesystem state is the activation model.
 
@@ -215,10 +215,11 @@ If you change hygiene rules, update all consumers together. Backup, restore, and
 - `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
 - duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
 - examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
-- `agent list` is user-facing inspection command for agent-side state; `doctor sync` should call same backend as `agent list --sync`
+- `agent list` is user-facing inspection command for agent-side state; `doctor sync` is user-facing repair command for agent-side state
 - agent-side output should be grouped by agent first, then by category (`linked`, `broken`, `duplicate`, `matched`, `new`, `suspicious`)
 - backend should still distinguish stale managed projections from broken symlinks, but both should surface as `broken` in user output
-- `agent list --sync` should relink duplicate and matched entries, repair broken symlinks when the central store has a same-name skill, remove broken projections otherwise, and report suspicious entries unless `--sync --remove-suspicious` is set
+- `agent list` should stay read-only and point users to `doctor sync`, `doctor sync --apply`, and `doctor sync --apply --remove-suspicious` when relevant
+- `doctor sync --apply` should relink duplicate and matched entries, repair broken symlinks when the central store has a same-name skill, remove broken projections otherwise, and report suspicious entries unless `--apply --remove-suspicious` is set
 - `agent list` should report `new` entries and suggest `aweskill store import --scan` with matching scope and agent filters
 - `backup` and `restore` report suspicious entries they skipped
 
@@ -260,10 +261,10 @@ When reading agent skill directories, contributors should use the same notion of
 - entries missing `SKILL.md` are suspicious
 - reserved or hidden skill names such as `.system` are suspicious
 - suspicious entries should not be imported, relinked, or counted as new skills
-- suspicious agent entries may be removed only when the user passes both `--apply` and `--remove-suspicious`
+- suspicious agent entries may be removed only when the user passes both `--apply` and `--remove-suspicious` through `doctor sync`
 - warning text should explain why the entry was skipped
 
-This rule should stay consistent across `agent list`, `agent list --sync`, `doctor sync`, and any future agent-side maintenance flow.
+This rule should stay consistent across `agent list`, `doctor sync`, and any future agent-side maintenance flow.
 
 ### Small command surface
 
