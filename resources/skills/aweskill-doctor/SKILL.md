@@ -1,6 +1,6 @@
 ---
 name: aweskill-doctor
-description: Diagnose and repair aweskill store hygiene and agent projection issues with native doctor and agent inspection commands. Use when aweskill reports suspicious, broken, duplicate, matched, or new entries, or when tasks involve doctor clean, doctor dedup, doctor sync, or agent-side repair decisions after agent list output.
+description: Diagnose and fix skill store problems — broken projections, duplicates, stale entries, sync issues. Use when skills report suspicious, broken, duplicate, matched, or new entries, or when agent list shows anything outside linked. Handles doctor clean, dedup, sync, and agent-side repair. Trigger when skill installation or projection produces errors, warnings, or unexpected state.
 ---
 
 # Aweskill Doctor

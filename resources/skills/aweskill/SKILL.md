@@ -1,6 +1,6 @@
 ---
 name: aweskill
-description: Operate the core aweskill CLI for routine store, bundle, and agent work inside the aweskill repository. Use when handling day-to-day tasks such as store init, where, scan, import, list, remove, bundle create or edit, bundle template import, basic agent projection, or normal inspection before any repair flow.
+description: Manage Claude Code skills — install, remove, list, configure, bundle, and project skills. Operate the core aweskill CLI for routine store, bundle, and agent work. Use for any skill-related operation: store init/scan/import/list/remove, bundle create/edit/template, agent projection, or inspection before repair. Trigger when user mentions skills, skill management, or asks to install/disable/configure skills.
 ---
 
 # Aweskill

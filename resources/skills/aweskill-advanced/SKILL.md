@@ -1,6 +1,6 @@
 ---
 name: aweskill-advanced
-description: Handle low-frequency but important aweskill maintenance workflows that still use the native CLI directly. Use when tasks involve bundle templates, cross-agent projection strategy, global versus project scope choices, recover flows, or multi-command store and agent maintenance that goes beyond routine daily operations.
+description: Handle advanced skill maintenance — cross-agent projection, multi-scope skill deployment, bundle template workflows, and recover flows. Use when skill tasks go beyond routine operations: multi-agent projection strategy, global vs project scope decisions, template import chains, or any multi-step skill management that requires planning. Escalate from aweskill when single-command operations are insufficient.
 ---
 
 # Aweskill Advanced
