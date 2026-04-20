@@ -20,5 +20,5 @@
 
 ## Escalation
 
-- Need cross-scope planning, recover, or template-driven maintenance -> use `$aweskill-advanced`
+- Need cross-scope planning, recover, or template-driven maintenance -> use `$aweskill`
 - Need to clean suspicious entries, deduplicate, or repair broken projections -> use `$aweskill-doctor`

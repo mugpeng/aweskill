@@ -1,10 +1,10 @@
 import { addSkillToBundle, createBundle, deleteBundle, readBundle, readBundleFromDirectory, removeSkillFromBundle, writeBundle } from "../lib/bundles.js";
-import { sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
+import { normalizeNameList } from "../lib/path.js";
 import { getTemplateBundlesDir } from "../lib/templates.js";
 import type { RuntimeContext } from "../types.js";
 
-function parseNames(value: string): string[] {
-  return uniqueSorted(splitCommaValues(value).map((entry) => sanitizeName(entry)));
+function parseNames(value: string | string[]): string[] {
+  return normalizeNameList(value);
 }
 
 export async function runBundleCreate(context: RuntimeContext, bundleName: string) {
@@ -19,7 +19,7 @@ export async function runBundleShow(context: RuntimeContext, bundleName: string)
   return bundles;
 }
 
-export async function runBundleAddSkill(context: RuntimeContext, bundleName: string, skillName: string) {
+export async function runBundleAddSkill(context: RuntimeContext, bundleName: string | string[], skillName: string | string[]) {
   const bundleNames = parseNames(bundleName);
   const skillNames = parseNames(skillName);
   const bundles = [];
@@ -34,7 +34,7 @@ export async function runBundleAddSkill(context: RuntimeContext, bundleName: str
   return bundles;
 }
 
-export async function runBundleRemoveSkill(context: RuntimeContext, bundleName: string, skillName: string) {
+export async function runBundleRemoveSkill(context: RuntimeContext, bundleName: string | string[], skillName: string | string[]) {
   const bundleNames = parseNames(bundleName);
   const skillNames = parseNames(skillName);
   const bundles = [];

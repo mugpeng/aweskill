@@ -1,4 +1,0 @@
-interface:
-  display_name: "Aweskill Advanced"
-  short_description: "Low-frequency aweskill maintenance and projection workflows."
-  default_prompt: "Use $aweskill-advanced to handle a complex aweskill maintenance workflow."

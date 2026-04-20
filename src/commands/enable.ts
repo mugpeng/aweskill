@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
-import { getAweskillPaths, sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
+import { getAweskillPaths, normalizeNameList, uniqueSorted } from "../lib/path.js";
 import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
 import { createSkillCopy, createSkillSymlink, inspectProjectionTarget } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
@@ -40,8 +40,8 @@ async function resolveAgentsForScope(
   );
 }
 
-async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string): Promise<string[]> {
-  const normalizedNames = uniqueSorted(splitCommaValues(names).map((name) => sanitizeName(name)));
+async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string | string[]): Promise<string[]> {
+  const normalizedNames = normalizeNameList(names);
 
   if (normalizedNames.includes("all")) {
     if (type === "bundle") {
@@ -84,7 +84,7 @@ export async function runEnable(
   context: RuntimeContext,
   options: {
     type: ActivationType;
-    name: string;
+    name: string | string[];
     scope: Scope;
     agents: string[];
     projectDir?: string;
@@ -156,7 +156,7 @@ export async function runEnable(
   }
 
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
-  const targetLabel = uniqueSorted(splitCommaValues(options.name).map((name) => sanitizeName(name))).join(", ");
+  const targetLabel = normalizeNameList(options.name).join(", ");
   context.write(`Enabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${created.length > 0 ? ` (${created.length} created)` : ""}`);
   return { agents, skillNames, created };
 }

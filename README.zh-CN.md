@@ -3,7 +3,7 @@
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
   <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.2-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.3-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -46,7 +46,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.2.2
+npm install -g aweskill@0.2.3
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -140,7 +140,7 @@ aweskill agent add bundle frontend --global --agent codex
 - 重复项暂存区：`~/.aweskill/dup_skills/`
 - 备份目录：`~/.aweskill/backup/`
 - Bundle 文件：`~/.aweskill/bundles/*.yaml`
-- 内置 skill：`resources/skills/aweskill/`、`resources/skills/aweskill-advanced/`、`resources/skills/aweskill-doctor/`
+- 内置 skill：`resources/skills/aweskill/`、`resources/skills/aweskill-doctor/`
 
 ## 常见工作流
 
@@ -263,18 +263,16 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 ## 内置 Skill
 
-`aweskill` 内置了三个 meta-skill，用来教 AI 编码代理直接操作 CLI。把它们导入中央仓库后，Codex、Claude Code、Cursor 等 agent 就能自动运行 aweskill 命令，无需人工介入。
+`aweskill` 内置了两个 meta-skill，用来教 AI 编码代理直接操作 CLI。把它们导入中央仓库后，Codex、Claude Code、Cursor 等 agent 就能自动运行 aweskill 命令，无需人工介入。
 
 ```bash
 aweskill store import resources/skills/aweskill
-aweskill store import resources/skills/aweskill-advanced
 aweskill store import resources/skills/aweskill-doctor
 ```
 
 | Skill | 面向 | 何时使用 |
 | --- | --- | --- |
-| `aweskill` | 操作面 | 日常：init、scan、import、list、remove、bundle 增删改查、基础 agent 投影 |
-| `aweskill-advanced` | 维护面 | 低频：跨 agent 投影策略、bundle 模板、recover 流程、多 scope 规划 |
+| `aweskill` | 操作面 | 日常及策略型：init、scan、import、list、remove、bundle 增删改查、bundle 模板、recover 流程、多 scope 投影规划 |
 | `aweskill-doctor` | 诊断面 | 修复：`doctor clean`、`doctor dedup`、`doctor sync`，解读 broken/duplicate/suspicious |
 
 skill 目录结构与设计原则见 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。

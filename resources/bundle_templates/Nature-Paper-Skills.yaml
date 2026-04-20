@@ -1,11 +1,19 @@
-name: Nature-Paper-Skills
+name: nature-paper-skills
 skills:
-  - paper-workflow
-  - paper-bootstrap
-  - nature-scientific-writing
-  - manuscript-optimizer
-  - figure-planner
+  - academic-presentations
+  - academic-researcher
   - citation-verifier
-  - submission-audit
-  - rebuttal-response
+  - conference-paper-writing
+  - figure-planner
+  - manuscript-optimizer
   - nature-portfolio-playbook
+  - paper-analyzer
+  - paper-bootstrap
+  - paper-reviewer
+  - paper-workflow
+  - rebuttal-response
+  - reference-audit-guide
+  - results-analysis
+  - results-section-revision
+  - scientific-writing
+  - submission-audit

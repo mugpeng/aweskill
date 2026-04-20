@@ -1,6 +1,6 @@
 ---
 name: aweskill
-description: Manage Claude Code skills — install, remove, list, configure, bundle, and project skills. Operate the core aweskill CLI for routine store, bundle, and agent work. Use for any skill-related operation: store init/scan/import/list/remove, bundle create/edit/template, agent projection, or inspection before repair. Trigger when user mentions skills, skill management, or asks to install/disable/configure skills. 中文触发词：技能管理、导入技能、投影技能、启用/禁用技能、安装/移除技能、bundle、agent、aweskill。
+description: Use when managing aweskill store, bundle, and agent workflows that are not repair-first: routine commands, bundle template work, multi-agent or multi-scope projection planning, recover flows, skill migration, install/remove/configure tasks. 中文触发词：技能管理、导入技能、投影技能、启用/禁用技能、安装/移除技能、bundle、agent、aweskill、高级技能管理、recover、技能迁移。
 ---
 
 # Aweskill
@@ -15,7 +15,7 @@ npm install -g aweskill
 
 ## Core Boundary
 
-Use this skill for routine commands:
+Use this skill for normal and strategy-oriented aweskill commands that are not repair-first:
 
 - `store init`
 - `store where`
@@ -34,8 +34,7 @@ Use this skill for routine commands:
 - `agent add`
 - `agent remove`
 - `agent list`
-
-Escalate to `$aweskill-advanced` for low-frequency maintenance flows that need multi-command planning.
+- `agent recover`
 
 Escalate to `$aweskill-doctor` for diagnosis, hygiene cleanup, dedup, or sync repair.
 
@@ -49,6 +48,13 @@ Inspect before mutating:
 2. Confirm scope: `--global` or `--project [dir]`.
 3. Confirm target agent set with `--agent` when the command touches projections.
 4. Run mutating command only after the current state is clear.
+
+For complex changes, also decide:
+
+1. Whether the source of truth should remain the central store, a bundle, or an existing agent root.
+2. Whether the task is single-scope or truly needs both `--global` and `--project`.
+3. Whether the task is single-agent or should be applied agent-by-agent with explicit `--agent`.
+4. Whether a reversible managed link is preferable to copied recovery output.
 
 Prefer these inspection commands:
 
@@ -69,6 +75,7 @@ For importing existing skills into the central store:
 3. Run `aweskill store import <path>` for a standalone skill or skills root.
 4. Use `--link-source` only when source should become an aweskill-managed projection.
 5. Use `--keep-source` when original source must stay untouched.
+6. If import planning depends on agent filters or cross-scope deployment, inspect with `agent list --verbose` first and then apply one scope at a time.
 
 For bundle work:
 
@@ -76,12 +83,41 @@ For bundle work:
 2. Add or remove skills with `aweskill bundle add` or `aweskill bundle remove`.
 3. Inspect with `aweskill bundle show <name>` before projecting it.
 
+For bundle template workflows:
+
+1. Run `aweskill bundle template list --verbose`.
+2. Import template with `aweskill bundle template import <name>`.
+3. Inspect result with `aweskill bundle show <name>`.
+4. Adjust membership with `bundle add` or `bundle remove` if needed.
+
 For normal agent projection:
 
 1. Use `aweskill agent add skill <name>` or `aweskill agent add bundle <name>`.
 2. Use `--global` for global agent roots.
 3. Use `--project [dir]` for repo-local roots.
 4. Use `--agent <id>` to limit scope when task is not “all agents”.
+
+For scope-sensitive or multi-agent projection:
+
+1. Decide whether target should be `--global` or `--project [dir]`.
+2. Run `aweskill agent supported` if agent ids are uncertain.
+3. Use `aweskill agent list` before projecting.
+4. Apply changes one scope at a time unless the user explicitly wants multi-scope rollout.
+5. Use `aweskill agent add` or `aweskill agent remove` with explicit `--agent`.
+6. Re-run `aweskill agent list --verbose` to verify result.
+
+For recover flows:
+
+1. Confirm task really needs copied directories instead of managed links.
+2. Run `aweskill agent recover --global|--project [dir] --agent <id>`.
+3. Re-run `aweskill agent list --verbose` to confirm final state.
+
+For migration between direct projection and bundle-driven projection:
+
+1. Identify the canonical source of truth in the central store.
+2. Inspect the current bundle and agent state before changing anything.
+3. Prefer reversible operations and avoid mixing direct skill links with bundle rollout unless the user wants both.
+4. Verify final state with `bundle show` and `agent list --verbose`.
 
 For agent-side inspection:
 
@@ -93,3 +129,7 @@ For agent-side inspection:
 Read `references/common-flows.md` for common day-to-day command sequences.
 
 Read `references/command-map.md` when you need a fast route from user intent to CLI command.
+
+Read `references/projection-flows.md` for multi-agent and scope-sensitive projection work.
+
+Read `references/bundle-flows.md` for bundle template and bundle-maintenance flows.

@@ -1,6 +1,6 @@
 import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
-import { listBundles, readBundle } from "../lib/bundles.js";
-import { getAweskillPaths, sanitizeName, splitCommaValues, uniqueSorted } from "../lib/path.js";
+import { listBundles } from "../lib/bundles.js";
+import { getAweskillPaths, normalizeNameList, sanitizeName, uniqueSorted } from "../lib/path.js";
 import { skillExists } from "../lib/skills.js";
 import { inspectProjectionTarget, listManagedSkillNames, removeProjectionTarget } from "../lib/symlink.js";
 import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
@@ -38,47 +38,93 @@ async function resolveAgentsForScope(
   );
 }
 
-async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string): Promise<string[]> {
-  const normalizedNames = uniqueSorted(splitCommaValues(names).map((name) => sanitizeName(name)));
+async function resolveDisableTargets(
+  context: RuntimeContext,
+  type: ActivationType,
+  names: string | string[],
+  scope: Scope,
+  baseDir: string,
+  agents: AgentId[],
+): Promise<{ requestedNames: string[]; existingTargetNames: string[]; missingTargetNames: string[]; skillNames: string[] }> {
+  const normalizedNames = normalizeNameList(names);
+  const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
 
   if (normalizedNames.includes("all")) {
     if (type === "bundle") {
       const bundles = await listBundles(context.homeDir);
-      return uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+      return {
+        requestedNames: ["all"],
+        existingTargetNames: ["all"],
+        missingTargetNames: [],
+        skillNames: uniqueSorted(bundles.flatMap((bundle) => bundle.skills)),
+      };
     }
 
     const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
-    const detected = await detectInstalledAgents({
-      homeDir: context.homeDir,
-    });
-    const globalManaged = await Promise.all(
-      detected.filter((agentId) => supportsScope(agentId, "global")).map(async (agentId) => {
-        const agentSkillsDir = resolveAgentSkillsDir(agentId, "global", context.homeDir);
+    const scopedManaged = await Promise.all(
+      agents.map(async (agentId) => {
+        const agentSkillsDir = resolveAgentSkillsDir(agentId, scope, baseDir);
         return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
       }),
     );
     const managedSkillNames = uniqueSorted(
-      globalManaged.flatMap((managed) => [...managed.keys()]),
+      scopedManaged.flatMap((managed) => [...managed.keys()]),
     );
 
-    return managedSkillNames;
+    return {
+      requestedNames: ["all"],
+      existingTargetNames: ["all"],
+      missingTargetNames: [],
+      skillNames: managedSkillNames,
+    };
   }
 
   if (type === "bundle") {
-    const bundles = await Promise.all(normalizedNames.map((bundleName) => readBundle(context.homeDir, bundleName)));
-    return uniqueSorted(bundles.flatMap((bundle) => bundle.skills));
+    const bundles = await listBundles(context.homeDir);
+    const bundleMap = new Map(bundles.map((bundle) => [bundle.name, bundle]));
+    const existingTargetNames = normalizedNames.filter((bundleName) => bundleMap.has(bundleName));
+    const missingTargetNames = normalizedNames.filter((bundleName) => !bundleMap.has(bundleName));
+    const skillNames = uniqueSorted(existingTargetNames.flatMap((bundleName) => bundleMap.get(bundleName)?.skills ?? []));
+    return {
+      requestedNames: normalizedNames,
+      existingTargetNames,
+      missingTargetNames,
+      skillNames,
+    };
   }
 
-  // For disable we don't require the skill to still exist in central repo
-  const resolvedNames: string[] = [];
+  const existingTargetNames: string[] = [];
+  const missingTargetNames: string[] = [];
   for (const normalizedName of normalizedNames) {
-    if (!(await skillExists(context.homeDir, normalizedName))) {
-      resolvedNames.push(normalizedName);
+    const existsInCentralStore = await skillExists(context.homeDir, normalizedName);
+    if (existsInCentralStore) {
+      existingTargetNames.push(normalizedName);
       continue;
     }
-    resolvedNames.push(normalizedName);
+
+    let existsInScope = false;
+    for (const agentId of agents) {
+      const agentSkillsDir = resolveAgentSkillsDir(agentId, scope, baseDir);
+      const targetPath = path.join(agentSkillsDir, normalizedName);
+      const status = await inspectProjectionTarget(targetPath, { centralSkillsDir });
+      if (status.kind !== "missing") {
+        existsInScope = true;
+        break;
+      }
+    }
+
+    if (existsInScope) {
+      existingTargetNames.push(normalizedName);
+    } else {
+      missingTargetNames.push(normalizedName);
+    }
   }
-  return uniqueSorted(resolvedNames);
+  return {
+    requestedNames: normalizedNames,
+    existingTargetNames,
+    missingTargetNames,
+    skillNames: uniqueSorted(existingTargetNames),
+  };
 }
 
 /**
@@ -124,7 +170,7 @@ export async function runDisable(
   context: RuntimeContext,
   options: {
     type: ActivationType;
-    name: string;
+    name: string | string[];
     scope: Scope;
     agents: string[];
     projectDir?: string;
@@ -134,21 +180,9 @@ export async function runDisable(
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
   const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
-  const skillNames = await resolveSkillNames(context, options.type, options.name);
+  const targets = await resolveDisableTargets(context, options.type, options.name, options.scope, baseDir, agents);
+  const skillNames = [...targets.skillNames];
   const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
-
-  if (splitCommaValues(options.name).map((name) => sanitizeName(name)).includes("all") && options.type === "skill") {
-    const scopedManaged = await Promise.all(
-      agents.map(async (agentId) => {
-        const agentSkillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
-        return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
-      }),
-    );
-    const managedSkillNames = uniqueSorted(
-      scopedManaged.flatMap((managed) => [...managed.keys()]),
-    );
-    skillNames.splice(0, skillNames.length, ...managedSkillNames);
-  }
 
   if (options.type === "skill" && skillNames.length === 1 && !options.force) {
     const bundleNames = await bundlesWithCoEnabledSiblings({
@@ -178,11 +212,16 @@ export async function runDisable(
       if (status.kind === "foreign_symlink" && !options.force) {
         throw new Error(
           `Target path is a symlink that is not managed by aweskill: ${targetPath}. ` +
-            `Re-run with --force to remove it.`,
+            `Re-run with --force to remove it. ` +
+            `If this is a valid local skill, run "aweskill store import --scan" first to add it to the aweskill store.`,
         );
       }
       if (status.kind === "directory" && !options.force) {
-        throw new Error(`Target path already exists as a directory: ${targetPath}. Re-run with --force to remove it.`);
+        throw new Error(
+          `Target path already exists as a directory: ${targetPath}. ` +
+            `Re-run with --force to remove it. ` +
+            `If this is a valid local skill, run "aweskill store import --scan" first to add it to the aweskill store.`,
+        );
       }
       if (status.kind === "file" && !options.force) {
         throw new Error(`Target path already exists as a file: ${targetPath}. Re-run with --force to remove it.`);
@@ -206,7 +245,16 @@ export async function runDisable(
   }
 
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
-  const targetLabel = uniqueSorted(splitCommaValues(options.name).map((name) => sanitizeName(name))).join(", ");
-  context.write(`Disabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`);
-  return { agents, skillNames, removed };
+  if (targets.existingTargetNames.length > 0) {
+    const targetLabel = targets.existingTargetNames.join(", ");
+    context.write(`Disabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`);
+  }
+  if (targets.missingTargetNames.length > 0) {
+    const noun = options.type === "bundle" ? "bundles" : "skills";
+    const hint = options.type === "bundle"
+      ? 'Run "aweskill bundle list" to see available bundles.'
+      : 'Run "aweskill store list" to see available skills.';
+    context.write(`Missing ${noun}: ${targets.missingTargetNames.join(", ")}. ${hint}`);
+  }
+  return { agents, skillNames, removed, missingTargetNames: targets.missingTargetNames };
 }

@@ -196,18 +196,18 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   bundle
     .command("add")
     .argument("<bundle>")
-    .argument("<skill>")
+    .argument("<skill...>")
     .description("Add skill entries to one or more bundles")
-    .action(async (bundleName, skillName) => {
-      await runFramedCommand(" aweskill bundle add ", async () => runBundleAddSkill(context, bundleName, skillName));
+    .action(async (bundleName, skillNames) => {
+      await runFramedCommand(" aweskill bundle add ", async () => runBundleAddSkill(context, bundleName, skillNames));
     });
   bundle
     .command("remove")
     .argument("<bundle>")
-    .argument("<skill>")
+    .argument("<skill...>")
     .description("Remove skill entries from one or more bundles")
-    .action(async (bundleName, skillName) => {
-      await runFramedCommand(" aweskill bundle remove ", async () => runBundleRemoveSkill(context, bundleName, skillName));
+    .action(async (bundleName, skillNames) => {
+      await runFramedCommand(" aweskill bundle remove ", async () => runBundleRemoveSkill(context, bundleName, skillNames));
     });
   bundle.command("delete").argument("<name>").description("Delete a bundle").action(async (name) => {
     await runFramedCommand(" aweskill bundle delete ", async () => runBundleDelete(context, name));
@@ -265,19 +265,19 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("add")
     .description("Create skill projections in agent directories")
     .argument("<type>", "bundle or skill", getActivationType)
-    .argument("<name>", 'bundle or skill name(s), comma-separated, or "all"')
+    .argument("<name...>", 'bundle or skill name(s), space-separated, comma-separated, or "all"')
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
     .option("--force", "replace existing duplicate, foreign, or unmanaged targets in agent directories", false)
-    .action(async (type, targetName, options) => {
+    .action(async (type, targetNames, options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
       const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
       await runFramedCommand(" aweskill agent add ", async () =>
         runEnable(context, {
           type,
-          name: targetName,
+          name: targetNames,
           scope,
           agents: options.agent ?? [],
           projectDir,
@@ -289,7 +289,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("remove")
     .description("Remove skill projections in agent directories")
     .argument("<type>", "bundle or skill", getActivationType)
-    .argument("<name>", 'bundle or skill name(s), comma-separated, or "all"')
+    .argument("<name...>", 'bundle or skill name(s), space-separated, comma-separated, or "all"')
     .option("--global", "apply to global scope (default when no scope flag given)")
     .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
@@ -298,14 +298,14 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       "with skill: remove a single bundle member or delete duplicate, foreign, or unmanaged targets in agent directories",
       false,
     )
-    .action(async (type, targetName, options) => {
+    .action(async (type, targetNames, options) => {
       const isProject = options.project !== undefined;
       const scope: Scope = isProject ? "project" : "global";
       const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
       await runFramedCommand(" aweskill agent remove ", async () =>
         runDisable(context, {
           type,
-          name: targetName,
+          name: targetNames,
           scope,
           agents: options.agent ?? [],
           projectDir,

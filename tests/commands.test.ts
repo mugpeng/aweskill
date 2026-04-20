@@ -1691,6 +1691,28 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Bundle science-b:");
   });
 
+  it("bundle add-skill also supports space-separated skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "api-design"));
+    await writeSkill(getSkillPath(workspace.homeDir, "db-schema"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "backend"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "backend", "api-design", "db-schema"], { from: "node" });
+
+    const bundleFile = await readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "backend.yaml"), "utf8");
+    expect(bundleFile).toContain("api-design");
+    expect(bundleFile).toContain("db-schema");
+    expect(lines.join("\n")).toContain("Bundle backend: api-design, db-schema");
+  });
+
   it("doctor dedup reports duplicate groups without changing files by default", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -2013,6 +2035,30 @@ describe("commands", () => {
     );
   });
 
+  it("agent add supports space-separated skill names", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "api-design"));
+    await writeSkill(getSkillPath(workspace.homeDir, "db-schema"));
+
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "add", "skill", "api-design", "db-schema", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "api-design"))).resolves.toBeUndefined();
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "db-schema"))).resolves.toBeUndefined();
+    expect(lines.join("\n")).toContain("Enabled skill api-design, db-schema for codex in global scope (2 created)");
+  });
+
   it("agent add reports foreign symlinks and requires --force to replace them", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
@@ -2060,7 +2106,7 @@ describe("commands", () => {
     await expect(
       program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "foreign-remove", "--global", "--agent", "codex"], { from: "node" }),
     ).rejects.toThrow(
-      `Target path already exists as a directory: ${targetPath}. Re-run with --force to remove it.`,
+      `Target path already exists as a directory: ${targetPath}. Re-run with --force to remove it. If this is a valid local skill, run "aweskill store import --scan" first to add it to the aweskill store.`,
     );
 
     await program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "foreign-remove", "--global", "--agent", "codex", "--force"], { from: "node" });
@@ -2087,11 +2133,97 @@ describe("commands", () => {
     await expect(
       program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "foreign-link-remove", "--global", "--agent", "codex"], { from: "node" }),
     ).rejects.toThrow(
-      `Target path is a symlink that is not managed by aweskill: ${targetPath}. Re-run with --force to remove it.`,
+      `Target path is a symlink that is not managed by aweskill: ${targetPath}. Re-run with --force to remove it. If this is a valid local skill, run "aweskill store import --scan" first to add it to the aweskill store.`,
     );
 
     await program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "foreign-link-remove", "--global", "--agent", "codex", "--force"], { from: "node" });
     await expect(access(targetPath)).rejects.toThrow();
+  });
+
+  it("agent remove supports space-separated skill names", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "api-design"));
+    await writeSkill(getSkillPath(workspace.homeDir, "db-schema"));
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "add", "skill", "api-design", "db-schema", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "remove", "skill", "api-design", "db-schema", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "api-design"))).rejects.toThrow();
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "db-schema"))).rejects.toThrow();
+    expect(lines.join("\n")).toContain("Disabled skill api-design, db-schema for codex in global scope (2 removed)");
+  });
+
+  it("agent remove skill removes known skills and reports missing ones without failing", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "api-design"));
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "add", "skill", "api-design", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "remove", "skill", "asdsad", "api-design", "sds", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "api-design"))).rejects.toThrow();
+    expect(lines.join("\n")).toContain("Disabled skill api-design for codex in global scope (1 removed)");
+    expect(lines.join("\n")).toContain('Missing skills: asdsad, sds. Run "aweskill store list" to see available skills.');
+  });
+
+  it("agent remove bundle removes known bundles and reports missing ones without failing", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "api-design"));
+    await writeSkill(getSkillPath(workspace.homeDir, "db-schema"));
+    await program.parseAsync(["node", "aweskill", "bundle", "create", "backend"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "bundle", "add", "backend", "api-design", "db-schema"], { from: "node" });
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "add", "bundle", "backend", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "remove", "bundle", "asdsad", "backend", "api-design", "--global", "--agent", "codex"],
+      { from: "node" },
+    );
+
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "api-design"))).rejects.toThrow();
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "db-schema"))).rejects.toThrow();
+    expect(lines.join("\n")).toContain("Disabled bundle backend for codex in global scope (2 removed)");
+    expect(lines.join("\n")).toContain('Missing bundles: api-design, asdsad. Run "aweskill bundle list" to see available bundles.');
   });
 
   it("doctor sync removes broken managed projections after the central skill is deleted", async () => {

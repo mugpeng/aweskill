@@ -19,7 +19,7 @@ describe("config layout", () => {
   it("keeps built-in meta-skills under resources/skills/", () => {
     const repoRoot = path.resolve(import.meta.dirname, "..");
     const base = path.join(repoRoot, "resources", "skills");
-    for (const name of ["aweskill", "aweskill-advanced", "aweskill-doctor"]) {
+    for (const name of ["aweskill", "aweskill-doctor"]) {
       expect(existsSync(path.join(base, name, "SKILL.md"))).toBe(true);
     }
   });

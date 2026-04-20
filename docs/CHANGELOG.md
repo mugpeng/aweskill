@@ -2,9 +2,30 @@
 
 ## Unreleased
 
-### Repository layout
+## v0.2.3
 
-- Moved the built-in meta-skills tree from top-level `skills/` to `resources/skills/`. Update local imports to `aweskill store import resources/skills/<name>` (see `README.md`).
+`v0.2.3` is the release where `aweskill` simplifies its built-in meta-skill set and makes multi-target bundle and agent operations easier to use. Since `v0.2.2`, the repository dropped the separate `aweskill-advanced` skill, folded its non-diagnostic guidance into `aweskill`, expanded bundle templates, and let several CLI commands accept space-separated target names in addition to comma-separated lists.
+
+### This is the release where aweskill reduces built-in skill sprawl.
+
+The standalone `aweskill-advanced` skill was removed. Its projection-planning, bundle-template, recover, and migration guidance now lives in the main `aweskill` skill, while `aweskill-doctor` stays focused on repair-first flows. The READMEs, contributing guide, built-in bundle template, and skill descriptions were updated to match the new two-skill model.
+
+### This is the release where multi-target CLI commands become easier to type.
+
+`bundle add`, `bundle remove`, `agent add`, and `agent remove` now accept space-separated names as well as comma-separated input. Internally, the CLI now normalizes mixed name lists consistently, and `agent remove` reports missing skills or bundles without aborting the whole operation when valid targets are present.
+
+### This is the release where repository templates and layout notes get refreshed.
+
+The built-in meta-skills tree now lives under `resources/skills/`, the Nature Paper bundle template was expanded and normalized, and the aweskill bundle template now tracks the two-skill built-in set. Update local built-in imports to `aweskill store import resources/skills/<name>` where needed.
+
+### Highlights
+
+- Removed the standalone `aweskill-advanced` built-in skill and folded its non-diagnostic guidance into `aweskill`.
+- Updated `README.md`, `README.zh-CN.md`, and `docs/CONTRIBUTING.md` to document the two-skill built-in model.
+- Added space-separated target support for `bundle add`, `bundle remove`, `agent add`, and `agent remove`.
+- Added clearer `agent remove` handling for mixed valid and missing targets.
+- Expanded and normalized the `Nature-Paper-Skills` bundle template.
+- Updated the built-in skill bundle template and repository layout notes under `resources/skills/`.
 
 ## v0.2.2
 
@@ -16,11 +37,11 @@
 
 ## v0.2.1
 
-`v0.2.1` is the release where `aweskill` gets its own built-in meta-skills and a cleaner documentation split. Since `v0.2.0`, the CLI renamed its top-level command group from `skill` to `store`, unified agent-side inspection and repair under `doctor sync`, and added three meta-skills that teach AI coding agents how to operate the CLI directly.
+`v0.2.1` is the release where `aweskill` gets its own built-in meta-skills and a cleaner documentation split. Since `v0.2.0`, the CLI renamed its top-level command group from `skill` to `store`, unified agent-side inspection and repair under `doctor sync`, and added built-in meta-skills that teach AI coding agents how to operate the CLI directly.
 
 ### This is the release where aweskill teaches agents to use itself.
 
-Three meta-skills now live under `skills/` in the repository: `aweskill` (day-to-day operations), `aweskill-advanced` (low-frequency maintenance and projection strategy), and `aweskill-doctor` (diagnostics and repair). Each skill contains a `SKILL.md` with triggers and rules, a `references/` directory with flow examples and decision trees, and an `agents/openai.yaml` for Codex-compatible runtimes. Users can import them with `aweskill store import skills/<name>` and project them to any supported agent.
+Two meta-skills now live under `skills/` in the repository: `aweskill` (day-to-day operations plus non-diagnostic projection strategy) and `aweskill-doctor` (diagnostics and repair). Each skill contains a `SKILL.md` with triggers and rules, a `references/` directory with flow examples and decision trees, and an `agents/openai.yaml` for Codex-compatible runtimes. Users can import them with `aweskill store import skills/<name>` and project them to any supported agent.
 
 ### This is the release where the command surface gets renamed.
 
@@ -36,7 +57,7 @@ Complex developer-facing details (backup/restore behavior semantics, hygiene che
 
 ### Highlights
 
-- Added three built-in meta-skills: `aweskill`, `aweskill-advanced`, `aweskill-doctor`.
+- Added built-in meta-skills: `aweskill`, `aweskill-doctor`.
 - Renamed `skill` top-level commands to `store` (`store init`, `store where`, `store scan`, `store import`, `store list`, `store remove`).
 - Made `agent list` read-only; all repair now goes through `doctor sync`.
 - Added scope and agent filters to `store scan`, `store import --scan`, and `doctor sync`.

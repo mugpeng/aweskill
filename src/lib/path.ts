@@ -77,3 +77,12 @@ export function splitCommaValues(input: string): string[] {
     .map((value) => value.trim())
     .filter(Boolean);
 }
+
+export function splitNameTokens(input: string | string[]): string[] {
+  const values = Array.isArray(input) ? input : [input];
+  return values.flatMap((value) => splitCommaValues(value));
+}
+
+export function normalizeNameList(input: string | string[]): string[] {
+  return uniqueSorted(splitNameTokens(input).map((value) => sanitizeName(value)));
+}

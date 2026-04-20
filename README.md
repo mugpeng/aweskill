@@ -3,7 +3,7 @@
   <h1>aweskill: One Skill Store for All Your Coding Agents</h1>
   <p><strong>Local skill orchestration CLI for AI coding agents.</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.2-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.3-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
@@ -46,7 +46,7 @@ aweskill --help
 To pin a specific release:
 
 ```bash
-npm install -g aweskill@0.2.2
+npm install -g aweskill@0.2.3
 ```
 
 Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -140,7 +140,7 @@ Key directories:
 - Duplicate holding area: `~/.aweskill/dup_skills/`
 - Backup archive: `~/.aweskill/backup/`
 - Bundles: `~/.aweskill/bundles/*.yaml`
-- Built-in skills: `resources/skills/aweskill/`, `resources/skills/aweskill-advanced/`, `resources/skills/aweskill-doctor/`
+- Built-in skills: `resources/skills/aweskill/`, `resources/skills/aweskill-doctor/`
 
 ## Common Workflows
 
@@ -263,18 +263,16 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 
 ## Built-in Skills
 
-`aweskill` ships with three meta-skills that teach AI coding agents how to operate the CLI directly. Import them into your central store so agents like Codex, Claude Code, or Cursor can run aweskill commands without manual steps.
+`aweskill` ships with two meta-skills that teach AI coding agents how to operate the CLI directly. Import them into your central store so agents like Codex, Claude Code, or Cursor can run aweskill commands without manual steps.
 
 ```bash
 aweskill store import resources/skills/aweskill
-aweskill store import resources/skills/aweskill-advanced
 aweskill store import resources/skills/aweskill-doctor
 ```
 
 | Skill | Scope | When to use |
 | --- | --- | --- |
-| `aweskill` | Operations | Day-to-day: init, scan, import, list, remove, bundle CRUD, basic agent projection |
-| `aweskill-advanced` | Maintenance | Low-frequency: cross-agent projection strategy, bundle templates, recover flows, multi-scope planning |
+| `aweskill` | Operations | Day-to-day and strategy-oriented work: init, scan, import, list, remove, bundle CRUD, template bundles, recover flows, and multi-scope projection planning |
 | `aweskill-doctor` | Diagnostics | Repair: `doctor clean`, `doctor dedup`, `doctor sync`, interpreting broken/duplicate/suspicious entries |
 
 See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the skill directory structure and design principles.
