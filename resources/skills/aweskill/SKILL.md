@@ -1,6 +1,6 @@
 ---
 name: aweskill
-description: Use when managing aweskill store, bundle, and agent workflows that are not repair-first: routine commands, bundle template work, multi-agent or multi-scope projection planning, recover flows, skill migration, install/remove/configure tasks. 中文触发词：技能管理、导入技能、投影技能、启用/禁用技能、安装/移除技能、bundle、agent、aweskill、高级技能管理、recover、技能迁移。
+description: "Use when managing aweskill store, bundle, and agent workflows that are not repair-first: routine commands, bundle template work, multi-agent or multi-scope projection planning, recover flows, skill migration, install/remove/configure tasks. 中文触发词：技能管理、导入技能、投影技能、启用/禁用技能、安装/移除技能、bundle、agent、aweskill、高级技能管理、recover、技能迁移。"
 ---
 
 # Aweskill

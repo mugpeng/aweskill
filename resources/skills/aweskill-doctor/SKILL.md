@@ -1,6 +1,6 @@
 ---
 name: aweskill-doctor
-description: Use when aweskill state is abnormal or repair-first: broken projections, duplicates, stale entries, suspicious or new matches, sync problems, warnings, or unexpected post-install/projection state. 中文触发词：技能诊断、技能修复、损坏投影、重复技能、同步问题、异常条目、doctor clean、doctor dedup、doctor sync。
+description: "Use when aweskill state is abnormal or repair-first: broken projections, duplicates, stale entries, suspicious or new matches, sync problems, warnings, or unexpected post-install/projection state. 中文触发词：技能诊断、技能修复、损坏投影、重复技能、同步问题、异常条目、doctor clean、doctor dedup、doctor sync。"
 ---
 
 # Aweskill Doctor
