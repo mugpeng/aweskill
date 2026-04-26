@@ -84,20 +84,27 @@ describe("download helpers", () => {
     );
   });
 
-  it("formats duplicate skill-name conflicts into user-facing lines", () => {
+  it("formats duplicate skill-name conflicts into user-facing lines with source URLs", () => {
     const lines = formatDuplicateSkillNameConflict(
       new DuplicateSkillNameError(
         "caveman",
         { path: "/tmp/a", subpath: "skills/caveman" },
         { path: "/tmp/b", subpath: ".codex/skills/caveman" },
       ),
+      {
+        sourceUrl: "https://github.com/owner/repo.git",
+        ref: "main",
+        commandName: "aweskill download",
+      },
     );
 
     expect(lines).toEqual([
       "Duplicate skill names found in source:",
-      "  - caveman: skills/caveman",
-      "  - caveman: .codex/skills/caveman",
-      "Rename one of the source folders before downloading.",
+      "  - caveman: https://github.com/owner/repo/tree/main/skills/caveman",
+      "  - caveman: https://github.com/owner/repo/tree/main/.codex/skills/caveman",
+      "Please check the candidate source paths above and confirm which one you want to use.",
+      "Example command below: replace the URL with the confirmed source path before running it.",
+      "  aweskill download https://github.com/owner/repo/tree/main/skills/caveman --override",
     ]);
   });
 

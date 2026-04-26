@@ -1,5 +1,10 @@
 import { resolveSourceRoot } from "./download.js";
-import { discoverDownloadableSkills, type DownloadableSkill } from "../lib/download.js";
+import {
+  discoverDownloadableSkills,
+  DuplicateSkillNameError,
+  formatDuplicateSkillNameConflict,
+  type DownloadableSkill,
+} from "../lib/download.js";
 import { computeDirectoryHash } from "../lib/hash.js";
 import { importPath } from "../lib/import.js";
 import { readSkillLock, upsertSkillLockEntry, type SkillLockEntry } from "../lib/lock.js";
@@ -93,7 +98,24 @@ export async function runUpdate(context: RuntimeContext, options: UpdateOptions 
     const sourceRoot = await resolveUpdateRoot(context, group.entries[0]!.entry);
     try {
       for (const { name, entry } of group.entries) {
-        const remoteSkill = await findRemoteSkill(sourceRoot.root, name, entry);
+        let remoteSkill: DownloadableSkill | undefined;
+        try {
+          remoteSkill = await findRemoteSkill(sourceRoot.root, name, entry);
+        } catch (error) {
+          if (error instanceof DuplicateSkillNameError) {
+            for (const line of formatDuplicateSkillNameConflict(error, {
+              source: entry.sourceType === "local" ? entry.source : undefined,
+              sourceUrl: entry.sourceUrl,
+              ref: entry.ref,
+              commandName: "aweskill download",
+            })) {
+              context.write(line);
+            }
+            skipped.push(name);
+            continue;
+          }
+          throw error;
+        }
         if (!remoteSkill) {
           for (const line of formatUpdateStatusLines(name, "source-missing-skill")) {
             context.write(line);

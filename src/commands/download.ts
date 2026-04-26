@@ -93,11 +93,20 @@ export async function runDownload(context: RuntimeContext, input: string, option
     try {
       discovered = await discoverDownloadableSkills(sourceRoot.root, source.subpath);
     } catch (error) {
-      if (options.list && error instanceof DuplicateSkillNameError) {
-        for (const line of formatDuplicateSkillNameConflict(error)) {
-          context.write(line);
+      if (error instanceof DuplicateSkillNameError) {
+        const lines = formatDuplicateSkillNameConflict(error, {
+          source: source.type === "local" ? source.localPath : source.source,
+          sourceUrl: source.sourceUrl,
+          ref: source.ref,
+          commandName: "aweskill download",
+        });
+        if (options.list) {
+          for (const line of lines) {
+            context.write(line);
+          }
+          return { downloaded: [], listed: [] };
         }
-        return { downloaded: [], listed: [] };
+        throw new Error(lines.join("\n"));
       }
       throw error;
     }

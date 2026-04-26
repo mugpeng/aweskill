@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
 import { computeDirectoryHash } from "../src/lib/hash.js";
-import { readSkillLock } from "../src/lib/lock.js";
+import { readSkillLock, writeSkillLock } from "../src/lib/lock.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { AWESKILL_VERSION } from "../src/lib/version.js";
 import { getTemplateBundlesDir } from "../src/lib/templates.js";
@@ -1637,6 +1637,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("caveman");
     expect(lines.join("\n")).toContain("skills/caveman");
     expect(lines.join("\n")).toContain(".codex/skills/caveman");
+    expect(lines.join("\n")).toContain("Please check the candidate source paths above and confirm which one you want to use.");
     expect(errors).toHaveLength(0);
   });
 
@@ -1740,6 +1741,34 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain("Updated moved");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "moved"), "SKILL.md"), "utf8")).resolves.toContain("Moved v2");
+  });
+
+  it("update reports duplicate source paths and asks for an explicit download", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "caveman"), "Caveman v1");
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot], { from: "node" });
+    const lock = await readSkillLock(workspace.homeDir);
+    delete lock.skills.caveman?.subpath;
+    await writeSkillLock(workspace.homeDir, lock);
+
+    await writeSkill(path.join(sourceRoot, "skills", "caveman"), "Caveman v2");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "caveman"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Duplicate skill names found in source:");
+    expect(lines.join("\n")).toContain("Please check the candidate source paths above and confirm which one you want to use.");
+    expect(lines.join("\n")).toContain("Example command below: replace the URL with the confirmed source path before running it.");
+    expect(lines.join("\n")).toContain("aweskill download");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "caveman"), "SKILL.md"), "utf8")).resolves.toContain("Caveman v1");
   });
 
   it("update groups multiple skills from the same source into one source batch", async () => {

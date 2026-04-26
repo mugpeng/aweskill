@@ -1,5 +1,6 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { pathExists } from "./fs.js";
 import { computeDirectoryHash } from "./hash.js";
@@ -35,12 +36,43 @@ export class DuplicateSkillNameError extends Error {
   }
 }
 
-export function formatDuplicateSkillNameConflict(error: DuplicateSkillNameError): string[] {
+export interface DuplicateSkillNameFormatOptions {
+  source?: string;
+  sourceUrl?: string;
+  ref?: string;
+  commandName?: string;
+}
+
+function formatSourceSubpath(options: DuplicateSkillNameFormatOptions | undefined, subpath: string): string {
+  if (!options?.sourceUrl && !options?.source) {
+    return subpath;
+  }
+
+  if (options.sourceUrl?.startsWith("https://github.com/")) {
+    const repoUrl = options.sourceUrl.replace(/\.git$/, "").replace(/\/+$/, "");
+    const ref = options.ref ?? "main";
+    return `${repoUrl}/tree/${ref}/${subpath}`;
+  }
+
+  if (options.source) {
+    const sourcePath = path.join(options.source, subpath);
+    return path.isAbsolute(sourcePath) ? sourcePath : pathToFileURL(sourcePath).toString();
+  }
+
+  return subpath;
+}
+
+export function formatDuplicateSkillNameConflict(error: DuplicateSkillNameError, options?: DuplicateSkillNameFormatOptions): string[] {
+  const existing = formatSourceSubpath(options, error.existing.subpath);
+  const duplicate = formatSourceSubpath(options, error.duplicate.subpath);
+  const commandName = options?.commandName ?? "aweskill download";
   return [
     "Duplicate skill names found in source:",
-    `  - ${error.skillName}: ${error.existing.subpath}`,
-    `  - ${error.skillName}: ${error.duplicate.subpath}`,
-    "Rename one of the source folders before downloading.",
+    `  - ${error.skillName}: ${existing}`,
+    `  - ${error.skillName}: ${duplicate}`,
+    "Please check the candidate source paths above and confirm which one you want to use.",
+    "Example command below: replace the URL with the confirmed source path before running it.",
+    `  ${commandName} ${existing} --override`,
   ];
 }
 
