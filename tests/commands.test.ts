@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
+import { computeDirectoryHash } from "../src/lib/hash.js";
+import { readSkillLock } from "../src/lib/lock.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { AWESKILL_VERSION } from "../src/lib/version.js";
 import { getTemplateBundlesDir } from "../src/lib/templates.js";
@@ -115,6 +117,37 @@ describe("commands", () => {
     }
   });
 
+  it("installs built-in aweskill meta-skills during store init without overwriting existing skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "utf8")).resolves.toContain(
+      "name: aweskill",
+    );
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aweskill-doctor"), "SKILL.md"), "utf8")).resolves.toContain(
+      "name: aweskill-doctor",
+    );
+    expect(lines.join("\n")).toContain("Installed built-in skills: aweskill, aweskill-doctor");
+
+    await writeFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "# User Aweskill\n", "utf8");
+    lines.length = 0;
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "utf8")).resolves.toContain(
+      "User Aweskill",
+    );
+    expect(lines.join("\n")).toContain("Built-in skills already installed: aweskill, aweskill-doctor");
+  });
+
   it("creates a timestamped backup archive under ~/.aweskill/backup", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -174,7 +207,7 @@ describe("commands", () => {
 
     const output = lines.join("\n");
     expect(output).toContain(`aweskill store: ${path.join(workspace.homeDir, ".aweskill")}`);
-    expect(output).toContain(`  - skills: 2 entries -> ${path.join(workspace.homeDir, ".aweskill", "skills")}`);
+    expect(output).toContain(`  - skills: 4 entries -> ${path.join(workspace.homeDir, ".aweskill", "skills")}`);
     expect(output).toContain(`  - dup_skills: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "dup_skills")}`);
     expect(output).toContain(`  - backup: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "backup")}`);
     expect(output).toContain(`  - bundles: 1 entry -> ${path.join(workspace.homeDir, ".aweskill", "bundles")}`);
@@ -251,7 +284,7 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "utf8")).resolves.toContain("Changed");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("changed");
     expect(lines.join("\n")).toContain("Restored 0 skills and 0 bundles");
-    expect(lines.join("\n")).toContain("Skipped existing skills: restore-me");
+    expect(lines.join("\n")).toContain("Skipped existing skills: aweskill, aweskill-doctor, restore-me");
     expect(lines.join("\n")).toContain("Skipped existing bundles: research");
   });
 
@@ -282,7 +315,7 @@ describe("commands", () => {
 
     const updatedArchives = await readdir(backupDir);
     expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
-    expect(lines.join("\n")).toContain("Restored 1 skills");
+    expect(lines.join("\n")).toContain("Restored 3 skills");
     expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
@@ -311,7 +344,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--override"], { from: "node" });
 
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("restore-me");
-    expect(lines.join("\n")).toContain("Restored 1 skills and 1 bundles");
+    expect(lines.join("\n")).toContain("Restored 3 skills and 1 bundles");
     expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
@@ -1468,6 +1501,69 @@ describe("commands", () => {
     ).rejects.toThrow("Choose either --keep-source or --link-source, not both.");
   });
 
+  it("tracks imported local skills when --track-source is provided", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const sourceSkill = path.join(workspace.rootDir, "external", "tracked-import");
+    await writeSkill(sourceSkill, "Tracked Import v1");
+
+    await program.parseAsync(["node", "aweskill", "store", "import", sourceSkill, "--track-source"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"tracked-import"');
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "tracked-import"), "SKILL.md"), "utf8")).resolves.toContain("Tracked Import v1");
+
+    await writeFile(path.join(sourceSkill, "SKILL.md"), "# Tracked Import v2\n", "utf8");
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "tracked-import"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Updated tracked-import");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "tracked-import"), "SKILL.md"), "utf8")).resolves.toContain("Tracked Import v2");
+  });
+
+  it("allows --track-source together with --link-source", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const sourceSkill = path.join(workspace.rootDir, "external", "linked-tracked");
+    await writeSkill(sourceSkill, "Linked Tracked v1");
+
+    await program.parseAsync(["node", "aweskill", "store", "import", sourceSkill, "--track-source", "--link-source"], { from: "node" });
+
+    const lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["linked-tracked"]?.source).toBe(sourceSkill);
+    expect(lock.skills["linked-tracked"]?.computedHash).toBe(await computeDirectoryHash(getSkillPath(workspace.homeDir, "linked-tracked")));
+    expect((await lstat(sourceSkill)).isSymbolicLink()).toBe(true);
+    expect(path.resolve(path.dirname(sourceSkill), await readlink(sourceSkill))).toBe(getSkillPath(workspace.homeDir, "linked-tracked"));
+    expect(lines.join("\n")).toContain("Tracked linked-tracked for future store update runs.");
+  });
+
+  it("rejects --track-source when used with --scan", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "store", "import", "--scan", "--track-source"], { from: "node" }),
+    ).rejects.toThrow("--track-source is only supported for explicit local import paths, not with --scan.");
+  });
+
   it("import imports all skills from a skills root directory", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -1487,6 +1583,197 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Imported 2 skills");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "shell"), "SKILL.md"), "utf8")).resolves.toContain("Shell Skill");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "python"), "SKILL.md"), "utf8")).resolves.toContain("Python Skill");
+  });
+
+  it("download lists multiple local skills and requires --all or --skill before installing", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "skills", "alpha"), "Alpha");
+    await writeSkill(path.join(sourceRoot, "skills", "beta"), "Beta");
+
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--list"], { from: "node" });
+    expect(lines.join("\n")).toContain("Downloadable skills: 2");
+    expect(lines.join("\n")).toContain("alpha");
+    expect(lines.join("\n")).toContain("beta");
+
+    lines.length = 0;
+    await expect(program.parseAsync(["node", "aweskill", "store", "download", sourceRoot], { from: "node" })).rejects.toThrow(
+      "Multiple skills found. Use --skill <name> or --all.",
+    );
+
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "beta"], { from: "node" });
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "beta"), "SKILL.md"), "utf8")).resolves.toContain("Beta");
+  });
+
+  it("download --list reports duplicate names in the source without throwing", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const errors: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: (message) => errors.push(message),
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "skills", "caveman"), "First");
+    await writeSkill(path.join(sourceRoot, ".codex", "skills", "caveman"), "Second");
+
+    await expect(program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--list"], { from: "node" })).resolves.toBeTruthy();
+
+    expect(lines.join("\n")).toContain("Duplicate skill names found in source:");
+    expect(lines.join("\n")).toContain("caveman");
+    expect(lines.join("\n")).toContain("skills/caveman");
+    expect(lines.join("\n")).toContain(".codex/skills/caveman");
+    expect(errors).toHaveLength(0);
+  });
+
+  it("download writes source lock entries and supports --as for single skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceSkill = path.join(workspace.rootDir, "source", "original");
+    await writeSkill(sourceSkill, "Original");
+
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceSkill, "--as", "renamed"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "renamed"), "SKILL.md"), "utf8")).resolves.toContain("Original");
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"renamed"');
+    expect(lines.join("\n")).toContain("Downloaded renamed");
+  });
+
+  it("update skips local changes unless --override is provided", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceSkill = path.join(workspace.rootDir, "source", "tracked");
+    await writeSkill(sourceSkill, "Tracked v1");
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceSkill], { from: "node" });
+
+    await writeFile(path.join(getSkillPath(workspace.homeDir, "tracked"), "SKILL.md"), "# Local edit\n", "utf8");
+    await writeFile(path.join(sourceSkill, "SKILL.md"), "# Tracked v2\n", "utf8");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update"], { from: "node" });
+    expect(lines.join("\n")).toContain("Skipped tracked: local changes detected. Use --override to discard local changes.");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "tracked"), "SKILL.md"), "utf8")).resolves.toContain("Local edit");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "--override"], { from: "node" });
+    expect(lines.join("\n")).toContain("Updated tracked");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "tracked"), "SKILL.md"), "utf8")).resolves.toContain("Tracked v2");
+  });
+
+  it("update falls back to matching by skill name when a locked subpath no longer exists", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "old", "moved"), "Moved v1");
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "moved"], { from: "node" });
+
+    await rm(path.join(sourceRoot, "old"), { recursive: true, force: true });
+    await writeSkill(path.join(sourceRoot, "skills", "moved"), "Moved v2");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "moved"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Updated moved");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "moved"), "SKILL.md"), "utf8")).resolves.toContain("Moved v2");
+  });
+
+  it("update groups multiple skills from the same source into one source batch", async () => {
+    const updateModule = await import("../src/commands/update.js");
+
+    const groups = updateModule.groupEntriesBySource([
+      {
+        name: "alpha",
+        entry: {
+          source: "owner/repo",
+          sourceType: "github",
+          sourceUrl: "https://github.com/owner/repo.git",
+          ref: "main",
+          computedHash: "aaa",
+          installedAt: "2026-04-26T00:00:00.000Z",
+          updatedAt: "2026-04-26T00:00:00.000Z",
+        },
+      },
+      {
+        name: "beta",
+        entry: {
+          source: "owner/repo",
+          sourceType: "github",
+          sourceUrl: "https://github.com/owner/repo.git",
+          ref: "main",
+          computedHash: "bbb",
+          installedAt: "2026-04-26T00:00:00.000Z",
+          updatedAt: "2026-04-26T00:00:00.000Z",
+        },
+      },
+      {
+        name: "gamma",
+        entry: {
+          source: "owner/other",
+          sourceType: "github",
+          sourceUrl: "https://github.com/owner/other.git",
+          ref: "main",
+          computedHash: "ccc",
+          installedAt: "2026-04-26T00:00:00.000Z",
+          updatedAt: "2026-04-26T00:00:00.000Z",
+        },
+      },
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.entries.map((item) => item.name)).toEqual(["alpha", "beta"]);
+    expect(groups[1]?.entries.map((item) => item.name)).toEqual(["gamma"]);
+  });
+
+  it("store remove also removes tracked lock entries", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const sourceSkill = path.join(workspace.rootDir, "source", "remove-tracked");
+    await writeSkill(sourceSkill, "Remove Tracked");
+    await program.parseAsync(["node", "aweskill", "store", "import", sourceSkill, "--track-source"], { from: "node" });
+
+    let lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["remove-tracked"]).toBeDefined();
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "remove", "remove-tracked"], { from: "node" });
+
+    lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["remove-tracked"]).toBeUndefined();
+    expect(lines.join("\n")).toContain("Removed remove-tracked");
   });
 
   it("import from a skills root reports broken symlinks and continues", async () => {

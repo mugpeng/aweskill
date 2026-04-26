@@ -3,7 +3,7 @@
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
   <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.3-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.4-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -156,6 +156,9 @@ aweskill store import ~/Downloads/pr-review
 # 导入外部 skill 目录，并把原目录替换成 aweskill 托管投影
 aweskill store import ~/Downloads/pr-review --link-source
 
+# 导入外部 skill 目录，并为后续 store update 建立本地来源追踪
+aweskill store import ~/Downloads/pr-review --track-source
+
 # 导入扫描到的 agent skill，默认回写成 aweskill 托管投影
 aweskill store scan --import
 
@@ -239,10 +242,12 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按指定 scope 和 agent 集合扫描支持的 agent skill 目录 |
-| `aweskill store import <path> [--keep-source\|--link-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录 |
+| `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录，`--track-source` 可为显式本地导入建立后续 `store update` 追踪 |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | 按指定 scope 和 agent 集合导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
+| `aweskill store download <source> [--list] [--skill <name>] [--all] [--ref <ref>] [--as <name>] [--override]` | 从本地路径或 GitHub source 下载 skill 到中央仓库，并为后续 `store update` 建立追踪记录 |
+| `aweskill store update [skill...] [--check] [--dry-run] [--source <source>] [--override]` | 从已记录的 source 检查或刷新 tracked skill，并把中央仓库中的副本当作受保护的本地状态 |
 | `aweskill store list [--verbose]` | 列出中央仓库中的 skill |
-| `aweskill store remove <skill> [--force]` | 从中央仓库删除一个 skill |
+| `aweskill store remove <skill> [--force]` | 从中央仓库删除一个 skill，并同步清理该 skill 的 tracked lock 记录 |
 | `aweskill bundle list [--verbose]` | 列出 bundle |
 | `aweskill bundle create <name>` | 创建 bundle |
 | `aweskill bundle add <bundle> <skill>` | 向 bundle 增加一个或多个 skill |

@@ -1,3 +1,4 @@
+import { removeSkillLockEntry } from "../lib/lock.js";
 import { findSkillReferences, removeSkillWithReferences } from "../lib/references.js";
 import type { RuntimeContext } from "../types.js";
 
@@ -31,6 +32,7 @@ export async function runRemove(
     skillName: options.skillName,
     projectDir,
   });
+  await removeSkillLockEntry(context.homeDir, options.skillName);
   context.write(`Removed ${options.skillName}`);
   return references;
 }

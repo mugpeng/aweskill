@@ -48,6 +48,26 @@ describe("import helpers", () => {
     await expect(readFile(path.join(destinationDir, "scripts", "new.sh"), "utf8")).rejects.toThrow();
   });
 
+  it("override replaces a skill directory instead of leaving stale files behind", async () => {
+    const workspace = await createTempWorkspace();
+    const sourceDir = path.join(workspace.rootDir, "replace-me");
+    const destinationDir = getSkillPath(workspace.homeDir, "replace-me");
+
+    await writeSkill(sourceDir, "Replacement");
+    await writeSkill(destinationDir, "Original");
+    await mkdir(path.join(destinationDir, "references"), { recursive: true });
+    await writeFile(path.join(destinationDir, "references", "stale.md"), "stale\n", "utf8");
+
+    await importPath({
+      homeDir: workspace.homeDir,
+      sourcePath: sourceDir,
+      override: true,
+    });
+
+    await expect(readFile(path.join(destinationDir, "SKILL.md"), "utf8")).resolves.toContain("Replacement");
+    await expect(readFile(path.join(destinationDir, "references", "stale.md"), "utf8")).rejects.toThrow();
+  });
+
   it("links the source directory back to the central store when requested", async () => {
     const workspace = await createTempWorkspace();
     const sourceDir = path.join(workspace.rootDir, "external-skill");

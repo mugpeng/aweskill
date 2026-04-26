@@ -3,7 +3,7 @@
   <h1>aweskill: One Skill Store for All Your Coding Agents</h1>
   <p><strong>Local skill orchestration CLI for AI coding agents.</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.3-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.4-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
@@ -156,6 +156,9 @@ aweskill store import ~/Downloads/pr-review
 # Import a standalone skill folder and replace the source with an aweskill-managed projection
 aweskill store import ~/Downloads/pr-review --link-source
 
+# Import a standalone skill folder and track it for future store update runs
+aweskill store import ~/Downloads/pr-review --track-source
+
 # Import scanned agent skills and relink their source paths by default
 aweskill store scan --import
 
@@ -239,10 +242,12 @@ Core commands: `store init`, `store where`, `store import`, `bundle create`, `ag
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
 | `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | Scan supported agent skill directories for a chosen scope and agent set; add `--import` to immediately import scan results into the central store |
-| `aweskill store import <path> [--keep-source\|--link-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default |
+| `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default, and `--track-source` records explicit local imports for future `store update` runs |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | Import the current scan results for a chosen scope and agent set; scanned agent paths link back to aweskill by default |
+| `aweskill store download <source> [--list] [--skill <name>] [--all] [--ref <ref>] [--as <name>] [--override]` | Download skills from a local path or GitHub source into the central store and record them for future `store update` runs |
+| `aweskill store update [skill...] [--check] [--dry-run] [--source <source>] [--override]` | Check or refresh tracked skills from their recorded source while treating the central store copy as the protected local state |
 | `aweskill store list [--verbose]` | List skills in the central store |
-| `aweskill store remove <skill> [--force]` | Remove one skill from the central store |
+| `aweskill store remove <skill> [--force]` | Remove one skill from the central store and clean any tracked lock entry for that skill |
 | `aweskill bundle list [--verbose]` | List central bundles |
 | `aweskill bundle create <name>` | Create a bundle |
 | `aweskill bundle add <bundle> <skill>` | Add one or more skills to a bundle |
