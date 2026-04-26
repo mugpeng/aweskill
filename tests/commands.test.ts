@@ -115,6 +115,37 @@ describe("commands", () => {
     }
   });
 
+  it("installs built-in aweskill meta-skills during store init without overwriting existing skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "utf8")).resolves.toContain(
+      "name: aweskill",
+    );
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aweskill-doctor"), "SKILL.md"), "utf8")).resolves.toContain(
+      "name: aweskill-doctor",
+    );
+    expect(lines.join("\n")).toContain("Installed built-in skills: aweskill, aweskill-doctor");
+
+    await writeFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "# User Aweskill\n", "utf8");
+    lines.length = 0;
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "utf8")).resolves.toContain(
+      "User Aweskill",
+    );
+    expect(lines.join("\n")).toContain("Built-in skills already installed: aweskill, aweskill-doctor");
+  });
+
   it("creates a timestamped backup archive under ~/.aweskill/backup", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -174,7 +205,7 @@ describe("commands", () => {
 
     const output = lines.join("\n");
     expect(output).toContain(`aweskill store: ${path.join(workspace.homeDir, ".aweskill")}`);
-    expect(output).toContain(`  - skills: 2 entries -> ${path.join(workspace.homeDir, ".aweskill", "skills")}`);
+    expect(output).toContain(`  - skills: 4 entries -> ${path.join(workspace.homeDir, ".aweskill", "skills")}`);
     expect(output).toContain(`  - dup_skills: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "dup_skills")}`);
     expect(output).toContain(`  - backup: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "backup")}`);
     expect(output).toContain(`  - bundles: 1 entry -> ${path.join(workspace.homeDir, ".aweskill", "bundles")}`);
@@ -251,7 +282,7 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "utf8")).resolves.toContain("Changed");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("changed");
     expect(lines.join("\n")).toContain("Restored 0 skills and 0 bundles");
-    expect(lines.join("\n")).toContain("Skipped existing skills: restore-me");
+    expect(lines.join("\n")).toContain("Skipped existing skills: aweskill, aweskill-doctor, restore-me");
     expect(lines.join("\n")).toContain("Skipped existing bundles: research");
   });
 
@@ -282,7 +313,7 @@ describe("commands", () => {
 
     const updatedArchives = await readdir(backupDir);
     expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
-    expect(lines.join("\n")).toContain("Restored 1 skills");
+    expect(lines.join("\n")).toContain("Restored 3 skills");
     expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
@@ -311,7 +342,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "restore", path.join(backupDir, archive!), "--override"], { from: "node" });
 
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "utf8")).resolves.toContain("restore-me");
-    expect(lines.join("\n")).toContain("Restored 1 skills and 1 bundles");
+    expect(lines.join("\n")).toContain("Restored 3 skills and 1 bundles");
     expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
   });
 
