@@ -14,6 +14,7 @@ import {
 } from "./commands/bundle.js";
 import { runImport } from "./commands/import.js";
 import { runDisable } from "./commands/disable.js";
+import { runDownload } from "./commands/download.js";
 import { runEnable } from "./commands/enable.js";
 import { runInit } from "./commands/init.js";
 import { runListBundles, runListSkills, runListTemplateBundles } from "./commands/list.js";
@@ -23,6 +24,7 @@ import { runRestore } from "./commands/restore.js";
 import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
 import { runSync } from "./commands/sync.js";
+import { runUpdate } from "./commands/update.js";
 import { runClean } from "./commands/clean.js";
 import { runStoreWhere } from "./commands/where.js";
 import { AWESKILL_VERSION } from "./lib/version.js";
@@ -399,6 +401,47 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           override: options.override,
           keepSource: options.keepSource,
           linkSource: options.linkSource,
+        }),
+      );
+    });
+  store
+    .command("download")
+    .argument("<source>")
+    .description("Download skills from a source into the central store")
+    .option("--list", "list downloadable skills without installing", false)
+    .option("--skill <skill>", "repeat or use comma list; select skills to download", collectAgents)
+    .option("--all", "download all skills from the source", false)
+    .option("--ref <ref>", "git branch or tag to download")
+    .option("--override", "overwrite existing skills when downloading", false)
+    .option("--as <name>", "install a single downloaded skill under a different name")
+    .action(async (source, options) => {
+      await runFramedCommand(" aweskill store download ", async () =>
+        runDownload(context, source, {
+          list: options.list,
+          skill: options.skill,
+          all: options.all,
+          ref: options.ref,
+          override: options.override,
+          as: options.as,
+        }),
+      );
+    });
+  store
+    .command("update")
+    .argument("[skill...]")
+    .description("Update tracked central-store skills from their recorded sources")
+    .option("--check", "check for updates without modifying files", false)
+    .option("--dry-run", "show update actions without modifying files", false)
+    .option("--source <source>", "only update skills from a source")
+    .option("--override", "discard local changes and overwrite from source", false)
+    .action(async (skillNames, options) => {
+      await runFramedCommand(" aweskill store update ", async () =>
+        runUpdate(context, {
+          skills: skillNames,
+          check: options.check,
+          dryRun: options.dryRun,
+          source: options.source,
+          override: options.override,
         }),
       );
     });

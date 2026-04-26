@@ -69,6 +69,9 @@ async function copyIntoDestination(sourcePath: string, destination: string, over
     return;
   }
 
+  if (override) {
+    await rm(destination, { recursive: true, force: true });
+  }
   await cp(sourcePath, destination, { recursive: true, errorOnExist: false, force: override });
 }
 
@@ -197,13 +200,14 @@ async function listImportableChildren(sourceRoot: string): Promise<BatchImportSo
 export async function importSkill(options: {
   homeDir: string;
   sourcePath: string;
+  skillName?: string;
   override?: boolean;
   linkSource?: boolean;
 }): Promise<ImportResult> {
   const { effectiveSourcePath, isSymlinkSource } = await resolveImportSource(options.sourcePath);
   await assertSkillSource(effectiveSourcePath);
 
-  const skillName = sanitizeName(path.basename(options.sourcePath));
+  const skillName = sanitizeName(options.skillName ?? path.basename(options.sourcePath));
   if (!skillName) {
     throw new Error(`Unable to infer skill name from path: ${options.sourcePath}`);
   }
@@ -242,6 +246,7 @@ export async function importScannedSkills(options: {
 export async function importPath(options: {
   homeDir: string;
   sourcePath: string;
+  skillName?: string;
   override?: boolean;
   linkSource?: boolean;
 }): Promise<
@@ -249,7 +254,7 @@ export async function importPath(options: {
   | (BatchImportSummary & { kind: "batch" })
 > {
   if (await pathExists(path.join(options.sourcePath, "SKILL.md"))) {
-    const skillName = sanitizeName(path.basename(options.sourcePath));
+    const skillName = sanitizeName(options.skillName ?? path.basename(options.sourcePath));
     const alreadyExisted = skillName ? await skillExists(options.homeDir, skillName) : false;
 
     if (alreadyExisted && !options.override) {

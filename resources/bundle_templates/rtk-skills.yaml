@@ -1,0 +1,14 @@
+name: rtk-skills
+skills:
+  - code-simplifier
+  - design-patterns
+  - issue-triage
+  - performance
+  - pr-review
+  - pr-triage
+  - repo-recap
+  - rtk-tdd
+  - rtk-triage
+  - security-guardian
+  - ship
+  - tdd-rust
