@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+## v0.2.4
+
+`v0.2.4` is the release where `aweskill` grows from a central-store projector into a source-aware skill manager. Since `v0.2.3`, the CLI learned how to download skills from local paths or GitHub sources, track them in `skills-lock.json`, refresh them with `store update`, install built-in skills during `store init`, and let explicit local imports opt into that same tracked update flow. The central store remains the protected local state, while upstream sources become comparison points for later updates.
+
+### Download and update mode
+
+`store download` and `store update` are now first-class central-store workflows. Users can download one or more skills from a local path or GitHub repository, optionally rename single-skill installs, and later ask `store update` to check or refresh tracked skills from their recorded source. This release also adds the underlying machinery for source parsing, temporary clone resolution, downloadable skill discovery, deterministic directory hashing, conflict classification, and source-batched update checks.
+
+### Skill lock and tracked local imports
+
+The new `skills-lock.json` file records tracked source metadata alongside the current central-store hash for each managed skill. `store import` now accepts `--track-source` for explicit local paths, which lets a copied local skill join future `store update` runs without changing the default import behavior. The tracked entry still treats `~/.aweskill/skills/<name>/` as the installed copy, so edits inside the central store continue to block updates unless the user explicitly overrides them.
+
+### Link-compatible tracked imports and lock cleanup
+
+Tracked imports can now be combined with `--link-source`. This lets a user import a local skill, replace the original path with an aweskill-managed projection, and still keep the upstream local source relationship needed for later comparisons. Scan-based imports remain untracked for now; only explicit local import paths can opt in.
+
+`store remove` now removes the corresponding `skills-lock.json` entry when a tracked skill is deleted from the central store. This closes the lifecycle loop for tracked local skills and prevents `store update` from continuing to report a removed skill as reinstallable from source.
+
+### Built-in skill installation during init
+
+`store init` now installs the built-in `aweskill` and `aweskill-doctor` meta-skills into the central store without overwriting an existing user-managed copy. This makes a fresh aweskill home immediately usable for agent-side projection workflows while preserving local customizations if those built-ins were already imported.
+
+### Highlights
+
+- Added `aweskill store download` and `aweskill store update` plus `skills-lock.json` tracking.
+- Added source parsing, clone/discovery helpers, deterministic hashing, and update batching by source.
+- Added `aweskill store import <path> --track-source` for explicit local import tracking.
+- Kept tracked update state anchored to the central store copy instead of the external source directory.
+- Allowed `--track-source` and `--link-source` to work together for explicit local imports.
+- Made `aweskill store remove` clean the tracked lock entry for removed skills.
+- Made `aweskill store init` install built-in meta-skills into the central store.
+
 ## v0.2.3
 
 `v0.2.3` is the release where `aweskill` simplifies its built-in meta-skill set and makes multi-target bundle and agent operations easier to use. Since `v0.2.2`, the repository dropped the separate `aweskill-advanced` skill, folded its non-diagnostic guidance into `aweskill`, expanded bundle templates, and let several CLI commands accept space-separated target names in addition to comma-separated lists.

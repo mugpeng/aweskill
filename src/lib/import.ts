@@ -168,7 +168,7 @@ async function importBatchSources(options: {
   return { imported, skipped, overwritten, warnings, errors, missingSources, linkedSources };
 }
 
-async function listImportableChildren(sourceRoot: string): Promise<BatchImportSource[]> {
+export async function listImportableChildren(sourceRoot: string): Promise<BatchImportSource[]> {
   const entries = await readdir(sourceRoot, { withFileTypes: true });
   const sources: BatchImportSource[] = [];
 

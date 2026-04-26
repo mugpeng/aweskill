@@ -386,6 +386,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
     .option("--keep-source", "keep the source path in place after importing", false)
     .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
+    .option("--track-source", "record the explicit local import path for future store update runs", false)
     .option("--override", "overwrite existing files when importing", false)
     .action(async (sourcePath, options) => {
       const isProject = options.project !== undefined;
@@ -401,6 +402,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           override: options.override,
           keepSource: options.keepSource,
           linkSource: options.linkSource,
+          trackSource: options.trackSource,
         }),
       );
     });

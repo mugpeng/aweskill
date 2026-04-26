@@ -70,3 +70,13 @@ export async function upsertSkillLockEntry(homeDir: string, skillName: string, e
   };
   await writeSkillLock(homeDir, lock);
 }
+
+export async function removeSkillLockEntry(homeDir: string, skillName: string): Promise<void> {
+  const lock = await readSkillLock(homeDir);
+  if (!(skillName in lock.skills)) {
+    return;
+  }
+
+  delete lock.skills[skillName];
+  await writeSkillLock(homeDir, lock);
+}

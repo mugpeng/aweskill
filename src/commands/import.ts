@@ -1,6 +1,58 @@
-import { importPath, importScannedSkills } from "../lib/import.js";
+import { computeDirectoryHash } from "../lib/hash.js";
+import { importPath, importScannedSkills, listImportableChildren } from "../lib/import.js";
+import { upsertSkillLockEntry } from "../lib/lock.js";
+import { parseDownloadSource } from "../lib/source-parser.js";
+import { getSkillPath } from "../lib/skills.js";
 import { scanSkills } from "../lib/scanner.js";
 import type { RuntimeContext, Scope } from "../types.js";
+
+async function trackImportedLocalSources(
+  context: RuntimeContext,
+  sourcePath: string,
+  result:
+    | Awaited<ReturnType<typeof importPath>>
+    | Awaited<ReturnType<typeof importScannedSkills>>,
+  override = false,
+): Promise<string[]> {
+  const source = parseDownloadSource(sourcePath, context.cwd);
+  if (source.type !== "local") {
+    throw new Error("--track-source only supports explicit local import paths.");
+  }
+
+  if ("kind" in result && result.kind === "single") {
+    if (result.alreadyExisted && !override) {
+      return [];
+    }
+
+    await upsertSkillLockEntry(context.homeDir, result.name, {
+      source: source.localPath!,
+      sourceType: source.type,
+      sourceUrl: source.sourceUrl,
+      computedHash: await computeDirectoryHash(getSkillPath(context.homeDir, result.name)),
+    });
+    return [result.name];
+  }
+
+  const childSources = await listImportableChildren(source.localPath!);
+  const sourceByName = new Map(childSources.map((child) => [child.name, child.path]));
+  const trackedNames = [...result.imported, ...result.overwritten];
+
+  for (const name of trackedNames) {
+    const childPath = sourceByName.get(name);
+    if (!childPath) {
+      continue;
+    }
+
+    await upsertSkillLockEntry(context.homeDir, name, {
+      source: childPath,
+      sourceType: source.type,
+      sourceUrl: `file://${childPath}`,
+      computedHash: await computeDirectoryHash(getSkillPath(context.homeDir, name)),
+    });
+  }
+
+  return trackedNames;
+}
 
 export async function runImport(
   context: RuntimeContext,
@@ -13,10 +65,14 @@ export async function runImport(
     scope?: Scope;
     agents?: string[];
     projectDir?: string;
+    trackSource?: boolean;
   },
 ) {
   if (options.keepSource && options.linkSource) {
     throw new Error("Choose either --keep-source or --link-source, not both.");
+  }
+  if (options.trackSource && options.scan) {
+    throw new Error("--track-source is only supported for explicit local import paths, not with --scan.");
   }
 
   const linkSource = options.scan ? !options.keepSource : Boolean(options.linkSource);
@@ -68,6 +124,7 @@ export async function runImport(
     override: options.override,
     linkSource,
   });
+  const trackedNames = options.trackSource ? await trackImportedLocalSources(context, options.sourcePath, result, options.override) : [];
 
   if (result.kind === "single") {
     for (const warning of result.warnings) {
@@ -84,6 +141,9 @@ export async function runImport(
       context.write(`Replaced source path with an aweskill-managed projection: ${result.linkedSourcePath}`);
     } else {
       context.write("Source was kept in place. Re-run with --link-source to replace it with an aweskill-managed projection.");
+    }
+    if (trackedNames.length > 0) {
+      context.write(`Tracked ${trackedNames.join(", ")} for future store update runs.`);
     }
     return result;
   }
@@ -108,6 +168,9 @@ export async function runImport(
     context.write(`Replaced ${result.linkedSources.length} source paths with aweskill-managed projections.`);
   } else {
     context.write("Source paths were kept in place. Re-run with --link-source to replace them with aweskill-managed projections.");
+  }
+  if (trackedNames.length > 0) {
+    context.write(`Tracked ${trackedNames.length} imported skills for future store update runs.`);
   }
   return result;
 }

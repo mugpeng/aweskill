@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createProgram, main } from "../src/index.js";
 import { resolveAgentSkillsDir } from "../src/lib/agents.js";
+import { computeDirectoryHash } from "../src/lib/hash.js";
+import { readSkillLock } from "../src/lib/lock.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { AWESKILL_VERSION } from "../src/lib/version.js";
 import { getTemplateBundlesDir } from "../src/lib/templates.js";
@@ -1499,6 +1501,69 @@ describe("commands", () => {
     ).rejects.toThrow("Choose either --keep-source or --link-source, not both.");
   });
 
+  it("tracks imported local skills when --track-source is provided", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const sourceSkill = path.join(workspace.rootDir, "external", "tracked-import");
+    await writeSkill(sourceSkill, "Tracked Import v1");
+
+    await program.parseAsync(["node", "aweskill", "store", "import", sourceSkill, "--track-source"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"tracked-import"');
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "tracked-import"), "SKILL.md"), "utf8")).resolves.toContain("Tracked Import v1");
+
+    await writeFile(path.join(sourceSkill, "SKILL.md"), "# Tracked Import v2\n", "utf8");
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "tracked-import"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Updated tracked-import");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "tracked-import"), "SKILL.md"), "utf8")).resolves.toContain("Tracked Import v2");
+  });
+
+  it("allows --track-source together with --link-source", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const sourceSkill = path.join(workspace.rootDir, "external", "linked-tracked");
+    await writeSkill(sourceSkill, "Linked Tracked v1");
+
+    await program.parseAsync(["node", "aweskill", "store", "import", sourceSkill, "--track-source", "--link-source"], { from: "node" });
+
+    const lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["linked-tracked"]?.source).toBe(sourceSkill);
+    expect(lock.skills["linked-tracked"]?.computedHash).toBe(await computeDirectoryHash(getSkillPath(workspace.homeDir, "linked-tracked")));
+    expect((await lstat(sourceSkill)).isSymbolicLink()).toBe(true);
+    expect(path.resolve(path.dirname(sourceSkill), await readlink(sourceSkill))).toBe(getSkillPath(workspace.homeDir, "linked-tracked"));
+    expect(lines.join("\n")).toContain("Tracked linked-tracked for future store update runs.");
+  });
+
+  it("rejects --track-source when used with --scan", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "store", "import", "--scan", "--track-source"], { from: "node" }),
+    ).rejects.toThrow("--track-source is only supported for explicit local import paths, not with --scan.");
+  });
+
   it("import imports all skills from a skills root directory", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -1684,6 +1749,31 @@ describe("commands", () => {
     expect(groups).toHaveLength(2);
     expect(groups[0]?.entries.map((item) => item.name)).toEqual(["alpha", "beta"]);
     expect(groups[1]?.entries.map((item) => item.name)).toEqual(["gamma"]);
+  });
+
+  it("store remove also removes tracked lock entries", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    const sourceSkill = path.join(workspace.rootDir, "source", "remove-tracked");
+    await writeSkill(sourceSkill, "Remove Tracked");
+    await program.parseAsync(["node", "aweskill", "store", "import", sourceSkill, "--track-source"], { from: "node" });
+
+    let lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["remove-tracked"]).toBeDefined();
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "remove", "remove-tracked"], { from: "node" });
+
+    lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["remove-tracked"]).toBeUndefined();
+    expect(lines.join("\n")).toContain("Removed remove-tracked");
   });
 
   it("import from a skills root reports broken symlinks and continues", async () => {
