@@ -170,6 +170,86 @@ async function assertStoreInitialized(homeDir: string, args: string[]): Promise<
   throw new Error(`aweskill store is not initialized at ${rootDir}. Run "aweskill store init" first.`);
 }
 
+function addImportCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("import")
+    .argument("[path]")
+    .description("Import one skill or a skills root directory")
+    .option("--scan", "import scanned skills", false)
+    .option("--global", "scan global scope when used with --scan (default when no scope flag given)")
+    .option("--project [dir]", "scan project scope when used with --scan; uses cwd when dir is omitted")
+    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
+    .option("--keep-source", "keep the source path in place after importing", false)
+    .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
+    .option("--track-source", "record the explicit local import path for future store update runs", false)
+    .option("--override", "overwrite existing files when importing", false)
+    .action(async (sourcePath, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(title, async () =>
+        runImport(context, {
+          sourcePath,
+          scan: options.scan,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          override: options.override,
+          keepSource: options.keepSource,
+          linkSource: options.linkSource,
+          trackSource: options.trackSource,
+        }),
+      );
+    });
+}
+
+function addDownloadCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("download")
+    .argument("<source>")
+    .description("Download skills from a source into the central store")
+    .option("--list", "list downloadable skills without installing", false)
+    .option("--skill <skill>", "repeat or use comma list; select skills to download", collectAgents)
+    .option("--all", "download all skills from the source", false)
+    .option("--ref <ref>", "git branch or tag to download")
+    .option("--override", "overwrite existing skills when downloading", false)
+    .option("--as <name>", "install a single downloaded skill under a different name")
+    .action(async (source, options) => {
+      await runFramedCommand(title, async () =>
+        runDownload(context, source, {
+          list: options.list,
+          skill: options.skill,
+          all: options.all,
+          ref: options.ref,
+          override: options.override,
+          as: options.as,
+        }),
+      );
+    });
+}
+
+function addUpdateCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("update")
+    .argument("[skill...]")
+    .description("Update tracked central-store skills from their recorded sources")
+    .option("--check", "check for updates without modifying files", false)
+    .option("--dry-run", "show update actions without modifying files", false)
+    .option("--source <source>", "only update skills from a source")
+    .option("--override", "discard local changes and overwrite from source", false)
+    .action(async (skillNames, options) => {
+      await runFramedCommand(title, async () =>
+        runUpdate(context, {
+          skills: skillNames,
+          check: options.check,
+          dryRun: options.dryRun,
+          source: options.source,
+          override: options.override,
+        }),
+      );
+    });
+}
+
 
 export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   const context = createRuntimeContext(overrides);
@@ -180,6 +260,10 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .description("Local skill orchestration CLI for AI agents")
     .version(AWESKILL_VERSION, "-v, --version", "output the version number")
     .helpOption("-h, --help", "Display help");
+
+  addImportCommand(program, context, " aweskill import ");
+  addDownloadCommand(program, context, " aweskill download ");
+  addUpdateCommand(program, context, " aweskill update ");
 
   const bundle = program.command("bundle").description("Manage skill bundles");
   bundle
@@ -376,77 +460,9 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
         }),
       );
     });
-  store
-    .command("import")
-    .argument("[path]")
-    .description("Import one skill or a skills root directory")
-    .option("--scan", "import scanned skills", false)
-    .option("--global", "scan global scope when used with --scan (default when no scope flag given)")
-    .option("--project [dir]", "scan project scope when used with --scan; uses cwd when dir is omitted")
-    .option("--agent <agent>", 'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids', collectAgents)
-    .option("--keep-source", "keep the source path in place after importing", false)
-    .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
-    .option("--track-source", "record the explicit local import path for future store update runs", false)
-    .option("--override", "overwrite existing files when importing", false)
-    .action(async (sourcePath, options) => {
-      const isProject = options.project !== undefined;
-      const scope: Scope = isProject ? "project" : "global";
-      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
-      await runFramedCommand(" aweskill store import ", async () =>
-        runImport(context, {
-          sourcePath,
-          scan: options.scan,
-          scope,
-          agents: options.agent ?? [],
-          projectDir,
-          override: options.override,
-          keepSource: options.keepSource,
-          linkSource: options.linkSource,
-          trackSource: options.trackSource,
-        }),
-      );
-    });
-  store
-    .command("download")
-    .argument("<source>")
-    .description("Download skills from a source into the central store")
-    .option("--list", "list downloadable skills without installing", false)
-    .option("--skill <skill>", "repeat or use comma list; select skills to download", collectAgents)
-    .option("--all", "download all skills from the source", false)
-    .option("--ref <ref>", "git branch or tag to download")
-    .option("--override", "overwrite existing skills when downloading", false)
-    .option("--as <name>", "install a single downloaded skill under a different name")
-    .action(async (source, options) => {
-      await runFramedCommand(" aweskill store download ", async () =>
-        runDownload(context, source, {
-          list: options.list,
-          skill: options.skill,
-          all: options.all,
-          ref: options.ref,
-          override: options.override,
-          as: options.as,
-        }),
-      );
-    });
-  store
-    .command("update")
-    .argument("[skill...]")
-    .description("Update tracked central-store skills from their recorded sources")
-    .option("--check", "check for updates without modifying files", false)
-    .option("--dry-run", "show update actions without modifying files", false)
-    .option("--source <source>", "only update skills from a source")
-    .option("--override", "discard local changes and overwrite from source", false)
-    .action(async (skillNames, options) => {
-      await runFramedCommand(" aweskill store update ", async () =>
-        runUpdate(context, {
-          skills: skillNames,
-          check: options.check,
-          dryRun: options.dryRun,
-          source: options.source,
-          override: options.override,
-        }),
-      );
-    });
+  addImportCommand(store, context, " aweskill store import ");
+  addDownloadCommand(store, context, " aweskill store download ");
+  addUpdateCommand(store, context, " aweskill store update ");
   store
     .command("remove")
     .argument("<skill>")

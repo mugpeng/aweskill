@@ -232,6 +232,8 @@ All `doctor` commands default to dry-run. Add `--apply` to make real changes.
 
 Core commands: `store init`, `store where`, `store import`, `bundle create`, `agent add`, `doctor clean`
 
+Short aliases are also available for high-frequency store commands: `aweskill import`, `aweskill download`, and `aweskill update` map to `aweskill store import`, `aweskill store download`, and `aweskill store update`.
+
 <details>
 <summary>All commands</summary>
 

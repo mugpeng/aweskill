@@ -232,6 +232,8 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 核心命令：`store init`、`store where`、`store import`、`bundle create`、`agent add`、`doctor clean`
 
+高频 store 命令也提供顶层简写：`aweskill import`、`aweskill download`、`aweskill update` 分别等价于 `aweskill store import`、`aweskill store download`、`aweskill store update`。
+
 <details>
 <summary>全部命令</summary>
 

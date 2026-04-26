@@ -1,0 +1,9 @@
+name: droma-metaai
+skills:
+  - droma-depmap-provider
+  - droma-evidence-normalizer
+  - droma-literature-provider
+  - droma-meta-provider
+  - droma-metaai-orchestrator
+  - droma-opentargets-provider
+  - droma-wetlab-provider

@@ -494,6 +494,11 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "bundle", "template", "list"], { from: "node" });
     expect(lines.join("\n")).toContain("Bundle templates:");
+    expect(lines.join("\n")).toContain("Showing first");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "bundle", "template", "list", "--verbose"], { from: "node" });
+    expect(lines.join("\n")).toContain("Bundle templates:");
     expect(lines.join("\n")).toContain("k-dense-ai-scientific-skills");
   });
 
@@ -1652,6 +1657,39 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "renamed"), "SKILL.md"), "utf8")).resolves.toContain("Original");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"renamed"');
     expect(lines.join("\n")).toContain("Downloaded renamed");
+  });
+
+  it("supports top-level import, download, and update aliases for store commands", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const importSkill = path.join(workspace.rootDir, "external", "quick-import");
+    const downloadSkill = path.join(workspace.rootDir, "source", "quick-download");
+    await writeSkill(importSkill, "Quick Import");
+    await writeSkill(downloadSkill, "Quick Download v1");
+
+    await program.parseAsync(["node", "aweskill", "import", importSkill], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "download", downloadSkill], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "quick-import"), "SKILL.md"), "utf8")).resolves.toContain("Quick Import");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "quick-download"), "SKILL.md"), "utf8")).resolves.toContain(
+      "Quick Download v1",
+    );
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"quick-download"');
+
+    await writeFile(path.join(downloadSkill, "SKILL.md"), "# Quick Download v2\n", "utf8");
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "update", "quick-download"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Updated quick-download");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "quick-download"), "SKILL.md"), "utf8")).resolves.toContain(
+      "Quick Download v2",
+    );
   });
 
   it("update skips local changes unless --override is provided", async () => {
