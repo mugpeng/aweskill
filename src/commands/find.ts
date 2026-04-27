@@ -1,4 +1,5 @@
 import type { RuntimeContext } from "../types.js";
+import { parseDownloadSource } from "../lib/source-parser.js";
 
 const SKILLS_SH_API_BASE = process.env.SKILLS_API_URL || "https://skills.sh";
 const SCISKILL_API_BASE = process.env.SCISKILL_API_URL || "https://sciskillhub.org";
@@ -27,6 +28,7 @@ interface FindResult {
   installs?: number;
   description?: string;
   similarityScore?: number;
+  downloadable: boolean;
 }
 
 export interface FindOptions {
@@ -49,8 +51,33 @@ function formatInstalls(count?: number): string {
   return `${count} install${count === 1 ? "" : "s"}`;
 }
 
+function formatMetaLine(result: FindResult): string {
+  const parts = [result.provider];
+  if (result.installs && result.installs > 0) {
+    parts.push(formatInstalls(result.installs));
+  }
+  return parts.join(" · ");
+}
+
 function normalizeName(name: string): string {
   return name.trim().toLowerCase();
+}
+
+function pickDownloadSource(candidates: Array<string | undefined>): { source: string; downloadable: boolean } {
+  for (const candidate of candidates) {
+    const value = candidate?.trim();
+    if (!value) {
+      continue;
+    }
+    try {
+      parseDownloadSource(value);
+      return { source: value, downloadable: true };
+    } catch {
+      continue;
+    }
+  }
+
+  return { source: "unsupported by aweskill download", downloadable: false };
 }
 
 async function searchSkillsSh(query: string, limit: number): Promise<FindResult[]> {
@@ -62,13 +89,17 @@ async function searchSkillsSh(query: string, limit: number): Promise<FindResult[
 
   const payload = await response.json() as { skills?: SkillsShResult[] };
   return (payload.skills ?? [])
-    .map((result) => ({
-      name: result.name,
-      provider: "skills-sh" as const,
-      downloadSource: result.source || result.id,
-      installs: result.installs ?? 0,
-      description: result.description,
-    }))
+    .map((result) => {
+      const resolved = pickDownloadSource([result.source, result.id]);
+      return {
+        name: result.name,
+        provider: "skills-sh" as const,
+        downloadSource: resolved.source,
+        downloadable: resolved.downloadable,
+        installs: result.installs ?? 0,
+        description: result.description,
+      };
+    })
     .sort((left, right) => (right.installs ?? 0) - (left.installs ?? 0));
 }
 
@@ -93,6 +124,7 @@ async function searchSciskill(query: string, options: FindOptions): Promise<Find
       name: result.name,
       provider: "sciskill" as const,
       downloadSource: `sciskill:${result.id}`,
+      downloadable: true,
       description: result.description ?? undefined,
       similarityScore: result.similarity_score ?? 0,
     }))
@@ -113,11 +145,15 @@ function dedupeFindResults(results: FindResult[]): FindResult[] {
   return deduped;
 }
 
-function formatFindResult(result: FindResult): string {
+function formatFindResult(result: FindResult, index: number): string {
+  const sourceLine = result.downloadable
+    ? `   source: ${result.downloadSource}`
+    : `   source: ${result.downloadSource}`;
   return [
-    `${result.name}  ${formatInstalls(result.installs)}  ${result.provider}`,
-    `  ${result.description || "(no description)"}`,
-    `  source: ${result.downloadSource}`,
+    `${index + 1}. ${result.name}`,
+    `   ${formatMetaLine(result)}`,
+    `   ${result.description || "(no description)"}`,
+    sourceLine,
   ].join("\n");
 }
 
@@ -165,7 +201,7 @@ export async function runFind(context: RuntimeContext, query: string, options: F
     return { results: [] };
   }
 
-  context.write(`Found ${merged.length} skill${merged.length === 1 ? "" : "s"}:`);
-  context.write(`${merged.map(formatFindResult).join("\n\n")}\n\nRun: aweskill store download <source>`);
+  context.write(`Found ${merged.length} skill${merged.length === 1 ? "" : "s"}`);
+  context.write(`${merged.map((result, index) => formatFindResult(result, index)).join("\n\n")}\n\nRun: aweskill store download <source>`);
   return { results: merged };
 }

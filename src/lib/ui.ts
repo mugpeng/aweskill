@@ -146,6 +146,21 @@ function emitMessage(line: string) {
     return;
   }
 
+  if (/^\d+\.\s/.test(trimmed)) {
+    console.log(pc.bold(trimmed));
+    return;
+  }
+
+  if (line.startsWith("   ")) {
+    if (trimmed.startsWith("source: ")) {
+      console.log(`   ${pc.dim(trimmed)}`);
+      return;
+    }
+
+    console.log(`   ${trimmed}`);
+    return;
+  }
+
   p.log.message(trimmed, { symbol: pc.cyan("•") });
 }
 

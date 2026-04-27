@@ -44,11 +44,13 @@ describe("find command", () => {
     await runFind(context, "protein");
 
     const output = lines.join("\n");
-    expect(output).toContain("Found 3 skills:");
-    expect(output).toContain("protein-search  8.8K installs  skills-sh");
-    expect(output).toContain("source: owner/repo");
-    expect(output).toContain("lifesciences-proteomics  --  sciskill");
-    expect(output).toContain("source: sciskill:open-source/research/lifesciences-proteomics");
+    expect(output).toContain("Found 3 skills");
+    expect(output).toContain("1. protein-search");
+    expect(output).toContain("   skills-sh · 8.8K installs");
+    expect(output).toContain("   source: owner/repo");
+    expect(output).toContain("3. lifesciences-proteomics");
+    expect(output).toContain("   sciskill");
+    expect(output).toContain("   source: sciskill:open-source/research/lifesciences-proteomics");
     expect(output).not.toContain("duplicate");
     expect(output).toContain("Run: aweskill store download <source>");
   });
@@ -64,5 +66,52 @@ describe("find command", () => {
     await runFind(context, "protein", { provider: "skills-sh", domain: "Life Sciences" });
 
     expect(lines[0]).toBe("Warning: --domain and --stage only apply to sciskill.");
+  });
+
+  it("falls back to a parseable id when skills.sh returns an unsupported source value", async () => {
+    const workspace = await createTempWorkspace();
+    const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        skills: [
+          {
+            id: "smithery/ai/scientific-writing",
+            name: "scientific-writing",
+            installs: 10,
+            source: "smithery.ai",
+          },
+        ],
+      }),
+    })));
+
+    await runFind(context, "scientific-writing", { provider: "skills-sh" });
+
+    const output = lines.join("\n");
+    expect(output).toContain("source: smithery/ai/scientific-writing");
+    expect(output).not.toContain("source: smithery.ai");
+  });
+
+  it("marks skills.sh entries as unsupported when neither source nor id is parseable", async () => {
+    const workspace = await createTempWorkspace();
+    const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        skills: [
+          {
+            id: "not a valid source",
+            name: "scientific-writing",
+            installs: 10,
+            source: "smithery.ai",
+          },
+        ],
+      }),
+    })));
+
+    await runFind(context, "scientific-writing", { provider: "skills-sh" });
+
+    const output = lines.join("\n");
+    expect(output).toContain("source: unsupported by aweskill download");
   });
 });
