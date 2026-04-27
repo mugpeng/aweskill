@@ -246,7 +246,7 @@ Short aliases are also available for high-frequency store commands: `aweskill im
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | Scan supported agent skill directories for a chosen scope and agent set; add `--import` to immediately import scan results into the central store |
 | `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default, and `--track-source` records explicit local imports for future `store update` runs |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | Import the current scan results for a chosen scope and agent set; scanned agent paths link back to aweskill by default |
-| `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | Search skills across `skills.sh` and `sciskill`, merge results by name, and print a `source` value suitable for `aweskill store download` |
+| `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | Search skills across `skills.sh` and `sciskill`, merge results by name, and print either a directly downloadable `source` or a discover-only result with an explanatory note and details URL |
 | `aweskill store download <source> [--list] [--skill <name>] [--all] [--ref <ref>] [--as <name>] [--override]` | Download skills from a local path, GitHub source, or `sciskill:<skill-id>` into the central store and record them for future `store update` runs |
 | `aweskill store update [skill...] [--check] [--dry-run] [--source <source>] [--override]` | Check or refresh tracked skills from their recorded source while treating the central store copy as the protected local state |
 | `aweskill store list [--verbose]` | List skills in the central store |
@@ -268,6 +268,8 @@ Short aliases are also available for high-frequency store commands: `aweskill im
 | `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
 
 </details>
+
+`aweskill store find` prefers to print `source` values that `aweskill store download` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct download and prints the matching `skills.sh` detail page so you can inspect the upstream installation instructions there.
 
 ## Built-in Skills
 

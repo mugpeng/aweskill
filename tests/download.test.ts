@@ -9,6 +9,7 @@ import {
   discoverDownloadableSkills,
   discoverDownloadableSkillsByName,
   DuplicateSkillNameError,
+  findDownloadableSkillForLockEntry,
   formatDownloadConflictLines,
   formatDuplicateSkillNameConflict,
   throwDownloadConflict,
@@ -96,6 +97,34 @@ describe("download helpers", () => {
     expect(skills.map((skill) => `${skill.name}:${skill.subpath}`)).toEqual([
       "caveman-compress:skills/caveman-compress",
     ]);
+  });
+
+  it("finds a locked skill from its recorded subpath", async () => {
+    const workspace = await createTempWorkspace();
+    await writeSkill(path.join(workspace.projectDir, "skills", "caveman"), "Caveman");
+
+    const skill = await findDownloadableSkillForLockEntry(workspace.projectDir, "caveman", {
+      source: "owner/repo",
+      sourceType: "github",
+      sourceUrl: "https://github.com/owner/repo.git",
+      subpath: "skills/caveman",
+    });
+
+    expect(skill?.subpath).toBe("skills/caveman");
+  });
+
+  it("reports duplicate locked skill names when no subpath is recorded", async () => {
+    const workspace = await createTempWorkspace();
+    await writeSkill(path.join(workspace.projectDir, "skills", "caveman"), "First");
+    await writeSkill(path.join(workspace.projectDir, ".codex", "skills", "caveman"), "Second");
+
+    await expect(
+      findDownloadableSkillForLockEntry(workspace.projectDir, "caveman", {
+        source: "owner/repo",
+        sourceType: "github",
+        sourceUrl: "https://github.com/owner/repo.git",
+      }),
+    ).rejects.toBeInstanceOf(DuplicateSkillNameError);
   });
 
   it("formats duplicate skill-name conflicts into user-facing lines with source URLs", () => {

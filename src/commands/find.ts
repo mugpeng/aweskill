@@ -37,6 +37,31 @@ export interface FindOptions {
   limit?: number;
   domain?: string;
   stage?: string;
+  timeoutMs?: number;
+}
+
+function getFindTimeoutMs(options: FindOptions): number {
+  const timeoutMs = Number(options.timeoutMs ?? process.env.AWESKILL_FIND_TIMEOUT_MS ?? 5_000);
+  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 5_000;
+}
+
+function formatProviderName(provider: FindProvider): string {
+  return provider === "skills-sh" ? "skills.sh" : provider;
+}
+
+async function fetchWithTimeout(provider: FindProvider, input: string | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`${formatProviderName(provider)} search timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function formatInstalls(count?: number): string {
@@ -85,9 +110,9 @@ function pickDownloadSource(source?: string): { source: string; downloadable: bo
   }
 }
 
-async function searchSkillsSh(query: string, limit: number): Promise<FindResult[]> {
+async function searchSkillsSh(query: string, limit: number, timeoutMs: number): Promise<FindResult[]> {
   const url = `${SKILLS_SH_API_BASE}/api/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(String(limit))}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout("skills-sh", url, {}, timeoutMs);
   if (!response.ok) {
     throw new Error(`skills.sh search failed: HTTP ${response.status}`);
   }
@@ -110,7 +135,7 @@ async function searchSkillsSh(query: string, limit: number): Promise<FindResult[
 }
 
 async function searchSciskill(query: string, options: FindOptions): Promise<FindResult[]> {
-  const response = await fetch(`${SCISKILL_API_BASE}/api/v1/skills/search`, {
+  const response = await fetchWithTimeout("sciskill", `${SCISKILL_API_BASE}/api/v1/skills/search`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -119,7 +144,7 @@ async function searchSciskill(query: string, options: FindOptions): Promise<Find
       ...(options.domain ? { domain: options.domain } : {}),
       ...(options.stage ? { stage: options.stage } : {}),
     }),
-  });
+  }, getFindTimeoutMs(options));
   if (!response.ok) {
     throw new Error(`sciskill search failed: HTTP ${response.status}`);
   }
@@ -176,11 +201,12 @@ export async function runFind(context: RuntimeContext, query: string, options: F
   const requestedProviders: FindProvider[] = options.provider ? [options.provider] : ["skills-sh", "sciskill"];
   const resultsByProvider = new Map<FindProvider, FindResult[]>();
   const errors: string[] = [];
+  const timeoutMs = getFindTimeoutMs(options);
 
   for (const provider of requestedProviders) {
     try {
       const results = provider === "skills-sh"
-        ? await searchSkillsSh(query, limit)
+        ? await searchSkillsSh(query, limit, timeoutMs)
         : await searchSciskill(query, { ...options, limit });
       resultsByProvider.set(provider, results);
     } catch (error) {

@@ -303,6 +303,24 @@ export async function discoverDownloadableSkillsByName(baseDir: string, targetNa
   return results.sort((left, right) => left.subpath.localeCompare(right.subpath));
 }
 
+export async function findDownloadableSkillForLockEntry(
+  sourceRoot: string,
+  name: string,
+  entry: { subpath?: string },
+): Promise<DownloadableSkill | undefined> {
+  if (entry.subpath) {
+    const skillsAtLockedPath = await discoverDownloadableSkills(sourceRoot, entry.subpath);
+    const matchedAtLockedPath = skillsAtLockedPath.find((skill) => skill.name === name || skill.subpath === entry.subpath);
+    return matchedAtLockedPath;
+  }
+
+  const skills = await discoverDownloadableSkillsByName(sourceRoot, name);
+  if (skills.length > 1) {
+    throw new DuplicateSkillNameError(name, { path: skills[0]!.path, subpath: skills[0]!.subpath }, { path: skills[1]!.path, subpath: skills[1]!.subpath });
+  }
+  return skills[0];
+}
+
 function sameSource(left: NewSkillLockEntry, right: NewSkillLockEntry): boolean {
   return left.source === right.source && left.sourceType === right.sourceType && left.sourceUrl === right.sourceUrl && left.ref === right.ref && left.subpath === right.subpath;
 }

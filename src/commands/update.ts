@@ -1,8 +1,7 @@
 import { resolveSourceRoot } from "./download.js";
 import {
-  discoverDownloadableSkills,
-  discoverDownloadableSkillsByName,
   DuplicateSkillNameError,
+  findDownloadableSkillForLockEntry,
   formatDuplicateSkillNameConflict,
   type DownloadableSkill,
 } from "../lib/download.js";
@@ -42,24 +41,6 @@ interface PreparedUpdateGroup {
 
 function entryMatchesSource(entry: SkillLockEntry, source?: string): boolean {
   return !source || entry.source === source || entry.sourceUrl === source;
-}
-
-async function findRemoteSkill(sourceRoot: string, name: string, entry: SkillLockEntry): Promise<DownloadableSkill | undefined> {
-  if (entry.subpath) {
-    const skillsAtLockedPath = await discoverDownloadableSkills(sourceRoot, entry.subpath);
-    const matchedAtLockedPath = skillsAtLockedPath.find((skill) => skill.name === name || skill.subpath === entry.subpath);
-    if (matchedAtLockedPath) {
-      return matchedAtLockedPath;
-    }
-
-    return undefined;
-  }
-
-  const skills = await discoverDownloadableSkillsByName(sourceRoot, name);
-  if (skills.length > 1) {
-    throw new DuplicateSkillNameError(name, { path: skills[0]!.path, subpath: skills[0]!.subpath }, { path: skills[1]!.path, subpath: skills[1]!.subpath });
-  }
-  return skills[0];
 }
 
 export async function resolveUpdateRoot(context: RuntimeContext, entry: SkillLockEntry) {
@@ -184,7 +165,7 @@ export async function runUpdate(context: RuntimeContext, options: UpdateOptions 
       for (const { name, entry } of preparedGroup.entries) {
         let remoteSkill: DownloadableSkill | undefined;
         try {
-          remoteSkill = await findRemoteSkill(sourceRoot.root, name, entry);
+          remoteSkill = await findDownloadableSkillForLockEntry(sourceRoot.root, name, entry);
         } catch (error) {
           if (error instanceof DuplicateSkillNameError) {
             for (const line of formatDuplicateSkillNameConflict(error, {

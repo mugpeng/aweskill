@@ -55,6 +55,37 @@ describe("find command", () => {
     expect(output).toContain("Run: aweskill store download <source>");
   });
 
+  it("continues with available providers when one search request times out", async () => {
+    const workspace = await createTempWorkspace();
+    const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
+    vi.stubGlobal("fetch", vi.fn((input: string | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith("https://skills.sh/api/search")) {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        });
+      }
+      if (url === "https://sciskillhub.org/api/v1/skills/search") {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            results: [
+              { id: "open-source/research/scientific-writing", name: "scientific-writing", similarity_score: 90 },
+            ],
+          }),
+        });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    }));
+
+    await runFind(context, "sci", { timeoutMs: 1 });
+
+    const output = lines.join("\n");
+    expect(output).toContain("Warning: skills.sh search timed out after 1ms");
+    expect(output).toContain("Found 1 skill");
+    expect(output).toContain("scientific-writing");
+  });
+
   it("warns when sciskill-only filters are used against skills-sh", async () => {
     const workspace = await createTempWorkspace();
     const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
