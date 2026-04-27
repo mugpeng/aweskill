@@ -14,6 +14,7 @@ export interface SkillLockEntry {
   ref?: string;
   subpath?: string;
   computedHash: string;
+  remoteTreeSha?: string;
   installedAt: string;
   updatedAt: string;
 }

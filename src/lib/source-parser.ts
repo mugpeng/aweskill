@@ -1,6 +1,6 @@
 import path from "node:path";
 
-export type DownloadSourceType = "github" | "local";
+export type DownloadSourceType = "github" | "local" | "sciskill";
 
 export interface DownloadSource {
   type: DownloadSourceType;
@@ -31,6 +31,29 @@ export function parseDownloadSource(input: string, cwd = process.cwd()): Downloa
       source: localPath,
       sourceUrl: `file://${localPath}`,
       localPath,
+    };
+  }
+
+  const sciskill = input.match(/^sciskill:(.+)$/);
+  if (sciskill) {
+    const skillId = sciskill[1]!.trim();
+    if (!skillId) {
+      throw new Error(`Unsupported download source: ${input}`);
+    }
+    return {
+      type: "sciskill",
+      source: `sciskill:${skillId}`,
+      sourceUrl: `https://sciskillhub.org/api/v1/download/${encodeURIComponent(skillId)}`,
+    };
+  }
+
+  const sciskillUrl = input.match(/^https:\/\/[^/]+\/api(?:\/v1)?\/download\/(.+)$/);
+  if (sciskillUrl) {
+    const skillId = decodeURIComponent(sciskillUrl[1]!.replace(/\/+$/, ""));
+    return {
+      type: "sciskill",
+      source: `sciskill:${skillId}`,
+      sourceUrl: input.replace(/\/+$/, ""),
     };
   }
 

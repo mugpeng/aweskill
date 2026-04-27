@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -14,6 +14,7 @@ import {
   type DownloadableSkill,
 } from "../lib/download.js";
 import { computeDirectoryHash } from "../lib/hash.js";
+import { fetchGitHubRepoTree, getGitHubTreeShaForSubpath, type GitHubRepoTree } from "../lib/github-tree.js";
 import { importPath } from "../lib/import.js";
 import { upsertSkillLockEntry } from "../lib/lock.js";
 import { normalizeNameList, sanitizeName } from "../lib/path.js";
@@ -21,6 +22,7 @@ import { parseDownloadSource, type DownloadSource } from "../lib/source-parser.j
 import type { RuntimeContext } from "../types.js";
 
 const execFileAsync = promisify(execFile);
+const SCISKILL_API_BASE = process.env.SCISKILL_API_URL || "https://sciskillhub.org";
 
 export interface DownloadOptions {
   list?: boolean;
@@ -37,6 +39,28 @@ export async function resolveSourceRoot(source: DownloadSource): Promise<{ root:
   }
 
   const tempDir = await mkdtemp(path.join(tmpdir(), "aweskill-download-"));
+  if (source.type === "sciskill") {
+    const archivePath = path.join(tempDir, "skill.zip");
+    const skillId = source.source.replace(/^sciskill:/, "");
+    const downloadUrl = `${SCISKILL_API_BASE}/api/v1/download/${skillId}`;
+
+    try {
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const archive = Buffer.from(await response.arrayBuffer());
+      await writeFile(archivePath, archive);
+      await execFileAsync("unzip", ["-q", archivePath, "-d", tempDir]);
+      return { root: tempDir, cleanup: async () => rm(tempDir, { recursive: true, force: true }) };
+    } catch (error) {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to download ${source.source}: ${message}`);
+    }
+  }
+
   const args = ["clone", "--depth", "1"];
   if (source.ref) {
     args.push("--branch", source.ref);
@@ -77,6 +101,10 @@ function selectSkills(skills: DownloadableSkill[], options: DownloadOptions): Do
   throw new Error("Multiple skills found. Use --skill <name> or --all.");
 }
 
+function getRemoteTreeSha(tree: GitHubRepoTree | undefined, subpath: string): string | undefined {
+  return tree ? getGitHubTreeShaForSubpath(tree, subpath) : undefined;
+}
+
 export async function runDownload(context: RuntimeContext, input: string, options: DownloadOptions = {}) {
   if (options.as && (options.all || (options.skill && normalizeNameList(options.skill).length > 1))) {
     throw new Error("--as can only be used when downloading a single skill.");
@@ -98,7 +126,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
           source: source.type === "local" ? source.localPath : source.source,
           sourceUrl: source.sourceUrl,
           ref: source.ref,
-          commandName: "aweskill download",
+          commandName: "aweskill store download",
         });
         if (options.list) {
           for (const line of lines) {
@@ -127,10 +155,12 @@ export async function runDownload(context: RuntimeContext, input: string, option
       throw new Error("--as can only be used when downloading a single skill.");
     }
 
+    const remoteTree = source.type === "github" ? await fetchGitHubRepoTree(source.source, source.ref) : undefined;
     const downloaded: string[] = [];
     for (const skill of selected) {
       const targetName = sanitizeName(options.as ?? skill.name);
       const computedHash = await computeDirectoryHash(skill.path);
+      const remoteTreeSha = getRemoteTreeSha(remoteTree, skill.subpath);
       const lockEntry = {
         source: source.source,
         sourceType: source.type,
@@ -138,6 +168,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
         ref: source.ref,
         subpath: skill.subpath,
         computedHash,
+        remoteTreeSha,
       };
       const conflict = await classifyDownloadConflict({
         homeDir: context.homeDir,

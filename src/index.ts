@@ -16,6 +16,7 @@ import { runImport } from "./commands/import.js";
 import { runDisable } from "./commands/disable.js";
 import { runDownload } from "./commands/download.js";
 import { runEnable } from "./commands/enable.js";
+import { runFind } from "./commands/find.js";
 import { runInit } from "./commands/init.js";
 import { runListBundles, runListSkills, runListTemplateBundles } from "./commands/list.js";
 import { runRecover } from "./commands/recover.js";
@@ -148,7 +149,7 @@ function isInitializationExempt(args: string[]): boolean {
     return true;
   }
 
-  return args[0] === "store" && args[1] === "init";
+  return args[0] === "store" && (args[1] === "init" || args[1] === "find");
 }
 
 function assertLegacySkillCommandRemoved(args: string[]): void {
@@ -463,6 +464,28 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   addImportCommand(store, context, " aweskill store import ");
   addDownloadCommand(store, context, " aweskill store download ");
   addUpdateCommand(store, context, " aweskill store update ");
+  store
+    .command("find")
+    .argument("<query>")
+    .description("Search skills across configured providers")
+    .option("-p, --provider <provider>", "limit search to one provider (skills-sh or sciskill)")
+    .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
+    .option("--domain <domain>", "pass an exact domain filter to sciskill")
+    .option("--stage <stage>", "pass an exact stage filter to sciskill")
+    .action(async (query, options) => {
+      const provider = options.provider as "skills-sh" | "sciskill" | undefined;
+      if (provider && provider !== "skills-sh" && provider !== "sciskill") {
+        throw new Error(`Unsupported provider: ${provider}`);
+      }
+      await runFramedCommand(" aweskill store find ", async () =>
+        runFind(context, query, {
+          provider,
+          limit: options.limit,
+          domain: options.domain,
+          stage: options.stage,
+        }),
+      );
+    });
   store
     .command("remove")
     .argument("<skill>")

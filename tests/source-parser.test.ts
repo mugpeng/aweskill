@@ -32,6 +32,22 @@ describe("download source parser", () => {
     });
   });
 
+  it("parses sciskill shorthand", () => {
+    expect(parseDownloadSource("sciskill:open-source/research/skills/protein")).toEqual({
+      type: "sciskill",
+      source: "sciskill:open-source/research/skills/protein",
+      sourceUrl: "https://sciskillhub.org/api/v1/download/open-source%2Fresearch%2Fskills%2Fprotein",
+    });
+  });
+
+  it("parses sciskill download URLs", () => {
+    expect(parseDownloadSource("https://sciskillhub.org/api/v1/download/open-source%2Fresearch%2Fskills%2Fprotein")).toEqual({
+      type: "sciskill",
+      source: "sciskill:open-source/research/skills/protein",
+      sourceUrl: "https://sciskillhub.org/api/v1/download/open-source%2Fresearch%2Fskills%2Fprotein",
+    });
+  });
+
   it("rejects path traversal in GitHub subpaths", () => {
     expect(() => parseDownloadSource("owner/repo/../secret")).toThrow("Unsafe subpath");
   });

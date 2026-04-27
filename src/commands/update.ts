@@ -6,6 +6,7 @@ import {
   type DownloadableSkill,
 } from "../lib/download.js";
 import { computeDirectoryHash } from "../lib/hash.js";
+import { fetchGitHubRepoTree, getGitHubTreeShaForSubpath, type GitHubRepoTree } from "../lib/github-tree.js";
 import { importPath } from "../lib/import.js";
 import { readSkillLock, upsertSkillLockEntry, type SkillLockEntry } from "../lib/lock.js";
 import { getSkillPath } from "../lib/skills.js";
@@ -30,6 +31,12 @@ interface SelectedSkillEntry {
 interface UpdateSourceGroup {
   key: string;
   entries: SelectedSkillEntry[];
+}
+
+interface PreparedUpdateGroup {
+  entries: SelectedSkillEntry[];
+  skipped: string[];
+  remoteTreeShas: Map<string, string>;
 }
 
 function entryMatchesSource(entry: SkillLockEntry, source?: string): boolean {
@@ -76,6 +83,71 @@ export function groupEntriesBySource(entries: SelectedSkillEntry[]): UpdateSourc
   return [...groups.values()];
 }
 
+async function prepareUpdateGroup(
+  context: RuntimeContext,
+  group: UpdateSourceGroup,
+  options: UpdateOptions,
+): Promise<PreparedUpdateGroup> {
+  const firstEntry = group.entries[0]?.entry;
+  if (!firstEntry || firstEntry.sourceType !== "github") {
+    return { entries: group.entries, skipped: [], remoteTreeShas: new Map() };
+  }
+
+  const remoteTree = await fetchGitHubRepoTree(firstEntry.source, firstEntry.ref);
+  if (!remoteTree) {
+    return { entries: group.entries, skipped: [], remoteTreeShas: new Map() };
+  }
+
+  const remoteTreeShas = new Map<string, string>();
+  const entriesToClone: SelectedSkillEntry[] = [];
+  const skipped: string[] = [];
+
+  for (const item of group.entries) {
+    const remoteTreeSha = item.entry.subpath ? getGitHubTreeShaForSubpath(remoteTree, item.entry.subpath) : undefined;
+    if (remoteTreeSha) {
+      remoteTreeShas.set(item.name, remoteTreeSha);
+    }
+
+    if (!remoteTreeSha || !item.entry.remoteTreeSha || remoteTreeSha !== item.entry.remoteTreeSha) {
+      entriesToClone.push(item);
+      continue;
+    }
+
+    const destination = getSkillPath(context.homeDir, item.name);
+    if (!(await pathExists(destination))) {
+      if (!options.override) {
+        for (const line of formatUpdateStatusLines(item.name, "missing-local-skill")) {
+          context.write(line);
+        }
+        skipped.push(item.name);
+        continue;
+      }
+      entriesToClone.push(item);
+      continue;
+    }
+
+    const currentHash = await computeDirectoryHash(destination);
+    if (currentHash === item.entry.computedHash) {
+      for (const line of formatUpdateStatusLines(item.name, "up-to-date")) {
+        context.write(line);
+      }
+      continue;
+    }
+
+    if (!options.override) {
+      for (const line of formatUpdateStatusLines(item.name, "local-changes-detected")) {
+        context.write(line);
+      }
+      skipped.push(item.name);
+      continue;
+    }
+
+    entriesToClone.push(item);
+  }
+
+  return { entries: entriesToClone, skipped, remoteTreeShas };
+}
+
 export async function runUpdate(context: RuntimeContext, options: UpdateOptions = {}) {
   const lock = await readSkillLock(context.homeDir);
   const selectedNames = new Set(options.skills ?? []);
@@ -95,9 +167,15 @@ export async function runUpdate(context: RuntimeContext, options: UpdateOptions 
   const skipped: string[] = [];
 
   for (const group of groupEntriesBySource(entries.map(([name, entry]) => ({ name, entry })))) {
-    const sourceRoot = await resolveUpdateRoot(context, group.entries[0]!.entry);
+    const preparedGroup = await prepareUpdateGroup(context, group, options);
+    skipped.push(...preparedGroup.skipped);
+    if (preparedGroup.entries.length === 0) {
+      continue;
+    }
+
+    const sourceRoot = await resolveUpdateRoot(context, preparedGroup.entries[0]!.entry);
     try {
-      for (const { name, entry } of group.entries) {
+      for (const { name, entry } of preparedGroup.entries) {
         let remoteSkill: DownloadableSkill | undefined;
         try {
           remoteSkill = await findRemoteSkill(sourceRoot.root, name, entry);
@@ -107,7 +185,7 @@ export async function runUpdate(context: RuntimeContext, options: UpdateOptions 
               source: entry.sourceType === "local" ? entry.source : undefined,
               sourceUrl: entry.sourceUrl,
               ref: entry.ref,
-              commandName: "aweskill download",
+              commandName: "aweskill store download",
             })) {
               context.write(line);
             }
@@ -171,6 +249,7 @@ export async function runUpdate(context: RuntimeContext, options: UpdateOptions 
           ref: entry.ref,
           subpath: remoteSkill.subpath,
           computedHash: remoteHash,
+          remoteTreeSha: preparedGroup.remoteTreeShas.get(name),
         });
         updated.push(name);
         for (const line of formatUpdateStatusLines(name, "updated")) {
