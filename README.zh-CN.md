@@ -29,6 +29,7 @@
 - **一个中央仓库**：所有本地 skill 只维护一份
 - **bundle 组织方式**：把可复用的 skill 集合定义清楚
 - **多 agent 投影**：同时服务 Codex、Claude Code、Cursor、Gemini CLI 等工具
+- **find / download / update 闭环**：可跨 provider 找 skill、导入中央仓库，并在后续按来源追踪更新
 - **托管启用/停用模型**：不依赖额外的全局 activation 文件
 - **自带维护能力**：备份、恢复、查重、recover、sync 都在 CLI 内部
 
@@ -142,6 +143,13 @@ aweskill agent add bundle frontend --global --agent codex
 - Bundle 文件：`~/.aweskill/bundles/*.yaml`
 - 内置 skill：`resources/skills/aweskill/`、`resources/skills/aweskill-doctor/`
 
+发现与下载来源：
+
+- [skills.sh](https://skills.sh/) 现在作为社区 skill 发现源使用，可能返回可直接下载的 GitHub 风格 source，也可能返回只能跳转查看上游安装说明的 discover-only 条目
+- [sciskillhub.org](https://sciskillhub.org/) 现在作为科研和技术类 skill registry 使用，提供可下载的 `sciskill:<skill-id>` source
+- `aweskill find` 默认会同时搜索这两边，按规范化后的名字合并结果；`--limit` 会先按 provider 分别生效，再做合并去重
+- `aweskill store download` 当前支持本地路径、GitHub source 和 `sciskill:<skill-id>` 标识
+
 ## 常见工作流
 
 ### 把现有 skill 导入中央仓库
@@ -164,6 +172,28 @@ aweskill store scan --import
 
 # 导入扫描到的 agent skill，但保留原 agent 目录不变
 aweskill store scan --import --keep-source
+```
+
+### 查找、下载并更新已追踪 skill
+
+```bash
+# 同时搜索 skills.sh 和 sciskillhub.org
+aweskill find protein
+
+# 只搜索一个 provider
+aweskill find protein --provider sciskill
+
+# 下载一个从 skills.sh 发现到的 GitHub 风格 source
+aweskill store download owner/repo
+
+# 从 sciskillhub.org 下载一个科研 skill
+aweskill store download sciskill:open-source/research/lifesciences-proteomics
+
+# 只检查已追踪安装是否有更新，不改文件
+aweskill store update --check
+
+# 按已记录来源刷新一个已追踪 skill
+aweskill store update lifesciences-proteomics
 ```
 
 ### 构建可复用 bundle

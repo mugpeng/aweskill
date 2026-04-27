@@ -29,6 +29,7 @@ Instead of copying the same skill folders into every tool by hand, `aweskill` ke
 - **One central store** for all your local skills
 - **Bundle-based organization** for reusable skill sets
 - **Multi-agent projection** across Codex, Claude Code, Cursor, Gemini CLI, and more
+- **Find, download, and update loop** for discovering skills across providers, importing them into the store, and refreshing tracked installs later
 - **Managed enable/disable model** without a separate global activation file
 - **Backup, restore, dedup, and recovery** built into the CLI
 
@@ -142,6 +143,13 @@ Key directories:
 - Bundles: `~/.aweskill/bundles/*.yaml`
 - Built-in skills: `resources/skills/aweskill/`, `resources/skills/aweskill-doctor/`
 
+Discovery and download sources:
+
+- [skills.sh](https://skills.sh/) is used as a community discovery source and may return directly downloadable GitHub-style sources or discover-only entries that point you to the upstream skills.sh page
+- [sciskillhub.org](https://sciskillhub.org/) is used as a scientific and technical skill registry and provides downloadable `sciskill:<skill-id>` sources
+- `aweskill find` searches both by default, merges results by normalized name, and lets `--limit` apply per provider before merge and dedupe
+- `aweskill store download` currently accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers
+
 ## Common Workflows
 
 ### Import skills into the central store
@@ -164,6 +172,28 @@ aweskill store scan --import
 
 # Import scanned agent skills but keep the original agent directories unchanged
 aweskill store scan --import --keep-source
+```
+
+### Find, download, and update tracked skills
+
+```bash
+# Search both skills.sh and sciskillhub.org
+aweskill find protein
+
+# Search one provider only
+aweskill find protein --provider sciskill
+
+# Download a skill from a GitHub-style source discovered via skills.sh
+aweskill store download owner/repo
+
+# Download a scientific skill from sciskillhub.org
+aweskill store download sciskill:open-source/research/lifesciences-proteomics
+
+# Check tracked installs for updates without changing files
+aweskill store update --check
+
+# Refresh one tracked skill from its recorded source
+aweskill store update lifesciences-proteomics
 ```
 
 ### Build reusable bundles
