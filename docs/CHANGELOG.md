@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+## v0.2.5
+
+`v0.2.5` is the release where `aweskill` gains a skill search command, support for the sciskill registry, and smarter update checks that skip unchanged GitHub sources. Since `v0.2.4`, the CLI added `store find` to search across skills.sh and sciskill in one query, taught `store download` to pull skills directly from sciskill, made `store update` compare remote tree SHAs to avoid unnecessary clones, and added top-level aliases for the three most-used store commands.
+
+### Skill search with `store find`
+
+`aweskill store find <query>` searches both skills.sh and the sciskill registry, merges results by name, and prints either a directly downloadable source or a discover-only result with a details URL. Results are numbered and indented, and a configurable timeout keeps the search responsive. The `--provider`, `--limit`, `--domain`, and `--stage` flags let users narrow the search scope.
+
+### Sciskill registry support
+
+`store download` now accepts `sciskill:<skill-id>` as a source type. The CLI downloads and extracts the archive from the sciskill API, wraps flat archives that place `SKILL.md` at the root into a properly named subdirectory, and records the skill in the lock file for future updates. Source parsing and lock entries were extended to represent the new source type.
+
+### Faster updates with remote tree SHA comparison
+
+`store update` now fetches the GitHub repository tree for tracked GitHub sources and compares the remote tree SHA against the locked SHA before cloning. Skills whose remote SHA matches the locked SHA are skipped entirely, reducing unnecessary network traffic and clone time. The tree SHA is recorded during download and update, and a new `fetchGitHubRepoTree` utility handles the API interaction.
+
+### Top-level store aliases
+
+`aweskill import`, `aweskill download`, and `aweskill update` are now available as top-level aliases for their `store` equivalents, making the most common operations shorter to type.
+
+### Duplicate-skill conflict reporting
+
+When a download or update encounters a duplicate skill name, the conflict message now includes the source path, source URL, ref, and the command name, making it easier to understand and resolve the collision without re-running anything.
+
+### Highlights
+
+- Added `aweskill store find <query>` with skills.sh and sciskill provider support, merged results, and numbered output.
+- Added `sciskill:<skill-id>` source type for `store download` with flat-archive wrapping.
+- Added `fetchGitHubRepoTree` and remote tree SHA comparison in `store update` to skip unchanged sources.
+- Added `aweskill import`, `aweskill download`, `aweskill update` top-level aliases.
+- Improved duplicate-skill conflict messages with source context.
+- Added `droma-metaai` bundle template.
+- Updated README, README.zh-CN, and docs/CONTRIBUTING.md with find/download/update docs and streamlined layout.
+
 ## v0.2.4
 
 `v0.2.4` is the release where `aweskill` grows from a central-store projector into a source-aware skill manager. Since `v0.2.3`, the CLI learned how to download skills from local paths or GitHub sources, track them in `skills-lock.json`, refresh them with `store update`, install built-in skills during `store init`, and let explicit local imports opt into that same tracked update flow. The central store remains the protected local state, while upstream sources become comparison points for later updates.

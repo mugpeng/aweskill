@@ -46,7 +46,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.2.3
+npm install -g aweskill@0.2.4
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -72,7 +72,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.2.0.tgz
+npm install -g ./aweskill-<version>.tgz
 ```
 
 ## 快速开始
@@ -232,7 +232,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 核心命令：`store init`、`store where`、`store import`、`bundle create`、`agent add`、`doctor clean`
 
-高频 store 命令也提供顶层简写：`aweskill import`、`aweskill download`、`aweskill update` 分别等价于 `aweskill store import`、`aweskill store download`、`aweskill store update`。
+高频搜索和 tracked-source 流程也提供顶层命令：`aweskill find`、`aweskill download`、`aweskill update`。
 
 <details>
 <summary>全部命令</summary>
@@ -246,7 +246,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按指定 scope 和 agent 集合扫描支持的 agent skill 目录 |
 | `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录，`--track-source` 可为显式本地导入建立后续 `store update` 追踪 |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | 按指定 scope 和 agent 集合导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
-| `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | 同时搜索 `skills.sh` 和 `sciskill`，按名字合并结果，并输出可直接下载的 `source`，或带说明和详情页链接的仅供发现结果 |
+| `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | 与上面相同的搜索命令，只是保留在 `store` 命名空间下 |
 | `aweskill store download <source> [--list] [--skill <name>] [--all] [--ref <ref>] [--as <name>] [--override]` | 从本地路径、GitHub source 或 `sciskill:<skill-id>` 下载 skill 到中央仓库，并为后续 `store update` 建立追踪记录 |
 | `aweskill store update [skill...] [--check] [--dry-run] [--source <source>] [--override]` | 从已记录的 source 检查或刷新 tracked skill，并把中央仓库中的副本当作受保护的本地状态 |
 | `aweskill store list [--verbose]` | 列出中央仓库中的 skill |
@@ -269,35 +269,35 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 </details>
 
-`aweskill store find` 会优先输出 `aweskill store download` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接下载，并附上对应的 `skills.sh` 详情页，方便你查看上游安装说明。
+`aweskill find` 会优先输出 `aweskill store download` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接下载，并附上对应的 `skills.sh` 详情页，方便你查看上游安装说明。默认同时搜索两个 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
 
 ## 内置 Skill
 
-`aweskill` 内置了两个 meta-skill，用来教 AI 编码代理直接操作 CLI。把它们导入中央仓库后，Codex、Claude Code、Cursor 等 agent 就能自动运行 aweskill 命令，无需人工介入。
+`aweskill` 内置了两个 meta-skill，用来教 AI agent 直接运行 aweskill 命令。
 
 ```bash
 aweskill store import resources/skills/aweskill
 aweskill store import resources/skills/aweskill-doctor
 ```
 
-| Skill | 面向 | 何时使用 |
-| --- | --- | --- |
-| `aweskill` | 操作面 | 日常及策略型：init、scan、import、list、remove、bundle 增删改查、bundle 模板、recover 流程、多 scope 投影规划 |
-| `aweskill-doctor` | 诊断面 | 修复：`doctor clean`、`doctor dedup`、`doctor sync`，解读 broken/duplicate/suspicious |
-
-skill 目录结构与设计原则见 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。
+skill 目录结构与设计原则见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 贡献
 
 如果你想参与开发，请看 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。
 
+如果你想了解命令模型和文件系统设计约束，请看 [docs/DESIGN.md](docs/DESIGN.md)。
+
 那里现在集中说明了：
+
+- 开发流程与测试要求
+
+`docs/DESIGN.md` 集中说明了：
 
 - 设计取舍
 - bundle 文件格式
 - 投影模型
 - 内置 skill 结构与设计原则
-- 开发流程与测试要求
 
 欢迎提交文档改进、测试补充和小而聚焦的功能改进。
 
@@ -311,13 +311,6 @@ skill 目录结构与设计原则见 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md
 - [skillfish](https://github.com/knoxgraeme/skillfish)：偏 CLI 的 skill 管理工具，强调安装、更新和跨 agent 同步。
 - [vercel-labs/skills](https://github.com/vercel-labs/skills)：开放的 agent skills CLI 和生态入口，对 `SKILL.md` 包约定影响很大。
 - [cc-switch](https://github.com/farion1231/cc-switch)：面向 Claude Code、Codex、Gemini CLI、OpenCode 等工具的一站式桌面管理器。
-
-`aweskill` 参考并借鉴了这四个项目的工作。它们分别帮助我们理解了：
-
-- 桌面优先的多工具管理
-- CLI 优先的 skill 安装与同步
-- 开放 skill 生态的约定方式
-- 跨 agent 的本地开发工作流工具
 
 ## 支持的 Agent
 
@@ -380,14 +373,9 @@ skill 目录结构与设计原则见 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md
 
 </details>
 
-## 开发命令
+## 开发
 
-```bash
-npm install
-npm test
-npm run build
-node dist/index.js --help
-```
+环境搭建、测试、代码风格请参考 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)。设计原则和命令语义请参考 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 许可证
 

@@ -24,6 +24,8 @@ When contributing, please preserve that focus. New features should make the main
 safer, or easier to use. They should not turn the tool into a general package manager, remote registry,
 or configuration platform unless there is a very strong reason.
 
+For the stable command model, projection semantics, and other product-level design constraints, see [DESIGN.md](./DESIGN.md).
+
 ## Development Setup
 
 Keep setup simple and reproducible:
@@ -77,7 +79,7 @@ When contributing, aim for code that feels:
 - Simple: prefer the smallest change that solves the real problem
 - Clear: optimize for the next reader, not for cleverness
 - Honest: keep the filesystem model explicit and avoid hidden state
-- Focused: preserve boundaries between `skill`, `bundle`, `agent`, `store`, and `doctor`
+- Focused: preserve boundaries between `bundle`, `agent`, `store`, and `doctor`, and keep top-level convenience commands minimal
 - Durable: choose behavior that is easy to test and reason about
 
 In practice:
@@ -106,15 +108,7 @@ Keep the format intentionally small. If a proposal adds state that cannot be und
 
 ### Keep the mental model coherent
 
-`aweskill` now uses a five-part command model:
-
-- `skill`
-- `bundle`
-- `agent`
-- `store` — includes `find`, `download`, `update`, `import`, `scan`, `backup`, `restore`, `list`, `remove`
-- `doctor`
-
-Top-level aliases `aweskill import`, `aweskill download`, and `aweskill update` map to their `store` equivalents for convenience.
+`aweskill` has a deliberately small command model. Refer to [DESIGN.md](./DESIGN.md) before changing command placement or adding new CLI surface.
 
 If a contribution adds or changes CLI behavior, first ask which of those areas it truly belongs to.
 Avoid introducing overlapping commands or synonyms that increase the command surface without adding real capability.
@@ -142,104 +136,16 @@ If a feature changes files, the user should be able to understand what changed a
 
 Please avoid features that hide core state behind unnecessary abstraction.
 
-## Projection Model
+## Product Semantics
 
-`aweskill` keeps its projection model deliberately simple:
+Detailed product semantics now live in [DESIGN.md](./DESIGN.md), including:
 
-1. Skill content has one canonical home: `~/.aweskill/skills/<skill-name>/`
-2. `agent add` projects selected skills into agent-specific directories
-3. On Unix-like systems, that projection is normally a symlink
-4. On Windows, that projection prefers a directory junction and may fall back to a managed copy
-5. `agent remove` only deletes projections that `aweskill` can identify as managed
-6. `agent list` is primary agent-side inspection command; `doctor sync` is agent-side repair command and defaults to dry run
-
-There is no separate global activation registry. The projected filesystem state is the activation model.
-
-### Import behavior
-
-- `store scan --import` defaults to `--link-source`
-- `store scan --import` and `store import --scan` accept the same `--global|--project [dir]` and `--agent <agent>` filters used by agent-side commands
-- `store import <path>` defaults to `--keep-source`
-- `--link-source` replaces the source path with an aweskill-managed projection after importing
-- `--keep-source` leaves the source path in place after importing
-- `--keep-source` and `--link-source` are mutually exclusive and should error when both are passed
-- When a source path is a symlink, `aweskill` copies from the resolved real path and may emit a warning
-- Broken symlinks during batch import are reported while other items continue
-- `restore` creates a fresh backup of the current store before applying the archive
-- `restore` accepts either a backup archive or an unpacked directory containing `skills/`
-- `restore` skips existing skills and bundles by default and only overwrites with `--override`
-- `backup` and `restore` include both `skills/` and `bundles/` by default; use `--skills-only` for a reduced flow
-
-### Find and download
-
-`store find` searches across two skill providers:
-
-- **skills.sh** — community skill directory with downloadable GitHub sources
-- **sciskill** — scientific and technical skill registry with `sciskill:<skill-id>` identifiers
-
-Results are merged by name. When a provider returns a discover-only source (e.g. `smithery.ai`), the result still appears but is marked as unsupported for direct download.
-
-`store download <source>` accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers. Downloaded skills are recorded in the lock file for future `store update` runs.
-
-`store update [skill...]` checks or refreshes tracked skills from their recorded source. Add `--check` for a read-only check, `--dry-run` for a preview, and `--source` to override the recorded source.
-
-### Store Hygiene
-
-`aweskill` now treats store hygiene as a first-class maintenance concern.
-
-The canonical store should only contain:
-
-- skill directories or managed links under `~/.aweskill/skills/`, each with a `SKILL.md`
-- bundle YAML files under `~/.aweskill/bundles/`
-
-Contributors should preserve the shared hygiene rules used across:
-
-- `doctor clean`
-- `store list`
-- `bundle list`
-- `store backup`
-- `store restore`
-
-Examples of suspicious entries:
-
-- files such as `._global` inside `skills/` or `bundles/`
-- skill directories missing `SKILL.md`
-- non-YAML files in `bundles/`
-- malformed bundle YAML files
-
-The intended command model is:
-
-- `doctor clean` is the user-facing hygiene scanner
-- `doctor clean` defaults to dry run
-- `doctor clean --apply` removes suspicious entries
-- `doctor dedup` also defaults to dry run
-- `doctor dedup --apply` is required before mutating state
-
-If you change hygiene rules, update all consumers together. Backup, restore, and list flows should not silently drift away from `doctor clean`.
-
-### Display behavior
-
-- `store list` shows totals and a short preview unless `--verbose`
-- `store scan` shows per-agent totals by default and concrete entries with `--verbose`
-- `store scan` defaults to `global` scope unless `--project` is selected explicitly
-- `store scan --import` imports scan results immediately and defaults to relinking scanned paths unless `--keep-source` is passed
-- `agent list` categorizes entries as `linked`, `broken`, `duplicate`, `matched`, `new`, and `suspicious`
-- `agent supported` lists the full supported agent set, uses `✓` for detected global installations and `x` for unsupported or not-detected global installations in the current environment, and appends the global skills directory for detected entries
-- `agent list` should classify a skill as `suspicious` before checking duplicate/new rules when either of these is true:
-  - the directory or link is missing `SKILL.md`
-  - the skill name is reserved, such as names that begin with `.`
-- `store list` and `bundle list` summarize suspicious store entries and suggest `doctor clean`
-- `doctor dedup` treats `name`, `name-2`, and `name-1.2.3` as one duplicate family and only mutates files when `--apply` is passed
-- duplicate-family matching uses the text after normalization and version stripping, then removes all remaining non-alphanumeric characters before comparing names
-- examples: `self-improving-agent-with-self-reflection` matches `Self-Improving Agent (With Self-Reflection)`, and `ffmpeg-video-editor-1.0.0` matches `FFmpeg Video Editor`
-- `agent list` is read-only dry-run view of `doctor sync`; `doctor sync` is user-facing repair command for agent-side state
-- when `agent list` or `doctor sync` runs without an explicit `--agent`, output should start with the detected agent set for that scope; for project scope, include the resolved project directory in that line
-- agent-side output should be grouped by agent first, then by category (`linked`, `broken`, `duplicate`, `matched`, `new`, `suspicious`)
-- backend should still distinguish stale managed projections from broken symlinks, but both should surface as `broken` in user output
-- `agent list` should stay read-only and point users to `doctor sync`, `doctor sync --apply`, and `doctor sync --apply --remove-suspicious` when relevant
-- `doctor sync --apply` should relink duplicate and matched entries, repair broken symlinks when the central store has a same-name skill, remove broken projections otherwise, and report suspicious entries unless `--apply --remove-suspicious` is set
-- `agent list` should report `new` entries and suggest `aweskill store scan --import` with matching scope and agent filters
-- `backup` and `restore` report suspicious entries they skipped
+- command model and top-level convenience commands
+- projection model
+- import / backup / restore semantics
+- find / download / update behavior
+- hygiene and display rules
+- built-in skill structure
 
 ### Projection examples
 
@@ -258,73 +164,6 @@ aweskill agent remove bundle backend --global --agent codex
 aweskill agent recover --global --agent codex
 ```
 
-## Design Tradeoffs
-
-### No global activation file
-
-`aweskill` treats projected filesystem state as the truth. This avoids a second layer of activation metadata drifting out of sync with what users can see on disk.
-
-### Bundles are expansion sets
-
-`agent add bundle <name>` expands the bundle into skill names and projects those skills. There is no separate long-lived bundle activation object after projection.
-
-### Managed-only removal
-
-`aweskill` removes only entries it can identify as its own managed projections. It does not blindly delete arbitrary directories in user-owned skill roots.
-
-### Agent-side hygiene
-
-When reading agent skill directories, contributors should use the same notion of validity across all consumers:
-
-- entries missing `SKILL.md` are suspicious
-- reserved or hidden skill names such as `.system` are suspicious
-- suspicious entries should not be imported, relinked, or counted as new skills
-- suspicious agent entries may be removed only when the user passes both `--apply` and `--remove-suspicious` through `doctor sync`
-- warning text should explain why the entry was skipped
-
-This rule should stay consistent across `agent list`, `doctor sync`, and any future agent-side maintenance flow.
-
-### Small command surface
-
-New concepts should be rare. Prefer making `skill`, `bundle`, `agent`, `store`, and `doctor` clearer before adding more top-level CLI surface.
-
-## Repository Resources
-
-- Runtime bundles live under `~/.aweskill/bundles/`
-- In-repo template bundles live under `resources/bundle_templates/`
-- `resources/skill_archives/` is reserved for repository-level backup archives you intentionally keep in-tree for sharing or reference
-- Built-in meta-skills live under `resources/skills/`
-
-### Built-in Skills
-
-`aweskill` ships two meta-skills that teach AI agents how to operate the CLI:
-
-- `resources/skills/aweskill/` — core operations (init, scan, import, list, remove, bundle CRUD, basic projection)
-- `resources/skills/aweskill-doctor/` — diagnostics and repair (doctor clean, dedup, sync)
-
-Each skill follows this structure:
-
-```
-resources/skills/<name>/
-├── SKILL.md          # Triggers, rules, core workflow
-├── agents/
-│   └── openai.yaml   # Agent-facing metadata (Codex / OpenAI-compatible)
-└── references/
-    └── *.md          # Flow examples, command maps, triage guides
-```
-
-- **SKILL.md** — what the skill handles, when it triggers, and when to escalate to another skill
-- **references/** — common flow examples and decision trees; loaded by the agent on demand
-- **agents/openai.yaml** — agent-facing display name and default prompt for Codex-compatible runtimes
-
-Design principles:
-
-- Facts live in one place. `aweskill` owns base rules (store paths, init requirement, install command); the other two skills reference it without duplication.
-- Rules go in SKILL.md. Examples go in references/.
-- No wrapper scripts. The aweskill CLI is the interface; skills just tell agents when and how to call it.
-
-When changing CLI behavior, update the corresponding skill files in the same PR.
-
 ## Documentation
 
 Documentation changes are welcome and important.
@@ -342,6 +181,7 @@ please update the relevant docs in the same change:
 
 - `README.md`
 - `README.zh-CN.md`
+- `docs/DESIGN.md`
 - tests that define the CLI surface
 
 ## Testing
@@ -356,26 +196,6 @@ npm run build
 If you changed command behavior, add or update command-level tests in `tests/commands.test.ts`.
 
 If you changed low-level behavior, prefer focused tests near the affected modules rather than only relying on broad end-to-end coverage.
-
-## Design Principles
-
-These principles matter more than adding surface area quickly:
-
-### One source of truth
-
-Skills should have a canonical home in `~/.aweskill/skills/`.
-
-### Managed projections only
-
-`aweskill` should clearly distinguish between files it manages and files it does not.
-
-### Minimal surprise
-
-The user should be able to predict what `add`, `remove`, `sync`, `recover`, and `dedup` will do without reading implementation code.
-
-### Small command surface
-
-Reducing cognitive load is a feature. Avoid adding commands that should really be options, subcommands, or documentation improvements.
 
 ## Related Projects
 

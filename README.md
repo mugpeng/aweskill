@@ -46,7 +46,7 @@ aweskill --help
 To pin a specific release:
 
 ```bash
-npm install -g aweskill@0.2.3
+npm install -g aweskill@0.2.4
 ```
 
 Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -72,7 +72,7 @@ aweskill --help
 ```bash
 npm install
 npm pack
-npm install -g ./aweskill-0.2.0.tgz
+npm install -g ./aweskill-<version>.tgz
 ```
 
 ## Quick Start
@@ -232,7 +232,7 @@ All `doctor` commands default to dry-run. Add `--apply` to make real changes.
 
 Core commands: `store init`, `store where`, `store import`, `bundle create`, `agent add`, `doctor clean`
 
-Short aliases are also available for high-frequency store commands: `aweskill import`, `aweskill download`, and `aweskill update` map to `aweskill store import`, `aweskill store download`, and `aweskill store update`.
+Top-level convenience commands are available for high-frequency search and tracked-source flows: `aweskill find`, `aweskill download`, and `aweskill update`.
 
 <details>
 <summary>All commands</summary>
@@ -269,7 +269,7 @@ Short aliases are also available for high-frequency store commands: `aweskill im
 
 </details>
 
-`aweskill store find` prefers to print `source` values that `aweskill store download` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct download and prints the matching `skills.sh` detail page so you can inspect the upstream installation instructions there.
+`aweskill find` prefers to print `source` values that `aweskill store download` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct download and prints the matching `skills.sh` detail page so you can inspect the upstream installation instructions there. When searching both providers at once, `--limit` applies per provider before merge and dedupe.
 
 ## Built-in Skills
 
@@ -280,19 +280,24 @@ aweskill store import resources/skills/aweskill
 aweskill store import resources/skills/aweskill-doctor
 ```
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for skill directory structure and design principles.
+See [docs/DESIGN.md](docs/DESIGN.md) for skill directory structure and design principles.
 
 ## Contributing
 
 If you want to contribute, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
+For command-model and filesystem design constraints, see [docs/DESIGN.md](docs/DESIGN.md).
+
 That file now covers:
+
+- development workflow and testing expectations
+
+`docs/DESIGN.md` covers:
 
 - design tradeoffs
 - bundle file format
 - projection model
 - built-in skill structure and design principles
-- development workflow and testing expectations
 
 Documentation, tests, and small focused improvements are all welcome.
 
@@ -368,7 +373,7 @@ Works with 47 agents including:
 
 ## Development
 
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for setup, testing, code style, and design principles.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for setup, testing, and code style. See [docs/DESIGN.md](docs/DESIGN.md) for design principles and command semantics.
 
 ## License
 
