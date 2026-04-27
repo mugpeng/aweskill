@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./logo.png" alt="aweskill" width="760">
   <h1>aweskill: One Skill Store for All Your Coding Agents</h1>
-  <p><strong>Local skill orchestration CLI for AI coding agents.</strong></p>
+  <p><strong>Skill orchestration for finding, downloading, updating, and projecting skills across AI coding agents.</strong></p>
   <p>
     <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.5-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
@@ -20,9 +20,18 @@
 </div>
 
 
-`aweskill` is a local CLI for managing, bundling, and projecting skills across AI coding agents.
+`aweskill` is a local skill orchestration CLI for finding, downloading, updating, bundling, and projecting skills across AI coding agents.
 
 Instead of copying the same skill folders into every tool by hand, `aweskill` keeps a single source of truth in `~/.aweskill/skills/` and projects those skills into agent-specific directories with `symlink` or `copy`, depending on the target agent.
+
+## Find -> Download -> Update
+
+`aweskill` now combines local orchestration with the full source-aware skill lifecycle:
+
+- **Find** skills across [skills.sh](https://skills.sh/) and [sciskillhub.org](https://sciskillhub.org/) with one command
+- **Download** skills from GitHub-style sources, local paths, or `sciskill:<skill-id>` identifiers into the central store
+- **Update** tracked installs from their recorded sources while protecting local central-store edits
+- **Project** the same managed skills into Codex, Claude Code, Cursor, Gemini CLI, and other agents
 
 ## Why aweskill
 
@@ -85,24 +94,33 @@ aweskill store init
 # 2. Show where the aweskill store lives
 aweskill store where --verbose
 
-# 3. Scan existing agent skill directories
+# 3. Find a skill across supported providers
+aweskill find protein
+
+# 4. Download a discovered skill into the central store
+aweskill download sciskill:open-source/research/lifesciences-proteomics
+
+# 5. Check tracked installs for source updates
+aweskill update --check
+
+# 6. Scan existing agent skill directories
 aweskill store scan
 
-# 4. Scan and import discovered agent skills into the central store
+# 7. Scan and import discovered agent skills into the central store
 aweskill store scan --import
 
-# 5. Import a skills root or a single skill
+# 8. Import a skills root or a single skill
 aweskill store import ~/.agents/skills
 # aweskill store import /path/to/my-skill --link-source
 
-# 6. Create a bundle
+# 9. Create a bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 7. Enable the bundle for one agent
+# 10. Enable the bundle for one agent
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 8. Inspect current projected skills
+# 11. Inspect current projected skills
 aweskill agent list
 ```
 

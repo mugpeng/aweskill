@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./logo.png" alt="aweskill" width="760">
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
-  <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
+  <p><strong>面向 AI 编码代理的 Skill orchestration：查找、下载、更新并投影 skill。</strong></p>
   <p>
     <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.5-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
@@ -20,9 +20,18 @@
 </div>
 
 
-`aweskill` 是一个本地 CLI，用来在多个 AI 编码代理之间管理、组织和投影技能。
+`aweskill` 是一个本地 skill orchestration CLI，用来在多个 AI 编码代理之间查找、下载、更新、组织和投影技能。
 
 你不需要再把同一套 skill 文件夹手动复制到每个工具里。`aweskill` 会把 `~/.aweskill/skills/` 作为唯一事实来源，再按目标 agent 的要求，把 skill 以 `symlink` 或 `copy` 的形式投影到对应目录。
+
+## Find -> Download -> Update
+
+`aweskill` 现在把本地 orchestration 和带来源追踪的完整 skill 生命周期放在一起：
+
+- **Find**：用一条命令同时搜索 [skills.sh](https://skills.sh/) 和 [sciskillhub.org](https://sciskillhub.org/)
+- **Download**：从 GitHub 风格 source、本地路径或 `sciskill:<skill-id>` 标识下载到中央仓库
+- **Update**：按记录的来源刷新 tracked install，同时保护中央仓库里的本地修改
+- **Project**：把同一批托管 skill 投影到 Codex、Claude Code、Cursor、Gemini CLI 等 agent
 
 ## 为什么用 aweskill
 
@@ -85,24 +94,33 @@ aweskill store init
 # 2. 查看 aweskill store 在哪里
 aweskill store where --verbose
 
-# 3. 扫描已有 agent 的 skill 目录
+# 3. 跨支持的 provider 查找 skill
+aweskill find protein
+
+# 4. 把发现到的 skill 下载到中央仓库
+aweskill download sciskill:open-source/research/lifesciences-proteomics
+
+# 5. 检查 tracked install 是否有来源更新
+aweskill update --check
+
+# 6. 扫描已有 agent 的 skill 目录
 aweskill store scan
 
-# 4. 把扫描到的 agent skill 导入中央仓库
+# 7. 把扫描到的 agent skill 导入中央仓库
 aweskill store import --scan
 
-# 5. 导入一个 skills 根目录或单个 skill
+# 8. 导入一个 skills 根目录或单个 skill
 aweskill store import ~/.agents/skills
 # aweskill store import /path/to/my-skill --link-source
 
-# 6. 创建 bundle
+# 9. 创建 bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 7. 为一个 agent 启用这个 bundle
+# 10. 为一个 agent 启用这个 bundle
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 8. 查看当前投影状态
+# 11. 查看当前投影状态
 aweskill agent list
 ```
 
