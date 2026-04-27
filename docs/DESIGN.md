@@ -31,7 +31,7 @@ New features should make that workflow clearer, safer, or easier to use. They sh
 Current top-level convenience commands:
 
 - `aweskill find`
-- `aweskill download`
+- `aweskill install`
 - `aweskill update`
 
 Store-only commands stay under `store`, including:
@@ -106,9 +106,9 @@ Mutating agent commands should default to the detected installed agent set for t
 - `skills.sh` — community skill directory with downloadable GitHub sources
 - `sciskill` — scientific and technical skill registry with `sciskill:<skill-id>` identifiers
 
-Results are merged by normalized name. When a provider returns a discover-only source, the result still appears but is marked as unsupported for direct download.
+Results are merged by normalized name. When a provider returns a discover-only source, the result still appears but is marked as unsupported for direct install.
 
-`download <source>` accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers. Downloaded skills are recorded in the lock file for future `store update` runs.
+`install <source>` accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers. Installed skills are recorded in the lock file for future `store update` runs.
 
 `update [skill...]` checks or refreshes tracked skills from their recorded source.
 

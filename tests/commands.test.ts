@@ -1651,7 +1651,7 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "python"), "SKILL.md"), "utf8")).resolves.toContain("Python Skill");
   });
 
-  it("download lists multiple local skills and requires --all or --skill before installing", async () => {
+  it("install lists multiple local skills and requires --all or --skill before installing", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1664,21 +1664,21 @@ describe("commands", () => {
     await writeSkill(path.join(sourceRoot, "skills", "alpha"), "Alpha");
     await writeSkill(path.join(sourceRoot, "skills", "beta"), "Beta");
 
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--list"], { from: "node" });
-    expect(lines.join("\n")).toContain("Downloadable skills: 2");
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--list"], { from: "node" });
+    expect(lines.join("\n")).toContain("Installable skills: 2");
     expect(lines.join("\n")).toContain("alpha");
     expect(lines.join("\n")).toContain("beta");
 
     lines.length = 0;
-    await expect(program.parseAsync(["node", "aweskill", "store", "download", sourceRoot], { from: "node" })).rejects.toThrow(
+    await expect(program.parseAsync(["node", "aweskill", "store", "install", sourceRoot], { from: "node" })).rejects.toThrow(
       "Multiple skills found. Use --skill <name> or --all.",
     );
 
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "beta"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--skill", "beta"], { from: "node" });
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "beta"), "SKILL.md"), "utf8")).resolves.toContain("Beta");
   });
 
-  it("download --list reports duplicate names in the source without throwing", async () => {
+  it("install --list reports duplicate names in the source without throwing", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const errors: string[] = [];
@@ -1692,7 +1692,7 @@ describe("commands", () => {
     await writeSkill(path.join(sourceRoot, "skills", "caveman"), "First");
     await writeSkill(path.join(sourceRoot, ".codex", "skills", "caveman"), "Second");
 
-    await expect(program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--list"], { from: "node" })).resolves.toBeTruthy();
+    await expect(program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--list"], { from: "node" })).resolves.toBeTruthy();
 
     expect(lines.join("\n")).toContain("Duplicate skill names found in source:");
     expect(lines.join("\n")).toContain("caveman");
@@ -1702,7 +1702,7 @@ describe("commands", () => {
     expect(errors).toHaveLength(0);
   });
 
-  it("download --skill ignores unrelated duplicate names in the source", async () => {
+  it("install --skill ignores unrelated duplicate names in the source", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1716,16 +1716,16 @@ describe("commands", () => {
     await writeSkill(path.join(sourceRoot, "cli-tool", "components", "skills", "ai-research", "dispatching-parallel-agents"), "First");
     await writeSkill(path.join(sourceRoot, "cli-tool", "components", "skills", "development", "dispatching-parallel-agents"), "Second");
 
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "scientific-writing"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--skill", "scientific-writing"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("Downloaded scientific-writing");
+    expect(lines.join("\n")).toContain("Installed scientific-writing");
     expect(lines.join("\n")).not.toContain("Duplicate skill names found in source:");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8")).resolves.toContain(
       "Scientific Writing",
     );
   });
 
-  it("download writes source lock entries and supports --as for single skills", async () => {
+  it("install writes source lock entries and supports --as for single skills", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1737,11 +1737,11 @@ describe("commands", () => {
     const sourceSkill = path.join(workspace.rootDir, "source", "original");
     await writeSkill(sourceSkill, "Original");
 
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceSkill, "--as", "renamed"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceSkill, "--as", "renamed"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "renamed"), "SKILL.md"), "utf8")).resolves.toContain("Original");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"renamed"');
-    expect(lines.join("\n")).toContain("Downloaded renamed");
+    expect(lines.join("\n")).toContain("Installed renamed");
   });
 
   it("downloads a sciskill source via archive API and records a sciskill lock entry", async () => {
@@ -1769,13 +1769,13 @@ describe("commands", () => {
     }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await program.parseAsync(["node", "aweskill", "store", "download", "sciskill:open-source/research/lifesciences-proteomics"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", "sciskill:open-source/research/lifesciences-proteomics"], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "lifesciences-proteomics"), "SKILL.md"), "utf8")).resolves.toContain("Proteomics");
     const lockText = await readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8");
     expect(lockText).toContain('"sourceType": "sciskill"');
     expect(lockText).toContain('"source": "sciskill:open-source/research/lifesciences-proteomics"');
-    expect(lines.join("\n")).toContain("Downloaded lifesciences-proteomics");
+    expect(lines.join("\n")).toContain("Installed lifesciences-proteomics");
   });
 
   it("wraps flat sciskill archives so the installed skill name and subpath come from the skill id", async () => {
@@ -1806,7 +1806,7 @@ describe("commands", () => {
       "node",
       "aweskill",
       "store",
-      "download",
+      "install",
       "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing",
     ], { from: "node" });
 
@@ -1816,7 +1816,7 @@ describe("commands", () => {
     expect(lockText).toContain('"subpath": "scientific-writing"');
     expect(lockText).not.toContain('"subpath": "."');
     expect(lockText).not.toContain('"aweskill-download-');
-    expect(lines.join("\n")).toContain("Downloaded scientific-writing");
+    expect(lines.join("\n")).toContain("Installed scientific-writing");
   });
 
   it("updates a flat sciskill archive using the wrapped subpath instead of the temp directory root", async () => {
@@ -1844,7 +1844,7 @@ describe("commands", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const sourceId = "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing";
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceId], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceId], { from: "node" });
 
     await writeSkill(archiveRoot, "Scientific Writing v2");
     execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
@@ -1859,7 +1859,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Updated scientific-writing");
   });
 
-  it("prints sciskill as a supported download source in help text", () => {
+  it("prints sciskill as a supported install source in help text", () => {
     const program = createProgram({
       cwd: "/tmp/project",
       homeDir: "/tmp/home",
@@ -1871,8 +1871,8 @@ describe("commands", () => {
     expect(topLevelHelp).toContain("sciskill:<skill-id>");
     expect(topLevelHelp).toContain("GitHub source,");
 
-    const downloadCommand = program.commands.find((command) => command.name() === "download");
-    expect(downloadCommand?.helpInformation()).toContain("git branch or tag to download (GitHub sources only)");
+    const installCommand = program.commands.find((command) => command.name() === "install");
+    expect(installCommand?.helpInformation()).toContain("git branch or tag to install from (GitHub sources only)");
   });
 
   it("surfaces sciskill download HTTP failures with provider-specific context", async () => {
@@ -1889,13 +1889,13 @@ describe("commands", () => {
     })));
 
     await expect(
-      program.parseAsync(["node", "aweskill", "store", "download", "sciskill:open-source/research/missing"], { from: "node" }),
+      program.parseAsync(["node", "aweskill", "store", "install", "sciskill:open-source/research/missing"], { from: "node" }),
     ).rejects.toThrow(
       "Failed to download sciskill source sciskill:open-source/research/missing: HTTP 404 from https://sciskillhub.org/api/v1/download/open-source/research/missing",
     );
   });
 
-  it("supports top-level download and update aliases for store commands", async () => {
+  it("supports top-level install and update aliases for store commands", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1904,17 +1904,17 @@ describe("commands", () => {
       write: (message) => lines.push(message),
       error: () => undefined,
     });
-    const downloadSkill = path.join(workspace.rootDir, "source", "quick-download");
-    await writeSkill(downloadSkill, "Quick Download v1");
+    const installSkill = path.join(workspace.rootDir, "source", "quick-download");
+    await writeSkill(installSkill, "Quick Download v1");
 
-    await program.parseAsync(["node", "aweskill", "download", downloadSkill], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "install", installSkill], { from: "node" });
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "quick-download"), "SKILL.md"), "utf8")).resolves.toContain(
       "Quick Download v1",
     );
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8")).resolves.toContain('"quick-download"');
 
-    await writeFile(path.join(downloadSkill, "SKILL.md"), "# Quick Download v2\n", "utf8");
+    await writeFile(path.join(installSkill, "SKILL.md"), "# Quick Download v2\n", "utf8");
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "update", "quick-download"], { from: "node" });
 
@@ -1935,7 +1935,7 @@ describe("commands", () => {
     });
     const sourceSkill = path.join(workspace.rootDir, "source", "tracked");
     await writeSkill(sourceSkill, "Tracked v1");
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceSkill], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceSkill], { from: "node" });
 
     await writeFile(path.join(getSkillPath(workspace.homeDir, "tracked"), "SKILL.md"), "# Local edit\n", "utf8");
     await writeFile(path.join(sourceSkill, "SKILL.md"), "# Tracked v2\n", "utf8");
@@ -2005,7 +2005,7 @@ describe("commands", () => {
     });
     const sourceRoot = path.join(workspace.rootDir, "source");
     await writeSkill(path.join(sourceRoot, "old", "moved"), "Moved v1");
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "moved"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--skill", "moved"], { from: "node" });
 
     // Remove the originally locked location so update cannot resolve by subpath.
     await rm(path.join(sourceRoot, "old"), { recursive: true, force: true });
@@ -2029,7 +2029,7 @@ describe("commands", () => {
     });
     const sourceRoot = path.join(workspace.rootDir, "source");
     await writeSkill(path.join(sourceRoot, "caveman"), "Caveman v1");
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot], { from: "node" });
     const lock = await readSkillLock(workspace.homeDir);
     // Drop the locked subpath so update has to scan the full source tree.
     delete lock.skills.caveman?.subpath;
@@ -2044,7 +2044,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Duplicate skill names found in source:");
     expect(lines.join("\n")).toContain("Please check the candidate source paths above and confirm which one you want to use.");
     expect(lines.join("\n")).toContain("Example command below: replace the URL with the confirmed source path before running it.");
-    expect(lines.join("\n")).toContain("aweskill store download");
+    expect(lines.join("\n")).toContain("aweskill store install");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "caveman"), "SKILL.md"), "utf8")).resolves.toContain("Caveman v1");
   });
 
@@ -2059,7 +2059,7 @@ describe("commands", () => {
     });
     const sourceRoot = path.join(workspace.rootDir, "source");
     await writeSkill(path.join(sourceRoot, "skills", "caveman-compress"), "Compress v1");
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "caveman-compress"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--skill", "caveman-compress"], { from: "node" });
 
     await rm(path.join(sourceRoot, "skills", "caveman-compress"), { recursive: true, force: true });
     await writeSkill(path.join(sourceRoot, "caveman"), "Caveman v1");
@@ -2083,7 +2083,7 @@ describe("commands", () => {
     });
     const sourceRoot = path.join(workspace.rootDir, "source");
     await writeSkill(path.join(sourceRoot, "skills", "caveman-compress"), "Compress v1");
-    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "caveman-compress"], { from: "node" });
+    await program.parseAsync(["node", "aweskill", "store", "install", sourceRoot, "--skill", "caveman-compress"], { from: "node" });
     const lock = await readSkillLock(workspace.homeDir);
     delete lock.skills["caveman-compress"]?.subpath;
     await writeSkillLock(workspace.homeDir, lock);

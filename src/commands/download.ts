@@ -155,7 +155,7 @@ function getRemoteTreeSha(tree: GitHubRepoTree | undefined, subpath: string): st
 
 export async function runDownload(context: RuntimeContext, input: string, options: DownloadOptions = {}) {
   if (options.as && (options.all || (options.skill && normalizeNameList(options.skill).length > 1))) {
-    throw new Error("--as can only be used when downloading a single skill.");
+    throw new Error("--as can only be used when installing a single skill.");
   }
 
   const source = parseDownloadSource(input, context.cwd);
@@ -174,7 +174,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
           source: source.type === "local" ? source.localPath : source.source,
           sourceUrl: source.sourceUrl,
           ref: source.ref,
-          commandName: "aweskill store download",
+          commandName: "aweskill store install",
         });
         if (options.list) {
           for (const line of lines) {
@@ -191,7 +191,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
     }
 
     if (options.list) {
-      context.write(`Downloadable skills: ${discovered.length}`);
+      context.write(`Installable skills: ${discovered.length}`);
       for (const skill of discovered) {
         context.write(`  - ${skill.name} ${skill.subpath}`);
       }
@@ -202,7 +202,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
       ? discovered
       : selectUnrequestedSkills(discovered, options);
     if (options.as && selected.length !== 1) {
-      throw new Error("--as can only be used when downloading a single skill.");
+      throw new Error("--as can only be used when installing a single skill.");
     }
 
     const remoteTree = source.type === "github" ? await fetchGitHubRepoTree(source.source, source.ref) : undefined;
@@ -245,7 +245,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
       });
       await upsertSkillLockEntry(context.homeDir, targetName, lockEntry);
       downloaded.push(targetName);
-      context.write(`${options.override && conflict.reason !== "none" ? "Overwrote" : "Downloaded"} ${targetName}`);
+      context.write(`${options.override && conflict.reason !== "none" ? "Overwrote" : "Installed"} ${targetName}`);
     }
 
     return { downloaded, listed: discovered };

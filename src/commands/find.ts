@@ -118,7 +118,7 @@ function toSkillsShDetailUrl(result: Pick<SkillsShResult, "id" | "skillId" | "so
 function pickDownloadSource(source?: string): { source: string; downloadable: boolean } {
   const value = source?.trim();
   if (!value) {
-    return { source: "unsupported by aweskill download", downloadable: false };
+    return { source: "unsupported by aweskill install", downloadable: false };
   }
   try {
     parseDownloadSource(value);
@@ -133,9 +133,9 @@ function buildInstallCommand(result: { provider: FindProvider; name: string; dow
     return undefined;
   }
   if (result.provider === "skills-sh") {
-    return `aweskill store download ${result.downloadSource} --skill ${sanitizeName(result.name)}`;
+    return `aweskill store install ${result.downloadSource} --skill ${sanitizeName(result.name)}`;
   }
-  return `aweskill store download ${result.downloadSource}`;
+  return `aweskill store install ${result.downloadSource}`;
 }
 
 async function searchSkillsSh(query: string, limit: number, timeoutMs: number): Promise<FindResult[]> {
@@ -152,7 +152,7 @@ async function searchSkillsSh(query: string, limit: number, timeoutMs: number): 
       const findResult = {
         name: result.name,
         provider: "skills-sh" as const,
-        downloadSource: resolved.downloadable ? resolved.source : (result.source?.trim() || "unsupported by aweskill download"),
+        downloadSource: resolved.downloadable ? resolved.source : (result.source?.trim() || "unsupported by aweskill install"),
         downloadable: resolved.downloadable,
         installs: result.installs ?? 0,
         description: result.description,
@@ -225,7 +225,7 @@ function formatFindResult(result: FindResult, index: number): string {
     lines.push(`   install: ${result.installCommand}`);
   }
   if (!result.downloadable) {
-    lines.push("   aweskill store download does not support this source");
+    lines.push("   aweskill store install does not support this source");
     if (result.detailUrl) {
       lines.push(`   visit skills.sh page: ${result.detailUrl}`);
     }

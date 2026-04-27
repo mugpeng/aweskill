@@ -143,7 +143,7 @@ Detailed product semantics now live in [DESIGN.md](./DESIGN.md), including:
 - command model and top-level convenience commands
 - projection model
 - import / backup / restore semantics
-- find / download / update behavior
+- find / install / update behavior
 - hygiene and display rules
 - built-in skill structure
 
@@ -175,7 +175,7 @@ If you change:
 - bundle format
 - projection behavior
 - supported agents
-- find/download/update behavior or provider support
+- find/install/update behavior or provider support
 
 please update the relevant docs in the same change:
 

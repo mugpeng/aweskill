@@ -232,17 +232,17 @@ function addFindCommand(parent: Command, context: RuntimeContext, title: string)
     });
 }
 
-function addDownloadCommand(parent: Command, context: RuntimeContext, title: string): void {
+function addInstallCommand(parent: Command, context: RuntimeContext, title: string): void {
   parent
-    .command("download")
+    .command("install")
     .argument("<source>")
-    .description("Download skills from a local path, GitHub source, or sciskill:<skill-id> into the central store")
+    .description("Install skills from a local path, GitHub source, or sciskill:<skill-id> into the central store")
     .option("--list", "list downloadable skills without installing", false)
-    .option("--skill <skill>", "repeat or use comma list; select skills to download", collectAgents)
-    .option("--all", "download all skills from the source", false)
-    .option("--ref <ref>", "git branch or tag to download (GitHub sources only)")
-    .option("--override", "overwrite existing skills when downloading", false)
-    .option("--as <name>", "install a single downloaded skill under a different name")
+    .option("--skill <skill>", "repeat or use comma list; select skills to install", collectAgents)
+    .option("--all", "install all skills from the source", false)
+    .option("--ref <ref>", "git branch or tag to install from (GitHub sources only)")
+    .option("--override", "overwrite existing skills when installing", false)
+    .option("--as <name>", "install a single selected skill under a different name")
     .action(async (source, options) => {
       await runFramedCommand(title, async () =>
         runDownload(context, source, {
@@ -290,7 +290,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .version(AWESKILL_VERSION, "-v, --version", "output the version number")
     .helpOption("-h, --help", "Display help");
 
-  addDownloadCommand(program, context, " aweskill download ");
+  addInstallCommand(program, context, " aweskill install ");
   addFindCommand(program, context, " aweskill find ");
   addUpdateCommand(program, context, " aweskill update ");
 
@@ -490,7 +490,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
       );
     });
   addImportCommand(store, context, " aweskill store import ");
-  addDownloadCommand(store, context, " aweskill store download ");
+  addInstallCommand(store, context, " aweskill store install ");
   addUpdateCommand(store, context, " aweskill store update ");
   addFindCommand(store, context, " aweskill store find ");
   store

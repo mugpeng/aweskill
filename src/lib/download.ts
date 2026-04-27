@@ -65,7 +65,7 @@ function formatSourceSubpath(options: DuplicateSkillNameFormatOptions | undefine
 export function formatDuplicateSkillNameConflict(error: DuplicateSkillNameError, options?: DuplicateSkillNameFormatOptions): string[] {
   const existing = formatSourceSubpath(options, error.existing.subpath);
   const duplicate = formatSourceSubpath(options, error.duplicate.subpath);
-  const commandName = options?.commandName ?? "aweskill download";
+  const commandName = options?.commandName ?? "aweskill install";
   return [
     "Duplicate skill names found in source:",
     `  - ${error.skillName}: ${existing}`,

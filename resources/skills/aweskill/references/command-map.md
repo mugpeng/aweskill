@@ -1,6 +1,6 @@
 # Command Map
 
-## User intent -> command
+## Store Work
 
 - Find aweskill home and core directories -> `aweskill store where --verbose`
 - See what is already in central store -> `aweskill store list --verbose`
@@ -8,15 +8,31 @@
 - Import scanned agent skills -> `aweskill store import --scan [--global|--project [dir]] [--agent <id>]`
 - Import external skill folder -> `aweskill store import <path>`
 - Remove one central-store skill -> `aweskill store remove <skill>`
+
+## Source Lifecycle
+
+- Search upstream skill sources -> `aweskill find <query>`
+- Install a discovered skill into the central store -> `aweskill install <source>` or `aweskill store install <source>`
+- Install one skill from a multi-skill source -> `aweskill store install <source> --skill <name>`
+- Install every skill from a multi-skill source -> `aweskill store install <source> --all`
+- Check tracked skills for updates -> `aweskill update --check`
+- Refresh one or more tracked skills -> `aweskill update [skill...]`
+
+## Bundle Work
+
 - See bundles -> `aweskill bundle list --verbose`
 - Create bundle -> `aweskill bundle create <name>`
 - Edit bundle membership -> `aweskill bundle add <bundle> <skill>` or `aweskill bundle remove <bundle> <skill>`
 - Inspect bundle -> `aweskill bundle show <name>`
 - Import built-in bundle template -> `aweskill bundle template import <name>`
+
+## Projection Work
+
 - See supported agents -> `aweskill agent supported`
 - Inspect projected agent state -> `aweskill agent list [--global|--project [dir]] [--agent <id>] --verbose`
 - Project one skill or bundle -> `aweskill agent add skill|bundle ...`
 - Remove one managed projection -> `aweskill agent remove skill|bundle ...`
+- Recover one agent root into copied directories -> `aweskill agent recover [--global|--project [dir]] --agent <id>`
 
 ## Escalation
 

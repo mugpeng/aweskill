@@ -48,14 +48,14 @@ describe("find command", () => {
     expect(output).toContain("1. protein-search");
     expect(output).toContain("   skills-sh · 8.8K installs");
     expect(output).toContain("   source: owner/repo");
-    expect(output).toContain("   install: aweskill store download owner/repo --skill protein-search");
-    expect(output).toContain("   install: aweskill store download other/repo --skill signal-flow");
+    expect(output).toContain("   install: aweskill store install owner/repo --skill protein-search");
+    expect(output).toContain("   install: aweskill store install other/repo --skill signal-flow");
     expect(output).toContain("3. lifesciences-proteomics");
     expect(output).toContain("   sciskill");
     expect(output).toContain("   source: sciskill:open-source/research/lifesciences-proteomics");
-    expect(output).toContain("   install: aweskill store download sciskill:open-source/research/lifesciences-proteomics");
+    expect(output).toContain("   install: aweskill store install sciskill:open-source/research/lifesciences-proteomics");
     expect(output).not.toContain("duplicate");
-    expect(output).not.toContain("Run: aweskill store download <source>");
+    expect(output).not.toContain("Run: aweskill store install <source>");
   });
 
   it("continues with available providers when one search request times out", async () => {
@@ -160,7 +160,7 @@ describe("find command", () => {
 
     const output = lines.join("\n");
     expect(output).toContain("source: smithery.ai");
-    expect(output).toContain("aweskill store download does not support this source");
+    expect(output).toContain("aweskill store install does not support this source");
     expect(output).toContain("visit skills.sh page: https://skills.sh/smithery/ai/davila7-scientific-writing");
   });
 
@@ -209,7 +209,7 @@ describe("find command", () => {
 
     const output = lines.join("\n");
     expect(output).toContain("source: smithery.ai");
-    expect(output).toContain("aweskill store download does not support this source");
+    expect(output).toContain("aweskill store install does not support this source");
     expect(output).not.toContain("https://skills.sh/");
   });
 });

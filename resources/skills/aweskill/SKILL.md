@@ -15,10 +15,15 @@ npm install -g aweskill
 
 ## Core Boundary
 
-Use this skill for normal and strategy-oriented aweskill commands that are not repair-first:
+Use this skill for normal and strategy-oriented aweskill commands that are not repair-first. This is the default entry point for routine aweskill work across the central store, source-aware installs, bundles, and agent projection.
+
+Use this skill for:
 
 - `store init`
 - `store where`
+- `find`
+- `install`
+- `update`
 - `store scan`
 - `store import`
 - `store list`
@@ -36,11 +41,27 @@ Use this skill for normal and strategy-oriented aweskill commands that are not r
 - `agent list`
 - `agent recover`
 
-Escalate to `$aweskill-doctor` for diagnosis, hygiene cleanup, dedup, or sync repair.
+Do not use this skill for broken projection repair, dedup cleanup, suspicious entry cleanup, or sync diagnosis. Escalate those to `$aweskill-doctor`.
 
-## Default Workflow
+## Task Router
 
-Start by identifying whether task is about `store`, `bundle`, or `agent`.
+Classify the task before choosing commands:
+
+- `Store Work`: initialize the central store, inspect it, scan agent roots, import local skills, list contents, or remove managed skills.
+- `Source Lifecycle`: search upstream providers, install from GitHub-style sources or local paths, inspect tracked update availability, or refresh tracked skills.
+- `Bundle Work`: create bundles, edit membership, inspect bundles, or import bundle templates.
+- `Projection Work`: project skills or bundles into agent roots, remove projections, inspect agent state, or recover copied agent roots.
+
+Use these routing hints:
+
+- User mentions `find`, `search`, `discover`, `skills.sh`, `sciskill`, GitHub source, install from source, or update from source -> `Source Lifecycle`
+- User mentions `bundle` or `template` -> `Bundle Work`
+- User mentions `agent`, `codex`, `cursor`, `claude-code`, `gemini-cli`, `--global`, `--project`, add/remove skill projections, or recover agent roots -> `Projection Work`
+- User mentions `scan`, `import`, local skill folders, central store contents, or removing managed skills from the store -> `Store Work`
+
+## Global Execution Rules
+
+Start by identifying the task domain first, then inspect before mutating.
 
 Inspect before mutating:
 
@@ -59,6 +80,7 @@ For complex changes, also decide:
 Prefer these inspection commands:
 
 - `aweskill store where --verbose`
+- `aweskill find <query>`
 - `aweskill store list --verbose`
 - `aweskill store scan --verbose`
 - `aweskill bundle list --verbose`
@@ -66,7 +88,13 @@ Prefer these inspection commands:
 - `aweskill agent supported`
 - `aweskill agent list --verbose`
 
-## Routine Patterns
+Re-run inspection after mutating when the task changes store contents, bundle membership, or agent projections.
+
+## Workflow Sections
+
+### Store Work
+
+Use this path when the task is about existing local skills that need to be brought into or managed inside the central store.
 
 For importing existing skills into the central store:
 
@@ -76,6 +104,36 @@ For importing existing skills into the central store:
 4. Use `--link-source` only when source should become an aweskill-managed projection.
 5. Use `--keep-source` when original source must stay untouched.
 6. If import planning depends on agent filters or cross-scope deployment, inspect with `agent list --verbose` first and then apply one scope at a time.
+
+For general store management:
+
+1. Run `aweskill store where --verbose` to confirm central-store paths.
+2. Run `aweskill store list --verbose` before removing or reorganizing managed skills.
+3. Use `aweskill store remove <skill>` only after confirming the skill is no longer needed in the central store.
+
+### Source Lifecycle
+
+Use this path when the task is about searching upstream skill sources, installing tracked skills, or refreshing them later from their recorded sources.
+
+For source-aware skill discovery and tracked updates:
+
+1. Run `aweskill find <query>` to search supported providers.
+2. Prefer `aweskill install <source>` or `aweskill store install <source>` for skills discovered from GitHub-style sources, local paths, or `sciskill:<skill-id>`.
+3. Use `--skill <name>` or `--all` when a source contains multiple skills.
+4. Run `aweskill update --check` before mutating when the task is “see what can be refreshed”.
+5. Run `aweskill update [skill...]` only for skills already tracked in the central store.
+6. Use `--override` only when replacing local central-store edits is intended.
+
+Prefer this decision order:
+
+1. `find` when the source is not yet known.
+2. `install` when the source is known and the skill should enter the central store.
+3. `update --check` when the user wants visibility before change.
+4. `update` when the skill is already tracked and should be refreshed.
+
+### Bundle Work
+
+Use this path when the task is about organizing reusable skill sets before projecting them into agents.
 
 For bundle work:
 
@@ -89,6 +147,10 @@ For bundle template workflows:
 2. Import template with `aweskill bundle template import <name>`.
 3. Inspect result with `aweskill bundle show <name>`.
 4. Adjust membership with `bundle add` or `bundle remove` if needed.
+
+### Projection Work
+
+Use this path when the task is about applying central-store skills or bundles into one or more agent roots.
 
 For normal agent projection:
 
@@ -124,12 +186,17 @@ For agent-side inspection:
 1. Run `aweskill agent list`.
 2. If output includes anything outside `linked`, switch to `$aweskill-doctor`.
 
+## Escalation to Doctor
+
+Escalate to `$aweskill-doctor` when:
+
+- `aweskill agent list` shows `broken`, `duplicate`, `matched`, `new`, or `suspicious`
+- the user asks to repair, clean, deduplicate, or sync aweskill state
+- projection state does not match the central store and the task is diagnosis-first
+- the task is about abnormal post-install or post-projection state instead of routine lifecycle management
+
 ## References
 
 Read `references/common-flows.md` for common day-to-day command sequences.
 
 Read `references/command-map.md` when you need a fast route from user intent to CLI command.
-
-Read `references/projection-flows.md` for multi-agent and scope-sensitive projection work.
-
-Read `references/bundle-flows.md` for bundle template and bundle-maintenance flows.

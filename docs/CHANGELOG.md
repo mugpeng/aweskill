@@ -1,6 +1,47 @@
 # change log
 
-## Unreleased
+## v0.2.7
+
+`v0.2.7` repositions `aweskill` as a skill package manager, renames `store download` to `store install` across the CLI and all documentation, and restructures the built-in `aweskill` meta-skill around task-routing workflow sections. The underlying install and update semantics are unchanged, but the user-facing command names, help text, documentation, and built-in skill guidance were updated.
+
+### `store download` is now `store install`
+
+`aweskill store download` has been renamed to `aweskill store install`. The top-level alias `aweskill download` is now `aweskill install`. All README sections, workflow examples, and command reference entries have been updated accordingly. The flag interface and behavior are unchanged.
+
+### README restructured with FAQ and comparison table
+
+Both `README.md` and `README.zh-CN.md` were restructured:
+
+- The old "Why aweskill" and "Find -> Download -> Update" sections were replaced with an FAQ section covering common questions (who it is for, where skills are stored, agent support, local-first status, agent-callable skills, and the find/install/update lifecycle).
+- A new **Comparison** table was added comparing `aweskill` against `cc-switch`, `sciskill`, `skillfish`, and `skills` across eight capability dimensions.
+- The project tagline changed from "Local skill orchestration CLI" to "Skill Package Manager for AI Agents: Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more."
+- The hero one-liner now reads: "Like npm for local AI agent skills: one install, many coding agents."
+
+### Built-in `aweskill` meta-skill restructured around task routing
+
+The built-in `aweskill` skill (`resources/skills/aweskill/`) was rewritten to guide AI agents through a task-router model instead of a flat command list:
+
+- A new **Task Router** section classifies incoming requests into four domains: Store Work, Source Lifecycle, Bundle Work, and Projection Work, with keyword-based routing hints for each.
+- Workflow sections now map directly to task domains, each with decision-order guidance and inspection-before-mutation rules.
+- Source Lifecycle is a new first-class section covering `find`, `install`, and `update` with a recommended decision order (find → install → update --check → update).
+- Escalation rules to `$aweskill-doctor` were expanded with explicit conditions (broken projections, dedup cleanup, suspicious entries, diagnosis-first tasks).
+- `command-map.md` was reorganized into the same four task-domain sections and now includes source-lifecycle commands and `agent recover`.
+- `common-flows.md` was expanded with new flow sections for source discovery, install, update check, and agent recover, and section headings were normalized.
+- References to `projection-flows.md` and `bundle-flows.md` were removed from `SKILL.md`; their content is now covered by the task-domain workflow sections.
+
+### package.json description updated
+
+The `description` field in `package.json` now matches the new tagline.
+
+### Highlights
+
+- Renamed `store download` → `store install` and `aweskill download` → `aweskill install` across CLI docs and all workflow examples.
+- Added FAQ section to both READMEs covering common questions and use cases.
+- Added comparison table (cc-switch, sciskill, skillfish, skills) to both READMEs.
+- Updated project tagline and one-liner in both READMEs and `package.json`.
+- Restructured the built-in `aweskill` meta-skill around a four-domain task router (Store, Source Lifecycle, Bundle, Projection).
+- Added Source Lifecycle guidance with `find` → `install` → `update` decision order to the built-in skill.
+- Reorganized `command-map.md` and `common-flows.md` to match the task-domain structure.
 
 ## v0.2.6
 
@@ -32,7 +73,7 @@ The CLI message formatter was refactored into smaller rule groups and helper fun
 
 ## v0.2.5
 
-`v0.2.5` is the release where `aweskill` gains a skill search command, support for the sciskill registry, and smarter update checks that skip unchanged GitHub sources. Since `v0.2.4`, the CLI added `store find` to search across skills.sh and sciskill in one query, taught `store download` to pull skills directly from sciskill, made `store update` compare remote tree SHAs to avoid unnecessary clones, and added top-level aliases for the three most-used store commands.
+`v0.2.5` is the release where `aweskill` gains a skill search command, support for the sciskill registry, and smarter update checks that skip unchanged GitHub sources. Since `v0.2.4`, the CLI added `store find` to search across skills.sh and sciskill in one query, taught `store install` to pull skills directly from sciskill, made `store update` compare remote tree SHAs to avoid unnecessary clones, and added top-level aliases for the three most-used store commands.
 
 ### Skill search with `store find`
 
@@ -40,7 +81,7 @@ The CLI message formatter was refactored into smaller rule groups and helper fun
 
 ### Sciskill registry support
 
-`store download` now accepts `sciskill:<skill-id>` as a source type. The CLI downloads and extracts the archive from the sciskill API, wraps flat archives that place `SKILL.md` at the root into a properly named subdirectory, and records the skill in the lock file for future updates. Source parsing and lock entries were extended to represent the new source type.
+`store install` now accepts `sciskill:<skill-id>` as a source type. The CLI downloads and extracts the archive from the sciskill API, wraps flat archives that place `SKILL.md` at the root into a properly named subdirectory, and records the skill in the lock file for future updates. Source parsing and lock entries were extended to represent the new source type.
 
 ### Faster updates with remote tree SHA comparison
 
@@ -48,7 +89,7 @@ The CLI message formatter was refactored into smaller rule groups and helper fun
 
 ### Top-level store aliases
 
-`aweskill import`, `aweskill download`, and `aweskill update` are now available as top-level aliases for their `store` equivalents, making the most common operations shorter to type.
+`aweskill import`, `aweskill install`, and `aweskill update` are now available as top-level aliases for their `store` equivalents, making the most common operations shorter to type.
 
 ### Duplicate-skill conflict reporting
 
@@ -57,12 +98,12 @@ When a download or update encounters a duplicate skill name, the conflict messag
 ### Highlights
 
 - Added `aweskill store find <query>` with skills.sh and sciskill provider support, merged results, and numbered output.
-- Added `sciskill:<skill-id>` source type for `store download` with flat-archive wrapping.
+- Added `sciskill:<skill-id>` source type for `store install` with flat-archive wrapping.
 - Added `fetchGitHubRepoTree` and remote tree SHA comparison in `store update` to skip unchanged sources.
-- Added `aweskill import`, `aweskill download`, `aweskill update` top-level aliases.
+- Added `aweskill import`, `aweskill install`, `aweskill update` top-level aliases.
 - Improved duplicate-skill conflict messages with source context.
 - Added `droma-metaai` bundle template.
-- Updated README, README.zh-CN, and docs/CONTRIBUTING.md with find/download/update docs and streamlined layout.
+- Updated README, README.zh-CN, and docs/CONTRIBUTING.md with find/install/update docs and streamlined layout.
 
 ## v0.2.4
 
@@ -70,7 +111,7 @@ When a download or update encounters a duplicate skill name, the conflict messag
 
 ### Download and update mode
 
-`store download` and `store update` are now first-class central-store workflows. Users can download one or more skills from a local path or GitHub repository, optionally rename single-skill installs, and later ask `store update` to check or refresh tracked skills from their recorded source. This release also adds the underlying machinery for source parsing, temporary clone resolution, downloadable skill discovery, deterministic directory hashing, conflict classification, and source-batched update checks.
+`store install` and `store update` are now first-class central-store workflows. Users can install one or more skills from a local path or GitHub repository, optionally rename single-skill installs, and later ask `store update` to check or refresh tracked skills from their recorded source. This release also adds the underlying machinery for source parsing, temporary clone resolution, downloadable skill discovery, deterministic directory hashing, conflict classification, and source-batched update checks.
 
 ### Skill lock and tracked local imports
 
@@ -88,7 +129,7 @@ Tracked imports can now be combined with `--link-source`. This lets a user impor
 
 ### Highlights
 
-- Added `aweskill store download` and `aweskill store update` plus `skills-lock.json` tracking.
+- Added `aweskill store install` and `aweskill store update` plus `skills-lock.json` tracking.
 - Added source parsing, clone/discovery helpers, deterministic hashing, and update batching by source.
 - Added `aweskill store import <path> --track-source` for explicit local import tracking.
 - Kept tracked update state anchored to the central store copy instead of the external source directory.

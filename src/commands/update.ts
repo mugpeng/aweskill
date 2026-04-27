@@ -172,7 +172,7 @@ export async function runUpdate(context: RuntimeContext, options: UpdateOptions 
               source: entry.sourceType === "local" ? entry.source : undefined,
               sourceUrl: entry.sourceUrl,
               ref: entry.ref,
-              commandName: "aweskill store download",
+              commandName: "aweskill store install",
             })) {
               context.write(line);
             }
