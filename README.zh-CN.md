@@ -242,8 +242,8 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill store init [--scan] [--verbose]` | 初始化 `~/.aweskill` 布局 |
 | `aweskill store where [--verbose]` | 显示 `~/.aweskill` 位置，并汇总核心 store 目录 |
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |
-| `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
-| `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 按指定 scope 和 agent 集合扫描支持的 agent skill 目录 |
+| `aweskill store restore <archive> [--override] [--skills-only]` | 从备份归档或已解包目录恢复 |
+| `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | 按指定 scope 和 agent 集合扫描支持的 agent skill 目录；加上 `--import` 会立即把扫描结果导入中央仓库 |
 | `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录，`--track-source` 可为显式本地导入建立后续 `store update` 追踪 |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | 按指定 scope 和 agent 集合导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
 | `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | 与上面相同的搜索命令，只是保留在 `store` 命名空间下 |
@@ -269,7 +269,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 </details>
 
-`aweskill find` 会优先输出 `aweskill store download` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接下载，并附上对应的 `skills.sh` 详情页，方便你查看上游安装说明。默认同时搜索两个 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
+`aweskill find` 会优先输出 `aweskill store download` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接下载，并提示你去对应的 `skills.sh` 页面查看上游安装说明。默认同时搜索两个 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
 
 ## 内置 Skill
 

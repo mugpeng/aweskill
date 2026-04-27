@@ -242,7 +242,7 @@ Top-level convenience commands are available for high-frequency search and track
 | `aweskill store init [--scan] [--verbose]` | Create the `~/.aweskill` layout |
 | `aweskill store where [--verbose]` | Show the `~/.aweskill` location and summarize core store directories |
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |
-| `aweskill store restore <archive-or-dir> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
+| `aweskill store restore <archive> [--override] [--skills-only]` | Restore from a backup archive or unpacked backup directory |
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | Scan supported agent skill directories for a chosen scope and agent set; add `--import` to immediately import scan results into the central store |
 | `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default, and `--track-source` records explicit local imports for future `store update` runs |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | Import the current scan results for a chosen scope and agent set; scanned agent paths link back to aweskill by default |
@@ -269,7 +269,7 @@ Top-level convenience commands are available for high-frequency search and track
 
 </details>
 
-`aweskill find` prefers to print `source` values that `aweskill store download` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct download and prints the matching `skills.sh` detail page so you can inspect the upstream installation instructions there. When searching both providers at once, `--limit` applies per provider before merge and dedupe.
+`aweskill find` prefers to print `source` values that `aweskill store download` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct download and tells you to visit the matching `skills.sh` page so you can inspect the upstream installation instructions there. When searching both providers at once, `--limit` applies per provider before merge and dedupe.
 
 ## Built-in Skills
 

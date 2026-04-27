@@ -135,7 +135,7 @@ describe("find command", () => {
     expect(lines[0]).toBe("Warning: --domain and --stage only apply to sciskill.");
   });
 
-  it("keeps unsupported skills.sh sources visible and points users to the skills.sh detail page", async () => {
+  it("keeps unsupported skills.sh sources visible and tells users to visit the skills.sh page", async () => {
     const workspace = await createTempWorkspace();
     const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
     vi.stubGlobal("fetch", vi.fn(async () => ({
@@ -143,8 +143,9 @@ describe("find command", () => {
       json: async () => ({
         skills: [
           {
-            id: "smithery/ai/scientific-writing",
-            name: "scientific-writing",
+            id: "smithery.ai/davila7-scientific-writing",
+            skillId: "davila7-scientific-writing",
+            name: "davila7-scientific-writing",
             installs: 10,
             source: "smithery.ai",
           },
@@ -157,7 +158,31 @@ describe("find command", () => {
     const output = lines.join("\n");
     expect(output).toContain("source: smithery.ai");
     expect(output).toContain("aweskill store download does not support this source");
-    expect(output).toContain("https://skills.sh/smithery/ai/scientific-writing");
+    expect(output).toContain("visit skills.sh page: https://skills.sh/smithery/ai/davila7-scientific-writing");
+  });
+
+  it("keeps supporting the legacy three-segment skills.sh detail ids", async () => {
+    const workspace = await createTempWorkspace();
+    const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        skills: [
+          {
+            id: "smithery/ai/scientific-writing",
+            skillId: "scientific-writing",
+            name: "scientific-writing",
+            installs: 10,
+            source: "smithery.ai",
+          },
+        ],
+      }),
+    })));
+
+    await runFind(context, "scientific-writing", { provider: "skills-sh" });
+
+    const output = lines.join("\n");
+    expect(output).toContain("visit skills.sh page: https://skills.sh/smithery/ai/scientific-writing");
   });
 
   it("keeps the original unsupported source when no detail page can be formed", async () => {

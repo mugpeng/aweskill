@@ -8,6 +8,7 @@ type FindProvider = "skills-sh" | "sciskill";
 
 interface SkillsShResult {
   id: string;
+  skillId?: string;
   name: string;
   installs?: number;
   source?: string;
@@ -89,12 +90,27 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function toSkillsShDetailUrl(id?: string): string | undefined {
-  const value = id?.trim();
-  if (!value || !/^[^/\s]+\/[^/\s]+\/[^/\s]+$/.test(value)) {
+function toSkillsShDetailUrl(result: Pick<SkillsShResult, "id" | "skillId" | "source">): string | undefined {
+  const id = result.id?.trim();
+  if (id && /^[^/\s]+\/[^/\s]+\/[^/\s]+$/.test(id)) {
+    return `https://skills.sh/${id}`;
+  }
+
+  const source = result.source?.trim();
+  const skillId = result.skillId?.trim();
+  if (source === "smithery.ai" && skillId) {
+    return `https://skills.sh/smithery/ai/${skillId}`;
+  }
+
+  if (!id) {
     return undefined;
   }
-  return `https://skills.sh/${value}`;
+  const smitheryIdMatch = id.match(/^smithery\.ai\/([^/\s]+)$/);
+  if (smitheryIdMatch?.[1]) {
+    return `https://skills.sh/smithery/ai/${smitheryIdMatch[1]}`;
+  }
+
+  return undefined;
 }
 
 function pickDownloadSource(source?: string): { source: string; downloadable: boolean } {
@@ -128,7 +144,7 @@ async function searchSkillsSh(query: string, limit: number, timeoutMs: number): 
         downloadable: resolved.downloadable,
         installs: result.installs ?? 0,
         description: result.description,
-        detailUrl: resolved.downloadable ? undefined : toSkillsShDetailUrl(result.id),
+        detailUrl: resolved.downloadable ? undefined : toSkillsShDetailUrl(result),
       };
     })
     .sort((left, right) => (right.installs ?? 0) - (left.installs ?? 0));
@@ -186,7 +202,7 @@ function formatFindResult(result: FindResult, index: number): string {
   if (!result.downloadable) {
     lines.push("   aweskill store download does not support this source");
     if (result.detailUrl) {
-      lines.push(`   details: ${result.detailUrl}`);
+      lines.push(`   visit skills.sh page: ${result.detailUrl}`);
     }
   }
   return lines.join("\n");
