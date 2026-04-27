@@ -1,7 +1,8 @@
 <div align="center">
   <img src="./logo.png" alt="aweskill" width="760">
   <h1>aweskill：面向 AI Agents 的 Skill 包管理器</h1>
-  <p><strong>在 Codex、Claude Code、Cursor、Gemini CLI、Qwen Code、Windsurf 等工具之间安装、更新、打包并投影 skills。</strong></p>
+  <p><strong>以 CLI 为核心的 Skill 包管理器，AI agent 也能自己调用和维护。</strong></p>
+  <p>在 Codex、Claude Code、Cursor、Gemini CLI、Qwen Code、Windsurf 等工具之间安装、更新、打包并投影 skills。</p>
   <p>
     <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.7-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
@@ -27,6 +28,75 @@
 它可以帮助开发者查找、安装、更新、打包、查重、备份并复用 skills。
 
 你不需要再把同一套 `SKILL.md` 文件夹手动复制到每个工具里。`aweskill` 会把 `~/.aweskill/skills/` 作为唯一中央仓库，再通过 `symlink`、junction 或受管 `copy`，把选中的 skill 投影到每个 agent 需要的目录。
+
+## 安装
+
+你可以自己安装 `aweskill`，也可以让 AI 编码 agent 帮你安装。
+
+### 让 AI agent 安装 aweskill
+
+如果你正在 Codex、Claude Code、Cursor、Gemini CLI 或其他编码 agent 里工作，可以直接告诉它：
+
+```text
+请用 npm 全局安装 aweskill，初始化 aweskill store，然后显示 store 所在位置。
+```
+
+agent 应该执行：
+
+```bash
+npm install -g aweskill
+aweskill store init
+aweskill store where --verbose
+```
+
+然后把内置管理 skills 投影给这个 agent：
+
+```bash
+aweskill agent add skill aweskill,aweskill-doctor --global --agent codex
+```
+
+把 `codex` 换成你正在使用的 agent id，也可以运行 `aweskill agent supported` 查看支持列表。
+
+### 从 npm 安装（推荐）
+
+需要 [Node.js](https://nodejs.org/) 20 及以上。
+
+```bash
+npm install -g aweskill
+aweskill --help
+```
+
+固定到某一版本：
+
+```bash
+npm install -g aweskill@0.2.7
+```
+
+包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
+
+### 直接从当前仓库安装
+
+```bash
+npm install
+npm run build
+npm install -g .
+```
+
+### 本地开发模式
+
+```bash
+npm install
+npm link
+aweskill --help
+```
+
+### 用打包产物安装
+
+```bash
+npm install
+npm pack
+npm install -g ./aweskill-<version>.tgz
+```
 
 ## FAQ
 
@@ -90,49 +160,6 @@
 | 本地维护与恢复能力 | ✗ | ✗ | ✗ | ✗ | CLI 内置 backup、restore、dedup、clean、sync 和 recover 工作流 |
 
 当你的核心问题不只是“装一个 skill”，而是“长期维护一套可复用、可更新、可恢复、可跨 agent 复用的本地 skills 资产”时，`aweskill` 更合适。
-
-## 安装
-
-### 从 npm 安装（推荐）
-
-需要 [Node.js](https://nodejs.org/) 20 及以上。
-
-```bash
-npm install -g aweskill
-aweskill --help
-```
-
-固定到某一版本：
-
-```bash
-npm install -g aweskill@0.2.7
-```
-
-包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
-
-### 直接从当前仓库安装
-
-```bash
-npm install
-npm run build
-npm install -g .
-```
-
-### 本地开发模式
-
-```bash
-npm install
-npm link
-aweskill --help
-```
-
-### 用打包产物安装
-
-```bash
-npm install
-npm pack
-npm install -g ./aweskill-<version>.tgz
-```
 
 ## 快速开始
 
@@ -371,6 +398,9 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 ## 内置 Skill
 
 `aweskill` 内置了两个 meta-skill，用来教 AI agent 直接运行 aweskill 命令。
+
+- `aweskill`：常规管理，覆盖 `find`、`install`、`update`、中央仓库流程、bundle 和 agent 投影
+- `aweskill-doctor`：异常诊断和修复，覆盖 broken projections、重复 skills、suspicious entries 和 sync cleanup
 
 ```bash
 aweskill store import resources/skills/aweskill

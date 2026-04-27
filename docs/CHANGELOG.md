@@ -1,8 +1,8 @@
 # change log
 
-## v0.2.7
+## Unreleased
 
-`v0.2.7` repositions `aweskill` as a skill package manager, renames `store download` to `store install` across the CLI and all documentation, and restructures the built-in `aweskill` meta-skill around task-routing workflow sections. The underlying install and update semantics are unchanged, but the user-facing command names, help text, documentation, and built-in skill guidance were updated.
+This unreleased update repositions `aweskill` as a skill package manager, renames `store download` to `store install` across the CLI and all documentation, and restructures the built-in `aweskill` meta-skill around task-routing workflow sections. The underlying install and update semantics are unchanged, but the user-facing command names, help text, documentation, and built-in skill guidance were updated.
 
 ### `store download` is now `store install`
 
@@ -14,8 +14,8 @@ Both `README.md` and `README.zh-CN.md` were restructured:
 
 - The old "Why aweskill" and "Find -> Download -> Update" sections were replaced with an FAQ section covering common questions (who it is for, where skills are stored, agent support, local-first status, agent-callable skills, and the find/install/update lifecycle).
 - A new **Comparison** table was added comparing `aweskill` against `cc-switch`, `sciskill`, `skillfish`, and `skills` across eight capability dimensions.
-- The project tagline changed from "Local skill orchestration CLI" to "Skill Package Manager for AI Agents: Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more."
-- The hero one-liner now reads: "Like npm for local AI agent skills: one install, many coding agents."
+- The project headline changed to "Skill Packages for AI Agents" with the tagline "A CLI-first skill package manager that AI agents can operate themselves."
+- The coverage line now reads: "Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more."
 
 ### Built-in `aweskill` meta-skill restructured around task routing
 
@@ -31,14 +31,14 @@ The built-in `aweskill` skill (`resources/skills/aweskill/`) was rewritten to gu
 
 ### package.json description updated
 
-The `description` field in `package.json` now matches the new tagline.
+The `description` field in `package.json` now matches the CLI-first tagline.
 
 ### Highlights
 
 - Renamed `store download` → `store install` and `aweskill download` → `aweskill install` across CLI docs and all workflow examples.
 - Added FAQ section to both READMEs covering common questions and use cases.
 - Added comparison table (cc-switch, sciskill, skillfish, skills) to both READMEs.
-- Updated project tagline and one-liner in both READMEs and `package.json`.
+- Updated project headline, tagline, coverage line, and install placement in both READMEs and `package.json`.
 - Restructured the built-in `aweskill` meta-skill around a four-domain task router (Store, Source Lifecycle, Bundle, Projection).
 - Added Source Lifecycle guidance with `find` → `install` → `update` decision order to the built-in skill.
 - Reorganized `command-map.md` and `common-flows.md` to match the task-domain structure.

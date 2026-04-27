@@ -1,7 +1,7 @@
 {
   "name": "aweskill",
   "version": "0.2.7",
-  "description": "Skill package manager for AI agents: install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more.",
+  "description": "CLI-first skill package manager that AI agents can operate themselves.",
   "license": "MPL-2.0",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,7 +1,8 @@
 <div align="center">
   <img src="./logo.png" alt="aweskill" width="760">
   <h1>aweskill: Skill Package Manager for AI Agents</h1>
-  <p><strong>Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more.</strong></p>
+  <p><strong>A CLI-first skill package manager that AI agents can operate themselves.</strong></p>
+  <p>Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more.</p>
   <p>
     <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.7-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
@@ -27,6 +28,75 @@
 It helps developers find, install, update, bundle, deduplicate, back up, and reuse skills across multiple AI coding tools.
 
 Instead of copying the same `SKILL.md` folders into every tool by hand, `aweskill` keeps one central source of truth in `~/.aweskill/skills/` and projects selected skills into each agent's expected directory using `symlink`, junction, or managed `copy`.
+
+## Install
+
+You can install `aweskill` yourself, or ask an AI coding agent to do it for you.
+
+### Ask an AI agent to install aweskill
+
+If you are working inside Codex, Claude Code, Cursor, Gemini CLI, or another coding agent, ask it:
+
+```text
+Install aweskill globally with npm, initialize the aweskill store, then show me where the store is located.
+```
+
+The agent should run:
+
+```bash
+npm install -g aweskill
+aweskill store init
+aweskill store where --verbose
+```
+
+Then project the built-in management skills into that agent:
+
+```bash
+aweskill agent add skill aweskill,aweskill-doctor --global --agent codex
+```
+
+Replace `codex` with your agent id, or run `aweskill agent supported` to see supported ids.
+
+### Install from npm (recommended)
+
+Requires [Node.js](https://nodejs.org/) 20 or later.
+
+```bash
+npm install -g aweskill
+aweskill --help
+```
+
+To pin a specific release:
+
+```bash
+npm install -g aweskill@0.2.7
+```
+
+Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
+
+### Install from this repository
+
+```bash
+npm install
+npm run build
+npm install -g .
+```
+
+### Local development link
+
+```bash
+npm install
+npm link
+aweskill --help
+```
+
+### Install from packed tarball
+
+```bash
+npm install
+npm pack
+npm install -g ./aweskill-<version>.tgz
+```
 
 ## FAQ
 
@@ -90,49 +160,6 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 | Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, and recover workflows in the CLI |
 
 Use `aweskill` when your main problem is not just installing a skill once, but maintaining a reusable local skill inventory across multiple AI agents over time.
-
-## Install
-
-### Install from npm (recommended)
-
-Requires [Node.js](https://nodejs.org/) 20 or later.
-
-```bash
-npm install -g aweskill
-aweskill --help
-```
-
-To pin a specific release:
-
-```bash
-npm install -g aweskill@0.2.7
-```
-
-Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
-
-### Install from this repository
-
-```bash
-npm install
-npm run build
-npm install -g .
-```
-
-### Local development link
-
-```bash
-npm install
-npm link
-aweskill --help
-```
-
-### Install from packed tarball
-
-```bash
-npm install
-npm pack
-npm install -g ./aweskill-<version>.tgz
-```
 
 ## Quick Start
 
@@ -371,6 +398,9 @@ Top-level convenience commands are available for high-frequency search and track
 ## Built-in Skills
 
 `aweskill` ships two meta-skills that teach AI agents how to run aweskill commands directly.
+
+- `aweskill`: routine management for `find`, `install`, `update`, central-store workflows, bundles, and agent projection
+- `aweskill-doctor`: diagnosis and repair for broken projections, duplicate skills, suspicious entries, and sync cleanup
 
 ```bash
 aweskill store import resources/skills/aweskill
