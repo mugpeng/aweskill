@@ -208,11 +208,11 @@ function addDownloadCommand(parent: Command, context: RuntimeContext, title: str
   parent
     .command("download")
     .argument("<source>")
-    .description("Download skills from a source into the central store")
+    .description("Download skills from a local path, GitHub source, or sciskill:<skill-id> into the central store")
     .option("--list", "list downloadable skills without installing", false)
     .option("--skill <skill>", "repeat or use comma list; select skills to download", collectAgents)
     .option("--all", "download all skills from the source", false)
-    .option("--ref <ref>", "git branch or tag to download")
+    .option("--ref <ref>", "git branch or tag to download (GitHub sources only)")
     .option("--override", "overwrite existing skills when downloading", false)
     .option("--as <name>", "install a single downloaded skill under a different name")
     .action(async (source, options) => {

@@ -46,10 +46,11 @@ describe("find command", () => {
     const output = lines.join("\n");
     expect(output).toContain("Found 3 skills:");
     expect(output).toContain("protein-search  8.8K installs  skills-sh");
-    expect(output).toContain("Download: aweskill store download owner/repo");
+    expect(output).toContain("source: owner/repo");
     expect(output).toContain("lifesciences-proteomics  --  sciskill");
-    expect(output).toContain("Download: aweskill store download sciskill:open-source/research/lifesciences-proteomics");
+    expect(output).toContain("source: sciskill:open-source/research/lifesciences-proteomics");
     expect(output).not.toContain("duplicate");
+    expect(output).toContain("Run: aweskill store download <source>");
   });
 
   it("warns when sciskill-only filters are used against skills-sh", async () => {

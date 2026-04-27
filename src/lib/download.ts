@@ -173,6 +173,44 @@ async function discoverRecursive(
   }
 }
 
+async function discoverNamedRecursive(
+  baseDir: string,
+  currentDir: string,
+  targetName: string,
+  results: DownloadableSkill[],
+  depth = 0,
+): Promise<void> {
+  if (depth > 5) {
+    return;
+  }
+
+  let entries;
+  try {
+    entries = await readdir(currentDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  if (await hasSkillMd(currentDir)) {
+    const name = sanitizeName(path.basename(currentDir));
+    if (name === targetName) {
+      results.push({
+        name,
+        path: currentDir,
+        subpath: path.relative(baseDir, currentDir).split(path.sep).join("/") || ".",
+      });
+    }
+    return;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || SKIP_DIRS.has(entry.name)) {
+      continue;
+    }
+    await discoverNamedRecursive(baseDir, path.join(currentDir, entry.name), targetName, results, depth + 1);
+  }
+}
+
 export async function discoverDownloadableSkills(baseDir: string, subpath?: string): Promise<DownloadableSkill[]> {
   const searchRoot = subpath ? path.join(baseDir, subpath) : baseDir;
   assertPathSafe(baseDir, searchRoot);
@@ -219,6 +257,50 @@ export async function discoverDownloadableSkills(baseDir: string, subpath?: stri
   }
 
   return results.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+export async function discoverDownloadableSkillsByName(baseDir: string, targetName: string): Promise<DownloadableSkill[]> {
+  const normalizedName = sanitizeName(targetName);
+  if (!normalizedName) {
+    return [];
+  }
+
+  const results: DownloadableSkill[] = [];
+
+  for (const relativeDir of PRIORITY_SKILL_DIRS) {
+    const directoryPath = relativeDir ? path.join(baseDir, relativeDir) : baseDir;
+    let entries;
+    try {
+      entries = await readdir(directoryPath, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const skillPath = path.join(directoryPath, entry.name);
+      if (!(await hasSkillMd(skillPath))) {
+        continue;
+      }
+      const name = sanitizeName(entry.name);
+      if (name !== normalizedName) {
+        continue;
+      }
+      results.push({
+        name,
+        path: skillPath,
+        subpath: path.relative(baseDir, skillPath).split(path.sep).join("/"),
+      });
+    }
+  }
+
+  if (results.length === 0) {
+    await discoverNamedRecursive(baseDir, baseDir, normalizedName, results);
+  }
+
+  return results.sort((left, right) => left.subpath.localeCompare(right.subpath));
 }
 
 function sameSource(left: NewSkillLockEntry, right: NewSkillLockEntry): boolean {

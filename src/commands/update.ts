@@ -1,6 +1,7 @@
 import { resolveSourceRoot } from "./download.js";
 import {
   discoverDownloadableSkills,
+  discoverDownloadableSkillsByName,
   DuplicateSkillNameError,
   formatDuplicateSkillNameConflict,
   type DownloadableSkill,
@@ -50,10 +51,15 @@ async function findRemoteSkill(sourceRoot: string, name: string, entry: SkillLoc
     if (matchedAtLockedPath) {
       return matchedAtLockedPath;
     }
+
+    return undefined;
   }
 
-  const skills = await discoverDownloadableSkills(sourceRoot);
-  return skills.find((skill) => skill.name === name || skill.subpath === entry.subpath);
+  const skills = await discoverDownloadableSkillsByName(sourceRoot, name);
+  if (skills.length > 1) {
+    throw new DuplicateSkillNameError(name, { path: skills[0]!.path, subpath: skills[0]!.subpath }, { path: skills[1]!.path, subpath: skills[1]!.subpath });
+  }
+  return skills[0];
 }
 
 export async function resolveUpdateRoot(context: RuntimeContext, entry: SkillLockEntry) {

@@ -116,8 +116,8 @@ function dedupeFindResults(results: FindResult[]): FindResult[] {
 function formatFindResult(result: FindResult): string {
   return [
     `${result.name}  ${formatInstalls(result.installs)}  ${result.provider}`,
-    `  ${result.description || result.downloadSource}`,
-    `  Download: aweskill store download ${result.downloadSource}`,
+    `  ${result.description || "(no description)"}`,
+    `  source: ${result.downloadSource}`,
   ].join("\n");
 }
 
@@ -166,6 +166,6 @@ export async function runFind(context: RuntimeContext, query: string, options: F
   }
 
   context.write(`Found ${merged.length} skill${merged.length === 1 ? "" : "s"}:`);
-  context.write(merged.map(formatFindResult).join("\n\n"));
+  context.write(`${merged.map(formatFindResult).join("\n\n")}\n\nRun: aweskill store download <source>`);
   return { results: merged };
 }

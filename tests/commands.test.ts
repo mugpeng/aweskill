@@ -1728,6 +1728,42 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Downloaded lifesciences-proteomics");
   });
 
+  it("prints sciskill as a supported download source in help text", () => {
+    const program = createProgram({
+      cwd: "/tmp/project",
+      homeDir: "/tmp/home",
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const topLevelHelp = program.helpInformation();
+    expect(topLevelHelp).toContain("sciskill:<skill-id>");
+    expect(topLevelHelp).toContain("GitHub source,");
+
+    const downloadCommand = program.commands.find((command) => command.name() === "download");
+    expect(downloadCommand?.helpInformation()).toContain("git branch or tag to download (GitHub sources only)");
+  });
+
+  it("surfaces sciskill download HTTP failures with provider-specific context", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 404,
+    })));
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "store", "download", "sciskill:open-source/research/missing"], { from: "node" }),
+    ).rejects.toThrow(
+      "Failed to download sciskill source sciskill:open-source/research/missing: HTTP 404 from https://sciskillhub.org/api/v1/download/open-source/research/missing",
+    );
+  });
+
   it("supports top-level import, download, and update aliases for store commands", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -1831,7 +1867,7 @@ describe("commands", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("update falls back to a full-source name match when the locked subpath no longer exists", async () => {
+  it("update reports the tracked skill as missing when the locked subpath no longer exists", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1851,8 +1887,8 @@ describe("commands", () => {
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "store", "update", "moved"], { from: "node" });
 
-    expect(lines.join("\n")).toContain("Updated moved");
-    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "moved"), "SKILL.md"), "utf8")).resolves.toContain("Moved v2");
+    expect(lines.join("\n")).toContain("Failed to check moved: source no longer contains this skill.");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "moved"), "SKILL.md"), "utf8")).resolves.toContain("Moved v1");
   });
 
   it("update reports duplicate source paths after falling back to a full-source scan with no locked subpath", async () => {
@@ -1883,6 +1919,58 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Example command below: replace the URL with the confirmed source path before running it.");
     expect(lines.join("\n")).toContain("aweskill store download");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "caveman"), "SKILL.md"), "utf8")).resolves.toContain("Caveman v1");
+  });
+
+  it("update reports the tracked skill as missing when its locked subpath is gone, even if unrelated duplicate names exist", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "skills", "caveman-compress"), "Compress v1");
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "caveman-compress"], { from: "node" });
+
+    await rm(path.join(sourceRoot, "skills", "caveman-compress"), { recursive: true, force: true });
+    await writeSkill(path.join(sourceRoot, "caveman"), "Caveman v1");
+    await writeSkill(path.join(sourceRoot, "skills", "caveman"), "Caveman v2");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "caveman-compress"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Failed to check caveman-compress: source no longer contains this skill.");
+    expect(lines.join("\n")).not.toContain("Duplicate skill names found in source:");
+  });
+
+  it("update only reports duplicate names for the requested skill when no locked subpath is available", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "skills", "caveman-compress"), "Compress v1");
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "caveman-compress"], { from: "node" });
+    const lock = await readSkillLock(workspace.homeDir);
+    delete lock.skills["caveman-compress"]?.subpath;
+    await writeSkillLock(workspace.homeDir, lock);
+
+    await writeSkill(path.join(sourceRoot, ".codex", "skills", "caveman-compress"), "Compress v2");
+    await writeSkill(path.join(sourceRoot, "caveman"), "Caveman v1");
+    await writeSkill(path.join(sourceRoot, "skills", "caveman"), "Caveman v2");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "caveman-compress"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Duplicate skill names found in source:");
+    expect(lines.join("\n")).toContain("- caveman-compress:");
+    expect(lines.join("\n")).not.toContain("- caveman:");
   });
 
   it("update groups multiple skills from the same source into one source batch", async () => {

@@ -47,17 +47,22 @@ export async function resolveSourceRoot(source: DownloadSource): Promise<{ root:
     try {
       const response = await fetch(downloadUrl);
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status} from ${downloadUrl}`);
       }
 
       const archive = Buffer.from(await response.arrayBuffer());
       await writeFile(archivePath, archive);
-      await execFileAsync("unzip", ["-q", archivePath, "-d", tempDir]);
+      try {
+        await execFileAsync("unzip", ["-q", archivePath, "-d", tempDir]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`archive extraction failed: ${message}`);
+      }
       return { root: tempDir, cleanup: async () => rm(tempDir, { recursive: true, force: true }) };
     } catch (error) {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to download ${source.source}: ${message}`);
+      throw new Error(`Failed to download sciskill source ${source.source}: ${message}`);
     }
   }
 

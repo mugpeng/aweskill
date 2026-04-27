@@ -7,6 +7,7 @@ import { computeDirectoryHash } from "../src/lib/hash.js";
 import {
   classifyDownloadConflict,
   discoverDownloadableSkills,
+  discoverDownloadableSkillsByName,
   DuplicateSkillNameError,
   formatDownloadConflictLines,
   formatDuplicateSkillNameConflict,
@@ -82,6 +83,19 @@ describe("download helpers", () => {
     await expect(discoverDownloadableSkills(workspace.projectDir)).rejects.toThrow(
       'Duplicate skill name "caveman" found in source:',
     );
+  });
+
+  it("finds only the requested skill name even when unrelated duplicates exist elsewhere", async () => {
+    const workspace = await createTempWorkspace();
+    await writeSkill(path.join(workspace.projectDir, "skills", "caveman"), "First");
+    await writeSkill(path.join(workspace.projectDir, ".codex", "skills", "caveman"), "Second");
+    await writeSkill(path.join(workspace.projectDir, "skills", "caveman-compress"), "Compress");
+
+    const skills = await discoverDownloadableSkillsByName(workspace.projectDir, "caveman-compress");
+
+    expect(skills.map((skill) => `${skill.name}:${skill.subpath}`)).toEqual([
+      "caveman-compress:skills/caveman-compress",
+    ]);
   });
 
   it("formats duplicate skill-name conflicts into user-facing lines with source URLs", () => {
