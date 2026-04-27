@@ -111,8 +111,10 @@ Keep the format intentionally small. If a proposal adds state that cannot be und
 - `skill`
 - `bundle`
 - `agent`
-- `store`
+- `store` — includes `find`, `download`, `update`, `import`, `scan`, `backup`, `restore`, `list`, `remove`
 - `doctor`
+
+Top-level aliases `aweskill import`, `aweskill download`, and `aweskill update` map to their `store` equivalents for convenience.
 
 If a contribution adds or changes CLI behavior, first ask which of those areas it truly belongs to.
 Avoid introducing overlapping commands or synonyms that increase the command surface without adding real capability.
@@ -167,6 +169,19 @@ There is no separate global activation registry. The projected filesystem state 
 - `restore` accepts either a backup archive or an unpacked directory containing `skills/`
 - `restore` skips existing skills and bundles by default and only overwrites with `--override`
 - `backup` and `restore` include both `skills/` and `bundles/` by default; use `--skills-only` for a reduced flow
+
+### Find and download
+
+`store find` searches across two skill providers:
+
+- **skills.sh** — community skill directory with downloadable GitHub sources
+- **sciskill** — scientific and technical skill registry with `sciskill:<skill-id>` identifiers
+
+Results are merged by name. When a provider returns a discover-only source (e.g. `smithery.ai`), the result still appears but is marked as unsupported for direct download.
+
+`store download <source>` accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers. Downloaded skills are recorded in the lock file for future `store update` runs.
+
+`store update [skill...]` checks or refreshes tracked skills from their recorded source. Add `--check` for a read-only check, `--dry-run` for a preview, and `--source` to override the recorded source.
 
 ### Store Hygiene
 
@@ -321,6 +336,7 @@ If you change:
 - bundle format
 - projection behavior
 - supported agents
+- find/download/update behavior or provider support
 
 please update the relevant docs in the same change:
 
@@ -370,7 +386,12 @@ Reducing cognitive load is a feature. Avoid adding commands that should really b
 - [vercel-labs/skills](https://github.com/vercel-labs/skills)
 - [cc-switch](https://github.com/farion1231/cc-switch)
 
-These projects helped shape different parts of the design space, from skill packaging conventions to cross-tool management and local developer workflows.
+These projects helped clarify different parts of the design space:
+
+- desktop-first multi-tool management
+- CLI-first skill installation and synchronization
+- open skill ecosystem conventions
+- cross-agent local developer workflow tooling
 
 ## Questions
 

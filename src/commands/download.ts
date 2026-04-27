@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -15,6 +15,7 @@ import {
 } from "../lib/download.js";
 import { computeDirectoryHash } from "../lib/hash.js";
 import { fetchGitHubRepoTree, getGitHubTreeShaForSubpath, type GitHubRepoTree } from "../lib/github-tree.js";
+import { pathExists } from "../lib/fs.js";
 import { importPath } from "../lib/import.js";
 import { upsertSkillLockEntry } from "../lib/lock.js";
 import { normalizeNameList, sanitizeName } from "../lib/path.js";
@@ -33,6 +34,28 @@ export interface DownloadOptions {
   as?: string;
 }
 
+function getSciskillLeafName(skillId: string): string {
+  const leaf = skillId.split("/").filter(Boolean).at(-1) ?? "downloaded-skill";
+  return sanitizeName(leaf) || "downloaded-skill";
+}
+
+async function wrapFlatSciskillArchive(extractRoot: string, skillId: string): Promise<void> {
+  const rootSkillFile = path.join(extractRoot, "SKILL.md");
+  if (!(await pathExists(rootSkillFile))) {
+    return;
+  }
+
+  const targetDir = path.join(extractRoot, getSciskillLeafName(skillId));
+  await mkdir(targetDir, { recursive: true });
+  const entries = await readdir(extractRoot, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === path.basename(targetDir)) {
+      continue;
+    }
+    await rename(path.join(extractRoot, entry.name), path.join(targetDir, entry.name));
+  }
+}
+
 export async function resolveSourceRoot(source: DownloadSource): Promise<{ root: string; cleanup?: () => Promise<void> }> {
   if (source.type === "local") {
     return { root: source.localPath! };
@@ -41,6 +64,7 @@ export async function resolveSourceRoot(source: DownloadSource): Promise<{ root:
   const tempDir = await mkdtemp(path.join(tmpdir(), "aweskill-download-"));
   if (source.type === "sciskill") {
     const archivePath = path.join(tempDir, "skill.zip");
+    const extractRoot = path.join(tempDir, "extracted");
     const skillId = source.source.replace(/^sciskill:/, "");
     const downloadUrl = `${SCISKILL_API_BASE}/api/v1/download/${skillId}`;
 
@@ -52,13 +76,15 @@ export async function resolveSourceRoot(source: DownloadSource): Promise<{ root:
 
       const archive = Buffer.from(await response.arrayBuffer());
       await writeFile(archivePath, archive);
+      await mkdir(extractRoot, { recursive: true });
       try {
-        await execFileAsync("unzip", ["-q", archivePath, "-d", tempDir]);
+        await execFileAsync("unzip", ["-q", archivePath, "-d", extractRoot]);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`archive extraction failed: ${message}`);
       }
-      return { root: tempDir, cleanup: async () => rm(tempDir, { recursive: true, force: true }) };
+      await wrapFlatSciskillArchive(extractRoot, skillId);
+      return { root: extractRoot, cleanup: async () => rm(tempDir, { recursive: true, force: true }) };
     } catch (error) {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
       const message = error instanceof Error ? error.message : String(error);

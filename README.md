@@ -273,19 +273,14 @@ Short aliases are also available for high-frequency store commands: `aweskill im
 
 ## Built-in Skills
 
-`aweskill` ships with two meta-skills that teach AI coding agents how to operate the CLI directly. Import them into your central store so agents like Codex, Claude Code, or Cursor can run aweskill commands without manual steps.
+`aweskill` ships two meta-skills that teach AI agents how to run aweskill commands directly.
 
 ```bash
 aweskill store import resources/skills/aweskill
 aweskill store import resources/skills/aweskill-doctor
 ```
 
-| Skill | Scope | When to use |
-| --- | --- | --- |
-| `aweskill` | Operations | Day-to-day and strategy-oriented work: init, scan, import, list, remove, bundle CRUD, template bundles, recover flows, and multi-scope projection planning |
-| `aweskill-doctor` | Diagnostics | Repair: `doctor clean`, `doctor dedup`, `doctor sync`, interpreting broken/duplicate/suspicious entries |
-
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for the skill directory structure and design principles.
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for skill directory structure and design principles.
 
 ## Contributing
 
@@ -366,28 +361,14 @@ Works with 47 agents including:
 
 ## Related Tools
 
-If you are exploring the broader skills ecosystem, these projects are worth using and studying:
-
 - [Skills Manager](https://github.com/jiweiyeah/Skills-Manager): a desktop application for managing skills across multiple AI coding assistants, with synchronization and GUI-driven organization.
 - [skillfish](https://github.com/knoxgraeme/skillfish): a CLI-first skill manager focused on installing, updating, and syncing skills across agents.
 - [vercel-labs/skills](https://github.com/vercel-labs/skills): a widely adopted open agent-skills CLI and ecosystem entry point built around reusable `SKILL.md` packages.
 - [cc-switch](https://github.com/farion1231/cc-switch): a desktop all-in-one manager for Claude Code, Codex, Gemini CLI, OpenCode, and related local AI tooling.
 
-`aweskill` references and learns from all four of these projects. They helped clarify different parts of the design space:
+## Development
 
-- desktop-first multi-tool management
-- CLI-first skill installation and synchronization
-- open skill ecosystem conventions
-- cross-agent local developer workflow tooling
-
-## Development Commands
-
-```bash
-npm install
-npm test
-npm run build
-node dist/index.js --help
-```
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for setup, testing, code style, and design principles.
 
 ## License
 

@@ -230,18 +230,19 @@ export async function runFind(context: RuntimeContext, query: string, options: F
   const merged = dedupeFindResults([
     ...(resultsByProvider.get("skills-sh") ?? []),
     ...(resultsByProvider.get("sciskill") ?? []),
-  ]).slice(0, limit);
+  ]);
+  const visibleResults = options.provider ? merged.slice(0, limit) : merged;
 
-  if (merged.length === 0) {
+  if (visibleResults.length === 0) {
     context.write(`No skills found for "${query}".`);
     return { results: [] };
   }
 
-  context.write(`Found ${merged.length} skill${merged.length === 1 ? "" : "s"}`);
-  const hasUnsupported = merged.some((result) => !result.downloadable);
+  context.write(`Found ${visibleResults.length} skill${visibleResults.length === 1 ? "" : "s"}`);
+  const hasUnsupported = visibleResults.some((result) => !result.downloadable);
   const footer = hasUnsupported
     ? "Run: aweskill store download <source> for supported sources"
     : "Run: aweskill store download <source>";
-  context.write(`${merged.map((result, index) => formatFindResult(result, index)).join("\n\n")}\n\n${footer}`);
-  return { results: merged };
+  context.write(`${visibleResults.map((result, index) => formatFindResult(result, index)).join("\n\n")}\n\n${footer}`);
+  return { results: visibleResults };
 }

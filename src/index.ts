@@ -149,12 +149,15 @@ function isInitializationExempt(args: string[]): boolean {
     return true;
   }
 
-  return args[0] === "store" && (args[1] === "init" || args[1] === "find");
+  return args[0] === "find" || (args[0] === "store" && (args[1] === "init" || args[1] === "find"));
 }
 
 function assertLegacySkillCommandRemoved(args: string[]): void {
   if (args[0] === "skill") {
     throw new Error('Top-level command "skill" was removed. Use "aweskill store ..." instead.');
+  }
+  if (args[0] === "import") {
+    throw new Error('Top-level command "import" was removed. Use "aweskill store import ..." instead.');
   }
 }
 
@@ -199,6 +202,31 @@ function addImportCommand(parent: Command, context: RuntimeContext, title: strin
           keepSource: options.keepSource,
           linkSource: options.linkSource,
           trackSource: options.trackSource,
+        }),
+      );
+    });
+}
+
+function addFindCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("find")
+    .argument("<query>")
+    .description("Search skills across configured providers")
+    .option("-p, --provider <provider>", "limit search to one provider (skills-sh or sciskill)")
+    .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
+    .option("--domain <domain>", "pass an exact domain filter to sciskill")
+    .option("--stage <stage>", "pass an exact stage filter to sciskill")
+    .action(async (query, options) => {
+      const provider = options.provider as "skills-sh" | "sciskill" | undefined;
+      if (provider && provider !== "skills-sh" && provider !== "sciskill") {
+        throw new Error(`Unsupported provider: ${provider}`);
+      }
+      await runFramedCommand(title, async () =>
+        runFind(context, query, {
+          provider,
+          limit: options.limit,
+          domain: options.domain,
+          stage: options.stage,
         }),
       );
     });
@@ -262,8 +290,8 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .version(AWESKILL_VERSION, "-v, --version", "output the version number")
     .helpOption("-h, --help", "Display help");
 
-  addImportCommand(program, context, " aweskill import ");
   addDownloadCommand(program, context, " aweskill download ");
+  addFindCommand(program, context, " aweskill find ");
   addUpdateCommand(program, context, " aweskill update ");
 
   const bundle = program.command("bundle").description("Manage skill bundles");
@@ -464,28 +492,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   addImportCommand(store, context, " aweskill store import ");
   addDownloadCommand(store, context, " aweskill store download ");
   addUpdateCommand(store, context, " aweskill store update ");
-  store
-    .command("find")
-    .argument("<query>")
-    .description("Search skills across configured providers")
-    .option("-p, --provider <provider>", "limit search to one provider (skills-sh or sciskill)")
-    .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
-    .option("--domain <domain>", "pass an exact domain filter to sciskill")
-    .option("--stage <stage>", "pass an exact stage filter to sciskill")
-    .action(async (query, options) => {
-      const provider = options.provider as "skills-sh" | "sciskill" | undefined;
-      if (provider && provider !== "skills-sh" && provider !== "sciskill") {
-        throw new Error(`Unsupported provider: ${provider}`);
-      }
-      await runFramedCommand(" aweskill store find ", async () =>
-        runFind(context, query, {
-          provider,
-          limit: options.limit,
-          domain: options.domain,
-          stage: options.stage,
-        }),
-      );
-    });
+  addFindCommand(store, context, " aweskill store find ");
   store
     .command("remove")
     .argument("<skill>")

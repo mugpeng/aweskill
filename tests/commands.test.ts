@@ -119,7 +119,7 @@ describe("commands", () => {
     }
   });
 
-  it("allows store find before store init", async () => {
+  it("allows find before store init", async () => {
     const workspace = await createTempWorkspace();
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -135,7 +135,7 @@ describe("commands", () => {
     process.env.AWESKILL_HOME = workspace.homeDir;
 
     try {
-      await main(["node", "aweskill", "store", "find", "protein"]);
+      await main(["node", "aweskill", "find", "protein"]);
       expect(stderr).not.toHaveBeenCalledWith(
         expect.stringContaining(`aweskill store is not initialized at ${path.join(workspace.homeDir, ".aweskill")}`),
       );
@@ -148,6 +148,31 @@ describe("commands", () => {
       }
       stdout.mockRestore();
       stderr.mockRestore();
+    }
+  });
+
+  it("rejects the removed top-level import command", async () => {
+    const workspace = await createTempWorkspace();
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "import"]);
+      expect(process.exitCode).toBe(1);
+      expect(stderr).toHaveBeenCalledWith(
+        'Error: Top-level command "import" was removed. Use "aweskill store import ..." instead.',
+      );
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
     }
   });
 
@@ -1728,6 +1753,87 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Downloaded lifesciences-proteomics");
   });
 
+  it("wraps flat sciskill archives so the installed skill name and subpath come from the skill id", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const archiveRoot = path.join(workspace.rootDir, "flat-sciskill");
+    const archivePath = path.join(workspace.rootDir, "flat-sciskill.zip");
+    await writeSkill(archiveRoot, "Scientific Writing");
+    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+
+    const archiveBuffer = await readFile(archivePath);
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => archiveBuffer.buffer.slice(
+        archiveBuffer.byteOffset,
+        archiveBuffer.byteOffset + archiveBuffer.byteLength,
+      ),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await program.parseAsync([
+      "node",
+      "aweskill",
+      "store",
+      "download",
+      "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing",
+    ], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8")).resolves.toContain("Scientific Writing");
+    const lockText = await readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8");
+    expect(lockText).toContain('"source": "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing"');
+    expect(lockText).toContain('"subpath": "scientific-writing"');
+    expect(lockText).not.toContain('"subpath": "."');
+    expect(lockText).not.toContain('"aweskill-download-');
+    expect(lines.join("\n")).toContain("Downloaded scientific-writing");
+  });
+
+  it("updates a flat sciskill archive using the wrapped subpath instead of the temp directory root", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const archiveRoot = path.join(workspace.rootDir, "flat-sciskill");
+    const archivePath = path.join(workspace.rootDir, "flat-sciskill.zip");
+    await writeSkill(archiveRoot, "Scientific Writing v1");
+    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+
+    let archiveBuffer = await readFile(archivePath);
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => archiveBuffer.buffer.slice(
+        archiveBuffer.byteOffset,
+        archiveBuffer.byteOffset + archiveBuffer.byteLength,
+      ),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const sourceId = "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing";
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceId], { from: "node" });
+
+    await writeSkill(archiveRoot, "Scientific Writing v2");
+    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+    archiveBuffer = await readFile(archivePath);
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "update", "scientific-writing", "--override"], { from: "node" });
+
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8")).resolves.toContain("Scientific Writing v2");
+    const lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills["scientific-writing"]?.subpath).toBe("scientific-writing");
+    expect(lines.join("\n")).toContain("Updated scientific-writing");
+  });
+
   it("prints sciskill as a supported download source in help text", () => {
     const program = createProgram({
       cwd: "/tmp/project",
@@ -1764,7 +1870,7 @@ describe("commands", () => {
     );
   });
 
-  it("supports top-level import, download, and update aliases for store commands", async () => {
+  it("supports top-level download and update aliases for store commands", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({
@@ -1773,15 +1879,11 @@ describe("commands", () => {
       write: (message) => lines.push(message),
       error: () => undefined,
     });
-    const importSkill = path.join(workspace.rootDir, "external", "quick-import");
     const downloadSkill = path.join(workspace.rootDir, "source", "quick-download");
-    await writeSkill(importSkill, "Quick Import");
     await writeSkill(downloadSkill, "Quick Download v1");
 
-    await program.parseAsync(["node", "aweskill", "import", importSkill], { from: "node" });
     await program.parseAsync(["node", "aweskill", "download", downloadSkill], { from: "node" });
 
-    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "quick-import"), "SKILL.md"), "utf8")).resolves.toContain("Quick Import");
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "quick-download"), "SKILL.md"), "utf8")).resolves.toContain(
       "Quick Download v1",
     );

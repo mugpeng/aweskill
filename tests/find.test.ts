@@ -86,6 +86,42 @@ describe("find command", () => {
     expect(output).toContain("scientific-writing");
   });
 
+  it("treats limit as per-provider when searching both providers by default", async () => {
+    const workspace = await createTempWorkspace();
+    const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => {
+      const url = String(input);
+      if (url.startsWith("https://skills.sh/api/search")) {
+        expect(url).toContain("limit=1");
+        return {
+          ok: true,
+          json: async () => ({
+            skills: [
+              { id: "owner/repo-a", name: "protein-search", installs: 8800, source: "owner/repo-a" },
+            ],
+          }),
+        };
+      }
+      if (url === "https://sciskillhub.org/api/v1/skills/search") {
+        return {
+          ok: true,
+          json: async () => ({
+            results: [
+              { id: "open-source/research/lifesciences-proteomics", name: "lifesciences-proteomics", similarity_score: 80 },
+            ],
+          }),
+        };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    }));
+
+    const result = await runFind(context, "protein", { limit: 1 });
+
+    expect(result.results).toHaveLength(2);
+    expect(result.results.map((entry) => entry.name)).toEqual(["protein-search", "lifesciences-proteomics"]);
+    expect(lines.join("\n")).toContain("Found 2 skills");
+  });
+
   it("warns when sciskill-only filters are used against skills-sh", async () => {
     const workspace = await createTempWorkspace();
     const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
