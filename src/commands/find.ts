@@ -29,6 +29,7 @@ interface FindResult {
   description?: string;
   similarityScore?: number;
   downloadable: boolean;
+  detailUrl?: string;
 }
 
 export interface FindOptions {
@@ -63,21 +64,25 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function pickDownloadSource(candidates: Array<string | undefined>): { source: string; downloadable: boolean } {
-  for (const candidate of candidates) {
-    const value = candidate?.trim();
-    if (!value) {
-      continue;
-    }
-    try {
-      parseDownloadSource(value);
-      return { source: value, downloadable: true };
-    } catch {
-      continue;
-    }
+function toSkillsShDetailUrl(id?: string): string | undefined {
+  const value = id?.trim();
+  if (!value || !/^[^/\s]+\/[^/\s]+\/[^/\s]+$/.test(value)) {
+    return undefined;
   }
+  return `https://skills.sh/${value}`;
+}
 
-  return { source: "unsupported by aweskill download", downloadable: false };
+function pickDownloadSource(source?: string): { source: string; downloadable: boolean } {
+  const value = source?.trim();
+  if (!value) {
+    return { source: "unsupported by aweskill download", downloadable: false };
+  }
+  try {
+    parseDownloadSource(value);
+    return { source: value, downloadable: true };
+  } catch {
+    return { source: value, downloadable: false };
+  }
 }
 
 async function searchSkillsSh(query: string, limit: number): Promise<FindResult[]> {
@@ -90,14 +95,15 @@ async function searchSkillsSh(query: string, limit: number): Promise<FindResult[
   const payload = await response.json() as { skills?: SkillsShResult[] };
   return (payload.skills ?? [])
     .map((result) => {
-      const resolved = pickDownloadSource([result.source, result.id]);
+      const resolved = pickDownloadSource(result.source ?? result.id);
       return {
         name: result.name,
         provider: "skills-sh" as const,
-        downloadSource: resolved.source,
+        downloadSource: resolved.downloadable ? resolved.source : (result.source?.trim() || "unsupported by aweskill download"),
         downloadable: resolved.downloadable,
         installs: result.installs ?? 0,
         description: result.description,
+        detailUrl: resolved.downloadable ? undefined : toSkillsShDetailUrl(result.id),
       };
     })
     .sort((left, right) => (right.installs ?? 0) - (left.installs ?? 0));
@@ -146,15 +152,19 @@ function dedupeFindResults(results: FindResult[]): FindResult[] {
 }
 
 function formatFindResult(result: FindResult, index: number): string {
-  const sourceLine = result.downloadable
-    ? `   source: ${result.downloadSource}`
-    : `   source: ${result.downloadSource}`;
-  return [
+  const lines = [
     `${index + 1}. ${result.name}`,
     `   ${formatMetaLine(result)}`,
     `   ${result.description || "(no description)"}`,
-    sourceLine,
-  ].join("\n");
+    `   source: ${result.downloadSource}`,
+  ];
+  if (!result.downloadable) {
+    lines.push("   aweskill store download does not support this source");
+    if (result.detailUrl) {
+      lines.push(`   details: ${result.detailUrl}`);
+    }
+  }
+  return lines.join("\n");
 }
 
 export async function runFind(context: RuntimeContext, query: string, options: FindOptions = {}) {
@@ -202,6 +212,10 @@ export async function runFind(context: RuntimeContext, query: string, options: F
   }
 
   context.write(`Found ${merged.length} skill${merged.length === 1 ? "" : "s"}`);
-  context.write(`${merged.map((result, index) => formatFindResult(result, index)).join("\n\n")}\n\nRun: aweskill store download <source>`);
+  const hasUnsupported = merged.some((result) => !result.downloadable);
+  const footer = hasUnsupported
+    ? "Run: aweskill store download <source> for supported sources"
+    : "Run: aweskill store download <source>";
+  context.write(`${merged.map((result, index) => formatFindResult(result, index)).join("\n\n")}\n\n${footer}`);
   return { results: merged };
 }

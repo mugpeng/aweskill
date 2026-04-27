@@ -68,7 +68,7 @@ describe("find command", () => {
     expect(lines[0]).toBe("Warning: --domain and --stage only apply to sciskill.");
   });
 
-  it("falls back to a parseable id when skills.sh returns an unsupported source value", async () => {
+  it("keeps unsupported skills.sh sources visible and points users to the skills.sh detail page", async () => {
     const workspace = await createTempWorkspace();
     const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
     vi.stubGlobal("fetch", vi.fn(async () => ({
@@ -88,11 +88,12 @@ describe("find command", () => {
     await runFind(context, "scientific-writing", { provider: "skills-sh" });
 
     const output = lines.join("\n");
-    expect(output).toContain("source: smithery/ai/scientific-writing");
-    expect(output).not.toContain("source: smithery.ai");
+    expect(output).toContain("source: smithery.ai");
+    expect(output).toContain("aweskill store download does not support this source");
+    expect(output).toContain("https://skills.sh/smithery/ai/scientific-writing");
   });
 
-  it("marks skills.sh entries as unsupported when neither source nor id is parseable", async () => {
+  it("keeps the original unsupported source when no detail page can be formed", async () => {
     const workspace = await createTempWorkspace();
     const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
     vi.stubGlobal("fetch", vi.fn(async () => ({
@@ -112,6 +113,8 @@ describe("find command", () => {
     await runFind(context, "scientific-writing", { provider: "skills-sh" });
 
     const output = lines.join("\n");
-    expect(output).toContain("source: unsupported by aweskill download");
+    expect(output).toContain("source: smithery.ai");
+    expect(output).toContain("aweskill store download does not support this source");
+    expect(output).not.toContain("https://skills.sh/");
   });
 });
