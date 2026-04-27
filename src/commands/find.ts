@@ -1,4 +1,5 @@
 import type { RuntimeContext } from "../types.js";
+import { sanitizeName } from "../lib/path.js";
 import { parseDownloadSource } from "../lib/source-parser.js";
 
 const SKILLS_SH_API_BASE = process.env.SKILLS_API_URL || "https://skills.sh";
@@ -132,7 +133,7 @@ function buildInstallCommand(result: { provider: FindProvider; name: string; dow
     return undefined;
   }
   if (result.provider === "skills-sh") {
-    return `aweskill store download ${result.downloadSource} --skill ${result.name}`;
+    return `aweskill store download ${result.downloadSource} --skill ${sanitizeName(result.name)}`;
   }
   return `aweskill store download ${result.downloadSource}`;
 }

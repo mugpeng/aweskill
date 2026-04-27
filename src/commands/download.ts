@@ -115,17 +115,7 @@ export async function resolveSourceRoot(source: DownloadSource): Promise<{ root:
   }
 }
 
-function selectSkills(skills: DownloadableSkill[], options: DownloadOptions): DownloadableSkill[] {
-  if (options.skill && options.skill.length > 0) {
-    const requested = new Set(normalizeNameList(options.skill));
-    const selected = skills.filter((skill) => requested.has(skill.name));
-    const missing = [...requested].filter((name) => !skills.some((skill) => skill.name === name));
-    if (missing.length > 0) {
-      throw new Error(`Skill not found in source: ${missing.join(", ")}`);
-    }
-    return selected;
-  }
-
+function selectUnrequestedSkills(skills: DownloadableSkill[], options: DownloadOptions): DownloadableSkill[] {
   if (options.all || skills.length <= 1) {
     return skills;
   }
@@ -208,7 +198,9 @@ export async function runDownload(context: RuntimeContext, input: string, option
       return { downloaded: [], listed: discovered };
     }
 
-    const selected = selectSkills(discovered, options);
+    const selected = options.skill && options.skill.length > 0
+      ? discovered
+      : selectUnrequestedSkills(discovered, options);
     if (options.as && selected.length !== 1) {
       throw new Error("--as can only be used when downloading a single skill.");
     }

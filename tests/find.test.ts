@@ -19,7 +19,7 @@ describe("find command", () => {
           json: async () => ({
             skills: [
               { id: "owner/repo", name: "protein-search", installs: 8800, source: "owner/repo" },
-              { id: "other/repo", name: "signal-flow", installs: 1200, source: "other/repo" },
+              { id: "other/repo", name: "Signal Flow", installs: 1200, source: "other/repo" },
             ],
           }),
         };
@@ -49,6 +49,7 @@ describe("find command", () => {
     expect(output).toContain("   skills-sh · 8.8K installs");
     expect(output).toContain("   source: owner/repo");
     expect(output).toContain("   install: aweskill store download owner/repo --skill protein-search");
+    expect(output).toContain("   install: aweskill store download other/repo --skill signal-flow");
     expect(output).toContain("3. lifesciences-proteomics");
     expect(output).toContain("   sciskill");
     expect(output).toContain("   source: sciskill:open-source/research/lifesciences-proteomics");
