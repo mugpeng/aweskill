@@ -42,6 +42,9 @@
 - **提供可被 agent 调用的管理 skills**：让 AI agent 能根据自然语言请求运行 aweskill 工作流
 - **本地维护与恢复能力**：备份、恢复、查重和修复都在同一个本地 CLI 流程里完成
 
+<details>
+<summary>更多 FAQ</summary>
+
 ### aweskill 把 skills 存在哪里？
 
 `aweskill` 把托管的 skills 存在 `~/.aweskill/skills/`。
@@ -70,6 +73,8 @@
 - **Install**：从 GitHub 风格 source、本地路径或 `sciskill:<skill-id>` 标识安装到中央仓库
 - **Update**：按记录的来源刷新 tracked install，同时保护中央仓库里的本地修改
 - **Project**：把同一批托管 skill 投影到 Codex、Claude Code、Cursor、Gemini CLI 等 agent
+
+</details>
 
 ## 对比
 

@@ -42,6 +42,9 @@ Instead of copying the same `SKILL.md` folders into every tool by hand, `aweskil
 - **Agent-callable management skills** so AI agents can run aweskill workflows from natural-language requests
 - **Backup, restore, deduplication, and recovery** in one local CLI workflow
 
+<details>
+<summary>More FAQ</summary>
+
 ### Where does aweskill store skills?
 
 `aweskill` stores managed skills in `~/.aweskill/skills/`.
@@ -70,6 +73,8 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 - **Install** skills from GitHub-style sources, local paths, or `sciskill:<skill-id>` identifiers into the central store
 - **Update** tracked installs from their recorded sources while protecting local central-store edits
 - **Project** the same managed skills into Codex, Claude Code, Cursor, Gemini CLI, and other agents
+
+</details>
 
 ## Comparison
 
