@@ -3,7 +3,7 @@
   <h1>aweskill：为所有编码代理准备的一套 Skill 中央仓库</h1>
   <p><strong>面向 AI 编码代理的本地 Skill 编排命令行工具。</strong></p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.4-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.5-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -46,7 +46,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.2.4
+npm install -g aweskill@0.2.5
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
