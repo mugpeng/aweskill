@@ -26,6 +26,7 @@ interface FindResult {
   name: string;
   provider: FindProvider;
   downloadSource: string;
+  installCommand?: string;
   installs?: number;
   description?: string;
   similarityScore?: number;
@@ -126,6 +127,16 @@ function pickDownloadSource(source?: string): { source: string; downloadable: bo
   }
 }
 
+function buildInstallCommand(result: { provider: FindProvider; name: string; downloadSource: string; downloadable: boolean }): string | undefined {
+  if (!result.downloadable) {
+    return undefined;
+  }
+  if (result.provider === "skills-sh") {
+    return `aweskill store download ${result.downloadSource} --skill ${result.name}`;
+  }
+  return `aweskill store download ${result.downloadSource}`;
+}
+
 async function searchSkillsSh(query: string, limit: number, timeoutMs: number): Promise<FindResult[]> {
   const url = `${SKILLS_SH_API_BASE}/api/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(String(limit))}`;
   const response = await fetchWithTimeout("skills-sh", url, {}, timeoutMs);
@@ -137,7 +148,7 @@ async function searchSkillsSh(query: string, limit: number, timeoutMs: number): 
   return (payload.skills ?? [])
     .map((result) => {
       const resolved = pickDownloadSource(result.source ?? result.id);
-      return {
+      const findResult = {
         name: result.name,
         provider: "skills-sh" as const,
         downloadSource: resolved.downloadable ? resolved.source : (result.source?.trim() || "unsupported by aweskill download"),
@@ -145,6 +156,10 @@ async function searchSkillsSh(query: string, limit: number, timeoutMs: number): 
         installs: result.installs ?? 0,
         description: result.description,
         detailUrl: resolved.downloadable ? undefined : toSkillsShDetailUrl(result),
+      };
+      return {
+        ...findResult,
+        installCommand: buildInstallCommand(findResult),
       };
     })
     .sort((left, right) => (right.installs ?? 0) - (left.installs ?? 0));
@@ -167,14 +182,20 @@ async function searchSciskill(query: string, options: FindOptions): Promise<Find
 
   const payload = await response.json() as { results?: SciskillResult[] };
   return (payload.results ?? [])
-    .map((result) => ({
-      name: result.name,
-      provider: "sciskill" as const,
-      downloadSource: `sciskill:${result.id}`,
-      downloadable: true,
-      description: result.description ?? undefined,
-      similarityScore: result.similarity_score ?? 0,
-    }))
+    .map((result) => {
+      const findResult = {
+        name: result.name,
+        provider: "sciskill" as const,
+        downloadSource: `sciskill:${result.id}`,
+        downloadable: true,
+        description: result.description ?? undefined,
+        similarityScore: result.similarity_score ?? 0,
+      };
+      return {
+        ...findResult,
+        installCommand: buildInstallCommand(findResult),
+      };
+    })
     .sort((left, right) => (right.similarityScore ?? 0) - (left.similarityScore ?? 0));
 }
 
@@ -199,6 +220,9 @@ function formatFindResult(result: FindResult, index: number): string {
     `   ${result.description || "(no description)"}`,
     `   source: ${result.downloadSource}`,
   ];
+  if (result.installCommand) {
+    lines.push(`   install: ${result.installCommand}`);
+  }
   if (!result.downloadable) {
     lines.push("   aweskill store download does not support this source");
     if (result.detailUrl) {
@@ -255,10 +279,6 @@ export async function runFind(context: RuntimeContext, query: string, options: F
   }
 
   context.write(`Found ${visibleResults.length} skill${visibleResults.length === 1 ? "" : "s"}`);
-  const hasUnsupported = visibleResults.some((result) => !result.downloadable);
-  const footer = hasUnsupported
-    ? "Run: aweskill store download <source> for supported sources"
-    : "Run: aweskill store download <source>";
-  context.write(`${visibleResults.map((result, index) => formatFindResult(result, index)).join("\n\n")}\n\n${footer}`);
+  context.write(visibleResults.map((result, index) => formatFindResult(result, index)).join("\n\n"));
   return { results: visibleResults };
 }

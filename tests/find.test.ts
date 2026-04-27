@@ -48,11 +48,13 @@ describe("find command", () => {
     expect(output).toContain("1. protein-search");
     expect(output).toContain("   skills-sh · 8.8K installs");
     expect(output).toContain("   source: owner/repo");
+    expect(output).toContain("   install: aweskill store download owner/repo --skill protein-search");
     expect(output).toContain("3. lifesciences-proteomics");
     expect(output).toContain("   sciskill");
     expect(output).toContain("   source: sciskill:open-source/research/lifesciences-proteomics");
+    expect(output).toContain("   install: aweskill store download sciskill:open-source/research/lifesciences-proteomics");
     expect(output).not.toContain("duplicate");
-    expect(output).toContain("Run: aweskill store download <source>");
+    expect(output).not.toContain("Run: aweskill store download <source>");
   });
 
   it("continues with available providers when one search request times out", async () => {

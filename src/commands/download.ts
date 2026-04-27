@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import {
   classifyDownloadConflict,
   discoverDownloadableSkills,
+  discoverDownloadableSkillsByName,
   DuplicateSkillNameError,
   formatDownloadConflictLines,
   formatDuplicateSkillNameConflict,
@@ -132,6 +133,32 @@ function selectSkills(skills: DownloadableSkill[], options: DownloadOptions): Do
   throw new Error("Multiple skills found. Use --skill <name> or --all.");
 }
 
+async function discoverRequestedSkills(sourceRoot: string, sourceSubpath: string | undefined, options: DownloadOptions): Promise<DownloadableSkill[]> {
+  const requested = normalizeNameList(options.skill ?? []);
+  if (requested.length === 0) {
+    return discoverDownloadableSkills(sourceRoot, sourceSubpath);
+  }
+
+  const selected: DownloadableSkill[] = [];
+  const missing: string[] = [];
+  for (const name of requested) {
+    const matches = await discoverDownloadableSkillsByName(sourceRoot, name, sourceSubpath);
+    if (matches.length === 0) {
+      missing.push(name);
+      continue;
+    }
+    if (matches.length > 1) {
+      throw new DuplicateSkillNameError(name, { path: matches[0]!.path, subpath: matches[0]!.subpath }, { path: matches[1]!.path, subpath: matches[1]!.subpath });
+    }
+    selected.push(matches[0]!);
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Skill not found in source: ${missing.join(", ")}`);
+  }
+  return selected;
+}
+
 function getRemoteTreeSha(tree: GitHubRepoTree | undefined, subpath: string): string | undefined {
   return tree ? getGitHubTreeShaForSubpath(tree, subpath) : undefined;
 }
@@ -150,7 +177,7 @@ export async function runDownload(context: RuntimeContext, input: string, option
   try {
     let discovered: DownloadableSkill[];
     try {
-      discovered = await discoverDownloadableSkills(sourceRoot.root, source.subpath);
+      discovered = await discoverRequestedSkills(sourceRoot.root, source.subpath, options);
     } catch (error) {
       if (error instanceof DuplicateSkillNameError) {
         const lines = formatDuplicateSkillNameConflict(error, {

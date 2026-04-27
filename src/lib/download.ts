@@ -259,16 +259,18 @@ export async function discoverDownloadableSkills(baseDir: string, subpath?: stri
   return results.sort((left, right) => left.name.localeCompare(right.name));
 }
 
-export async function discoverDownloadableSkillsByName(baseDir: string, targetName: string): Promise<DownloadableSkill[]> {
+export async function discoverDownloadableSkillsByName(baseDir: string, targetName: string, subpath?: string): Promise<DownloadableSkill[]> {
   const normalizedName = sanitizeName(targetName);
   if (!normalizedName) {
     return [];
   }
+  const searchRoot = subpath ? path.join(baseDir, subpath) : baseDir;
+  assertPathSafe(baseDir, searchRoot);
 
   const results: DownloadableSkill[] = [];
 
   for (const relativeDir of PRIORITY_SKILL_DIRS) {
-    const directoryPath = relativeDir ? path.join(baseDir, relativeDir) : baseDir;
+    const directoryPath = relativeDir ? path.join(searchRoot, relativeDir) : searchRoot;
     let entries;
     try {
       entries = await readdir(directoryPath, { withFileTypes: true });
@@ -297,7 +299,7 @@ export async function discoverDownloadableSkillsByName(baseDir: string, targetNa
   }
 
   if (results.length === 0) {
-    await discoverNamedRecursive(baseDir, baseDir, normalizedName, results);
+    await discoverNamedRecursive(baseDir, searchRoot, normalizedName, results);
   }
 
   return results.sort((left, right) => left.subpath.localeCompare(right.subpath));

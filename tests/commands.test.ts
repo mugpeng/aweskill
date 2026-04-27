@@ -1700,6 +1700,29 @@ describe("commands", () => {
     expect(errors).toHaveLength(0);
   });
 
+  it("download --skill ignores unrelated duplicate names in the source", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+    const sourceRoot = path.join(workspace.rootDir, "source");
+    await writeSkill(path.join(sourceRoot, "cli-tool", "components", "skills", "writing", "scientific-writing"), "Scientific Writing");
+    await writeSkill(path.join(sourceRoot, "cli-tool", "components", "skills", "ai-research", "dispatching-parallel-agents"), "First");
+    await writeSkill(path.join(sourceRoot, "cli-tool", "components", "skills", "development", "dispatching-parallel-agents"), "Second");
+
+    await program.parseAsync(["node", "aweskill", "store", "download", sourceRoot, "--skill", "scientific-writing"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Downloaded scientific-writing");
+    expect(lines.join("\n")).not.toContain("Duplicate skill names found in source:");
+    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8")).resolves.toContain(
+      "Scientific Writing",
+    );
+  });
+
   it("download writes source lock entries and supports --as for single skills", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
