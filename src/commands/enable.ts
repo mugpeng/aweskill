@@ -1,43 +1,15 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-import { detectInstalledAgents, getProjectionMode, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
+import { getProjectionMode, resolveAgentsForMutation, resolveAgentSkillsDir } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
 import { getAweskillPaths, normalizeNameList, uniqueSorted } from "../lib/path.js";
 import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
 import { createSkillCopy, createSkillSymlink, inspectProjectionTarget } from "../lib/symlink.js";
-import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
+import type { ActivationType, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
-}
-
-async function resolveAgentsForScope(
-  context: RuntimeContext,
-  requestedAgents: string[],
-  scope: Scope,
-  projectDir?: string,
-): Promise<AgentId[]> {
-  if (requestedAgents.length === 0 || requestedAgents.includes("all")) {
-    const detected = await detectInstalledAgents({
-      homeDir: context.homeDir,
-      projectDir: scope === "project" ? projectDir : undefined,
-    });
-    const candidates = detected.length > 0 ? detected : listSupportedAgentIds();
-    return candidates.filter((agentId) => supportsScope(agentId, scope));
-  }
-
-  return uniqueSorted(
-    requestedAgents.map((agent) => {
-      if (!isAgentId(agent)) {
-        throw new Error(`Unsupported agent: ${agent}`);
-      }
-      if (!supportsScope(agent, scope)) {
-        throw new Error(`Agent ${agent} does not support ${scope} scope.`);
-      }
-      return agent;
-    }),
-  );
 }
 
 async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string | string[]): Promise<string[]> {
@@ -92,7 +64,12 @@ export async function runEnable(
   },
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-  const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
+  const agents = await resolveAgentsForMutation({
+    requestedAgents: options.agents,
+    scope: options.scope,
+    homeDir: context.homeDir,
+    projectDir,
+  });
   const skillNames = await resolveSkillNames(context, options.type, options.name);
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
   const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);

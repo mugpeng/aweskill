@@ -61,6 +61,18 @@ export function isPathSafe(baseDir: string, targetPath: string): boolean {
   return relativePath !== "" && !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
 }
 
+export function isSameOrDescendantPath(baseDir: string, targetPath: string): boolean {
+  const base = path.resolve(baseDir);
+  const target = path.resolve(targetPath);
+
+  if (base === target) {
+    return true;
+  }
+
+  const relativePath = path.relative(base, target);
+  return relativePath !== "" && !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
+}
+
 export function assertPathSafe(baseDir: string, targetPath: string): void {
   if (!isPathSafe(baseDir, targetPath)) {
     throw new Error(`Path escapes base directory: ${targetPath}`);

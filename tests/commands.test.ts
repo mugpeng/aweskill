@@ -679,6 +679,8 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+    await mkdir(resolveAgentSkillsDir("claude-code", "global", workspace.homeDir), { recursive: true });
+    await mkdir(resolveAgentSkillsDir("cursor", "global", workspace.homeDir), { recursive: true });
     await program.parseAsync(["node", "aweskill", "agent", "add", "skill", "biopython"], { from: "node" });
 
     await expect(
@@ -907,7 +909,7 @@ describe("commands", () => {
 
     try {
       await main(["node", "aweskill", "store", "init"]);
-      await main(["node", "aweskill", "agent", "add", "skill", "missing-skill"]);
+      await main(["node", "aweskill", "agent", "add", "skill", "missing-skill", "--agent", "codex"]);
     } finally {
       process.chdir(previousCwd);
       if (previousHome === undefined) {
@@ -956,7 +958,7 @@ describe("commands", () => {
 
     try {
       await main(["node", "aweskill", "store", "init"]);
-      await main(["node", "aweskill", "agent", "add", "bundle", "super"]);
+      await main(["node", "aweskill", "agent", "add", "bundle", "super", "--agent", "codex"]);
       await main(["node", "aweskill", "bundle", "template", "import", "missing-template"]);
     } finally {
       process.chdir(previousCwd);
@@ -2716,6 +2718,47 @@ describe("commands", () => {
     );
   });
 
+  it("agent add requires an explicit target set when no installed agents are detected", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "no-default-target"), "No Default Target");
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "agent", "add", "skill", "no-default-target", "--global"], { from: "node" }),
+    ).rejects.toThrow(
+      "No installed agents detected for global scope. Install an agent or pass --agent <id> or --agent all explicitly.",
+    );
+  });
+
+  it("agent add --agent all still allows explicit all-agent projection", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "explicit-all"), "Explicit All");
+
+    await program.parseAsync(
+      ["node", "aweskill", "agent", "add", "skill", "explicit-all", "--global", "--agent", "all"],
+      { from: "node" },
+    );
+
+    await expect(access(path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "explicit-all"))).resolves.toBeUndefined();
+    expect(lines.join("\n")).toContain("Enabled skill explicit-all");
+  });
+
   it("agent add supports space-separated skill names", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -2819,6 +2862,25 @@ describe("commands", () => {
 
     await program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "foreign-link-remove", "--global", "--agent", "codex", "--force"], { from: "node" });
     await expect(access(targetPath)).rejects.toThrow();
+  });
+
+  it("agent remove requires an explicit target set when no installed agents are detected", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "missing-default-remove"), "Missing Default Remove");
+
+    await expect(
+      program.parseAsync(["node", "aweskill", "agent", "remove", "skill", "missing-default-remove", "--global"], { from: "node" }),
+    ).rejects.toThrow(
+      "No installed agents detected for global scope. Install an agent or pass --agent <id> or --agent all explicitly.",
+    );
   });
 
   it("agent remove supports space-separated skill names", async () => {

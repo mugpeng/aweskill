@@ -1,4 +1,4 @@
-import { detectInstalledAgents, isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "../lib/agents.js";
+import { resolveAgentsForMutation, resolveAgentSkillsDir } from "../lib/agents.js";
 import { listBundles } from "../lib/bundles.js";
 import { getAweskillPaths, normalizeNameList, sanitizeName, uniqueSorted } from "../lib/path.js";
 import { skillExists } from "../lib/skills.js";
@@ -8,34 +8,6 @@ import path from "node:path";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
-}
-
-async function resolveAgentsForScope(
-  context: RuntimeContext,
-  requestedAgents: string[],
-  scope: Scope,
-  projectDir?: string,
-): Promise<AgentId[]> {
-  if (requestedAgents.length === 0 || requestedAgents.includes("all")) {
-    const detected = await detectInstalledAgents({
-      homeDir: context.homeDir,
-      projectDir: scope === "project" ? projectDir : undefined,
-    });
-    const candidates = detected.length > 0 ? detected : listSupportedAgentIds();
-    return candidates.filter((agentId) => supportsScope(agentId, scope));
-  }
-
-  return uniqueSorted(
-    requestedAgents.map((agent) => {
-      if (!isAgentId(agent)) {
-        throw new Error(`Unsupported agent: ${agent}`);
-      }
-      if (!supportsScope(agent, scope)) {
-        throw new Error(`Agent ${agent} does not support ${scope} scope.`);
-      }
-      return agent;
-    }),
-  );
 }
 
 async function resolveDisableTargets(
@@ -178,7 +150,12 @@ export async function runDisable(
   },
 ) {
   const projectDir = options.scope === "project" ? getProjectDir(context, options.projectDir) : undefined;
-  const agents = await resolveAgentsForScope(context, options.agents, options.scope, projectDir);
+  const agents = await resolveAgentsForMutation({
+    requestedAgents: options.agents,
+    scope: options.scope,
+    homeDir: context.homeDir,
+    projectDir,
+  });
   const baseDir = options.scope === "global" ? context.homeDir : (projectDir ?? context.cwd);
   const targets = await resolveDisableTargets(context, options.type, options.name, options.scope, baseDir, agents);
   const skillNames = [...targets.skillNames];

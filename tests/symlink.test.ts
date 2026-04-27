@@ -7,6 +7,7 @@ import {
   createSkillCopy,
   createSkillSymlink,
   getDirectoryLinkTypeForPlatform,
+  inspectProjectionTarget,
   listManagedSkillNames,
   removeManagedProjection,
   setDirectoryLinkCreatorForTesting,
@@ -87,5 +88,26 @@ describe("symlink helpers", () => {
     );
 
     await expect(createSkillSymlink(sourcePath, targetPath)).resolves.toEqual({ status: "skipped", mode: "copy" });
+  });
+
+  it("does not treat sibling central-store prefixes as managed symlinks", async () => {
+    const workspace = await createTempWorkspace();
+    const centralSkillsDir = path.join(workspace.homeDir, ".aweskill", "skills");
+    const siblingSkillsDir = `${centralSkillsDir}2`;
+    const targetDir = path.join(workspace.rootDir, "agent", "skills");
+    const siblingSourcePath = path.join(siblingSkillsDir, "prefix-trap");
+    const targetPath = path.join(targetDir, "prefix-trap");
+
+    await writeSkill(siblingSourcePath, "Prefix Trap");
+    await mkdir(targetDir, { recursive: true });
+    await createSkillSymlink(siblingSourcePath, targetPath);
+
+    await expect(inspectProjectionTarget(targetPath, { centralSkillsDir })).resolves.toEqual({
+      kind: "foreign_symlink",
+      sourcePath: path.resolve(siblingSourcePath),
+    });
+
+    const managed = await listManagedSkillNames(targetDir, centralSkillsDir);
+    expect(managed.has("prefix-trap")).toBe(false);
   });
 });

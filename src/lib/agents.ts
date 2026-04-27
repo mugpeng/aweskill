@@ -423,9 +423,49 @@ export async function resolveAgentsForListingOrSync(options: {
   return { agents, explicit: false };
 }
 
+export async function resolveAgentsForMutation(options: {
+  requestedAgents: string[];
+  scope: Scope;
+  homeDir: string;
+  projectDir?: string;
+}): Promise<AgentId[]> {
+  const wantsDetected = options.requestedAgents.length === 0;
+  if (wantsDetected) {
+    const detected = await detectAgentsForListingScope(options.homeDir, options.scope, options.projectDir);
+    if (detected.length === 0) {
+      throw new Error(formatNoInstalledAgentsForMutation(options.scope, options.projectDir));
+    }
+    return detected;
+  }
+
+  const wantsAll = options.requestedAgents.includes("all");
+  if (wantsAll) {
+    return listSupportedAgentIds().filter((agentId) => supportsScope(agentId, options.scope));
+  }
+
+  return uniqueSorted(
+    options.requestedAgents.map((agent) => {
+      if (!isAgentId(agent)) {
+        throw new Error(`Unsupported agent: ${agent}`);
+      }
+      if (!supportsScope(agent, options.scope)) {
+        throw new Error(`Agent ${agent} does not support ${options.scope} scope.`);
+      }
+      return agent;
+    }),
+  );
+}
+
 export function formatNoAgentsDetectedForScope(scope: Scope, projectDir: string | undefined): string {
   if (scope === "global") {
     return "No agents detected for global scope (no supported agent installation directories were found). Install an agent or pass --agent <id> to inspect a specific agent.";
   }
   return `No agents detected for project scope at ${projectDir}. Add project-local agent skill directories or pass --agent <id> to inspect a specific agent.`;
+}
+
+export function formatNoInstalledAgentsForMutation(scope: Scope, projectDir: string | undefined): string {
+  if (scope === "global") {
+    return 'No installed agents detected for global scope. Install an agent or pass --agent <id> or --agent all explicitly.';
+  }
+  return `No installed agents detected for project scope at ${projectDir}. Add a project-local agent skill directory or pass --agent <id> or --agent all explicitly.`;
 }
