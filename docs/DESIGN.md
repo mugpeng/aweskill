@@ -69,6 +69,10 @@ There is no separate global activation registry. The projected filesystem state 
 
 `agent add bundle <name>` expands the bundle into skill names and projects those skills. There is no separate long-lived bundle activation object after projection.
 
+### Explicit Full-Scope Mutation
+
+Mutating agent commands should default to the detected installed agent set for the chosen scope. If no installed agents are detected, they should fail with an actionable message instead of silently creating directories for every supported agent. Users who want a broad rollout should opt into it explicitly with `--agent all`.
+
 ### Managed-Only Removal
 
 `aweskill` removes only entries it can identify as its own managed projections. It does not blindly delete arbitrary directories in user-owned skill roots.
@@ -92,6 +96,8 @@ There is no separate global activation registry. The projected filesystem state 
 - `restore` accepts either a backup archive or an unpacked directory containing `skills/`
 - `restore` skips existing skills and bundles by default and only overwrites with `--override`
 - `backup` and `restore` include both `skills/` and `bundles/` by default; use `--skills-only` for a reduced flow
+- new backup archives should include a lightweight root manifest with format and version metadata
+- `restore` should accept older backup archives and unpacked backup directories that do not include that manifest
 
 ## Find, Download, and Update
 

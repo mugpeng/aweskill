@@ -22,7 +22,26 @@ describe("backup helpers", () => {
     await expect(access(archivePath)).resolves.toBeUndefined();
 
     const extracted = await extractSkillsArchive(archivePath);
+    expect(extracted.manifest).toMatchObject({
+      format: "aweskill-backup",
+      version: 1,
+      includesBundles: false,
+    });
     await expect(readFile(path.join(extracted.extractedSkillsDir, "demo-skill", "SKILL.md"), "utf8")).resolves.toContain("Demo Skill");
     await expect(readFile(path.join(extracted.extractedSkillsDir, "demo-skill", "scripts", "run.ts"), "utf8")).resolves.toContain("ok = true");
+    await expect(readFile(path.join(extracted.tempDir, "backup.json"), "utf8")).resolves.toContain('"version": 1');
+  });
+
+  it("restores old unpacked backups that do not include a manifest", async () => {
+    const workspace = await createTempWorkspace();
+    const restoreSource = path.join(workspace.rootDir, "legacy-backup");
+    const legacySkillDir = path.join(restoreSource, "skills", "legacy-skill");
+
+    await mkdir(legacySkillDir, { recursive: true });
+    await writeFile(path.join(legacySkillDir, "SKILL.md"), "# Legacy Skill\n", "utf8");
+
+    const extracted = await extractSkillsArchive(restoreSource);
+    expect(extracted.manifest).toBeUndefined();
+    await expect(readFile(path.join(extracted.extractedSkillsDir, "legacy-skill", "SKILL.md"), "utf8")).resolves.toContain("Legacy Skill");
   });
 });

@@ -8,6 +8,9 @@ import { scanStoreHygiene } from "./hygiene.js";
 import { getAweskillPaths } from "./path.js";
 
 const TAR_BLOCK_SIZE = 512;
+const BACKUP_MANIFEST_FILE = "backup.json";
+const BACKUP_FORMAT = "aweskill-backup";
+const BACKUP_VERSION = 1;
 
 interface TarEntry {
   name: string;
@@ -16,12 +19,28 @@ interface TarEntry {
   data?: Buffer;
 }
 
+export interface BackupManifest {
+  format: typeof BACKUP_FORMAT;
+  version: typeof BACKUP_VERSION;
+  createdAt: string;
+  includesBundles: boolean;
+}
+
 function formatTimestamp(date: Date): string {
   return date.toISOString().replace(/:/g, "-").replace(/\.\d{3}Z$/, "Z");
 }
 
 function formatBackupLabel(includeBundles: boolean): string {
   return includeBundles ? "skills and bundles" : "skills";
+}
+
+function createBackupManifest(includeBundles: boolean): BackupManifest {
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    createdAt: new Date().toISOString(),
+    includesBundles: includeBundles,
+  };
 }
 
 function normalizeTarPath(entryPath: string): string {
@@ -205,7 +224,12 @@ async function collectTarEntriesForFile(rootDir: string, relativeFilePath: strin
 
 async function archiveEntries(homeDir: string, includeBundles: boolean): Promise<TarEntry[]> {
   const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(homeDir);
-  const entries: TarEntry[] = [];
+  const entries: TarEntry[] = [{
+    name: BACKUP_MANIFEST_FILE,
+    type: "file",
+    mode: 0o644,
+    data: Buffer.from(`${JSON.stringify(createBackupManifest(includeBundles), null, 2)}\n`, "utf8"),
+  }];
   const hygiene = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeBundles });
 
   if (hygiene.validSkills.length > 0) {
@@ -247,6 +271,7 @@ export async function extractSkillsArchive(archivePath: string): Promise<{
   tempDir: string;
   extractedSkillsDir: string;
   extractedBundlesDir: string;
+  manifest?: BackupManifest;
 }> {
   const tempDir = await mkdtemp(path.join(tmpdir(), "aweskill-restore-"));
   const sourceStats = await stat(archivePath);
@@ -254,6 +279,7 @@ export async function extractSkillsArchive(archivePath: string): Promise<{
   if (sourceStats.isDirectory()) {
     const sourceSkillsDir = path.join(archivePath, "skills");
     const sourceBundlesDir = path.join(archivePath, "bundles");
+    const sourceManifestPath = path.join(archivePath, BACKUP_MANIFEST_FILE);
     if (!(await pathExists(sourceSkillsDir))) {
       throw new Error(`Restore source does not contain a skills/ directory: ${archivePath}`);
     }
@@ -262,19 +288,50 @@ export async function extractSkillsArchive(archivePath: string): Promise<{
     if (await pathExists(sourceBundlesDir)) {
       await cp(sourceBundlesDir, path.join(tempDir, "bundles"), { recursive: true });
     }
+    if (await pathExists(sourceManifestPath)) {
+      await cp(sourceManifestPath, path.join(tempDir, BACKUP_MANIFEST_FILE));
+    }
   } else {
     const archiveBuffer = await readFile(archivePath);
     await extractTarArchive(gunzipSync(archiveBuffer), tempDir);
   }
 
+  const manifest = await readBackupManifest(tempDir);
+
   return {
     tempDir,
     extractedSkillsDir: path.join(tempDir, "skills"),
     extractedBundlesDir: path.join(tempDir, "bundles"),
+    manifest,
   };
 }
 
 export { formatBackupLabel };
+
+async function readBackupManifest(rootDir: string): Promise<BackupManifest | undefined> {
+  const manifestPath = path.join(rootDir, BACKUP_MANIFEST_FILE);
+  if (!(await pathExists(manifestPath))) {
+    return undefined;
+  }
+
+  const parsed = JSON.parse(await readFile(manifestPath, "utf8")) as Partial<BackupManifest>;
+  if (parsed.format !== BACKUP_FORMAT) {
+    throw new Error(`Unsupported backup manifest format in ${manifestPath}: ${String(parsed.format)}`);
+  }
+  if (parsed.version !== BACKUP_VERSION) {
+    throw new Error(`Unsupported backup manifest version in ${manifestPath}: ${String(parsed.version)}`);
+  }
+  if (typeof parsed.createdAt !== "string" || typeof parsed.includesBundles !== "boolean") {
+    throw new Error(`Invalid backup manifest in ${manifestPath}`);
+  }
+
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    createdAt: parsed.createdAt,
+    includesBundles: parsed.includesBundles,
+  };
+}
 
 async function resolveBackupArchivePath(backupDir: string, requestedPath?: string): Promise<string> {
   if (!requestedPath) {

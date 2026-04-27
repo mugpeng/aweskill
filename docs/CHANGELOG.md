@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+## v0.2.6
+
+`v0.2.6` tightens a few core behaviors without changing the overall command model. Since `v0.2.5`, mutating agent commands now default to the detected installed agent set instead of silently falling back to every supported agent, central-store symlink ownership checks now use real path-boundary logic instead of string-prefix matching, and store backups now carry a lightweight manifest for future format evolution while staying compatible with older archives.
+
+### Safer default target selection for mutating agent commands
+
+`agent add`, `agent remove`, `agent recover`, and `doctor relink` now treat omitted `--agent` as "use the installed agents detected in this scope" and fail fast when none are found. Users who really want to target every supported agent for a scope must now say so explicitly with `--agent all`. This keeps the default path smaller and more predictable, and avoids creating projection directories for agents that are not actually installed.
+
+### More honest managed-symlink detection
+
+Symlink ownership checks now use path-boundary containment rules instead of `startsWith` string matching. A symlink into a sibling path such as `~/.aweskill/skills2/...` is no longer misclassified as an aweskill-managed projection for `~/.aweskill/skills/...`. This makes projection inspection and cleanup match the real filesystem model more closely.
+
+### Backup manifest for forward-compatible archives
+
+`store backup` now writes a `backup.json` manifest into the archive root. The manifest records the backup format, version, creation time, and whether bundles were included. `store restore` reads the manifest when present, but still accepts older manifest-free archives and unpacked backup directories. This adds a migration hook for future backup-format changes without breaking existing backups.
+
+### CLI UI cleanup
+
+The CLI message formatter was refactored into smaller rule groups and helper functions. Output behavior stays the same, but the dispatch logic is now easier to read and extend.
+
+### Highlights
+
+- Changed mutating agent commands to default to detected installed agents only; `--agent all` is now the explicit full-scope path.
+- Fixed managed-symlink classification to use real path boundaries instead of string prefixes.
+- Added `backup.json` manifest metadata to new backup archives.
+- Kept restore compatibility with older archives and unpacked backup directories that do not contain a manifest.
+- Refactored CLI message formatting logic in `src/lib/ui.ts`.
+
 ## v0.2.5
 
 `v0.2.5` is the release where `aweskill` gains a skill search command, support for the sciskill registry, and smarter update checks that skip unchanged GitHub sources. Since `v0.2.4`, the CLI added `store find` to search across skills.sh and sciskill in one query, taught `store download` to pull skills directly from sciskill, made `store update` compare remote tree SHAs to avoid unnecessary clones, and added top-level aliases for the three most-used store commands.

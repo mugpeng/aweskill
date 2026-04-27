@@ -1,6 +1,86 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 
+const SUCCESS_PREFIXES = [
+  "Created ",
+  "Backed up ",
+  "Imported ",
+  "Enabled ",
+  "Disabled ",
+  "Initialized ",
+  "Deleted ",
+  "Removed ",
+  "Recovered ",
+  "Sync applied ",
+] as const;
+
+const HEADING_PREFIXES = [
+  "Skills in central repo:",
+  "Global skills for ",
+  "Project skills for ",
+] as const;
+
+const HEADING_EXACT = new Set([
+  "Scanned skills:",
+  "Duplicate skill groups in central repo:",
+  "Bundles:",
+  "Supported agents:",
+]);
+
+const DIM_PREFIXES = [
+  "linked:",
+  "duplicate:",
+  "matched:",
+  "new:",
+  "suspicious:",
+  "No skills found ",
+  "Showing first ",
+  "... and ",
+  "No duplicate skills found",
+] as const;
+
+function hasAnyPrefix(value: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => value.startsWith(prefix));
+}
+
+function splitNameAndLocation(value: string): { name: string; location: string } {
+  const firstSpace = value.indexOf(" ");
+  if (firstSpace === -1) {
+    return { name: value, location: "" };
+  }
+  return {
+    name: value.slice(0, firstSpace),
+    location: value.slice(firstSpace + 1),
+  };
+}
+
+function renderNameAndLocation(indent: string, marker: string, colorizeMarker: (value: string) => string, value: string): void {
+  const { name, location } = splitNameAndLocation(value);
+  console.log(`${indent}${colorizeMarker(marker)} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
+}
+
+function renderIndentedMarkerLine(line: string): boolean {
+  if (!line.startsWith("    ")) {
+    return false;
+  }
+
+  const marker = line.slice(4, 5);
+  const markerColors: Record<string, (value: string) => string> = {
+    "✓": pc.green,
+    "!": pc.yellow,
+    "~": pc.blue,
+    "+": pc.cyan,
+    "?": pc.red,
+  };
+  const colorizeMarker = markerColors[marker];
+  if (!colorizeMarker || line.slice(5, 6) !== " ") {
+    return false;
+  }
+
+  renderNameAndLocation("    ", marker, colorizeMarker, line.slice(6));
+  return true;
+}
+
 function emitMessage(line: string) {
   const trimmed = line.trim();
   if (!trimmed) {
@@ -17,47 +97,17 @@ function emitMessage(line: string) {
     return;
   }
 
-  if (
-    trimmed.startsWith("Created ")
-    || trimmed.startsWith("Backed up ")
-    || trimmed.startsWith("Imported ")
-    || trimmed.startsWith("Enabled ")
-    || trimmed.startsWith("Disabled ")
-    || trimmed.startsWith("Initialized ")
-    || trimmed.startsWith("Deleted ")
-    || trimmed.startsWith("Removed ")
-    || trimmed.startsWith("Recovered ")
-    || trimmed.startsWith("Sync applied ")
-  ) {
+  if (hasAnyPrefix(trimmed, SUCCESS_PREFIXES)) {
     p.log.success(trimmed);
     return;
   }
 
-  if (
-    trimmed.startsWith("Skills in central repo:")
-    || trimmed === "Scanned skills:"
-    || trimmed === "Duplicate skill groups in central repo:"
-    || trimmed === "Bundles:"
-    || trimmed === "Supported agents:"
-    || trimmed.startsWith("Global skills for ")
-    || trimmed.startsWith("Project skills for ")
-  ) {
+  if (HEADING_EXACT.has(trimmed) || hasAnyPrefix(trimmed, HEADING_PREFIXES)) {
     console.log(pc.bold(trimmed));
     return;
   }
 
-  if (
-    trimmed.startsWith("linked:")
-    || trimmed.startsWith("duplicate:")
-    || trimmed.startsWith("matched:")
-    || trimmed.startsWith("new:")
-    || trimmed.startsWith("suspicious:")
-  ) {
-    console.log(pc.dim(trimmed));
-    return;
-  }
-
-  if (trimmed.startsWith("No duplicate skills found")) {
+  if (hasAnyPrefix(trimmed, DIM_PREFIXES)) {
     console.log(pc.dim(trimmed));
     return;
   }
@@ -75,25 +125,12 @@ function emitMessage(line: string) {
   }
 
   if (line.startsWith("  ✓ ")) {
-    const rest = line.slice(4);
-    const firstSpace = rest.indexOf(" ");
-    if (firstSpace === -1) {
-      console.log(`  ${pc.green("✓")} ${pc.cyan(rest)}`);
-      return;
-    }
-
-    const name = rest.slice(0, firstSpace);
-    const location = rest.slice(firstSpace + 1);
-    console.log(`  ${pc.green("✓")} ${pc.cyan(name)} ${pc.dim(location)}`);
+    renderNameAndLocation("  ", "✓", pc.green, line.slice(4));
     return;
   }
 
   if (line.startsWith("✓ ")) {
-    const rest = line.slice(2);
-    const firstSpace = rest.indexOf(" ");
-    const name = firstSpace === -1 ? rest : rest.slice(0, firstSpace);
-    const location = firstSpace === -1 ? "" : rest.slice(firstSpace + 1);
-    console.log(`${pc.green("✓")} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
+    renderNameAndLocation("", "✓", pc.green, line.slice(2));
     return;
   }
 
@@ -104,44 +141,15 @@ function emitMessage(line: string) {
   }
 
   if (line.startsWith("  ! ")) {
-    const rest = line.slice(4);
-    const firstSpace = rest.indexOf(" ");
-    if (firstSpace === -1) {
-      console.log(`  ${pc.yellow("!")} ${pc.cyan(rest)}`);
-      return;
-    }
-
-    const name = rest.slice(0, firstSpace);
-    const location = rest.slice(firstSpace + 1);
-    console.log(`  ${pc.yellow("!")} ${pc.cyan(name)} ${pc.dim(location)}`);
+    renderNameAndLocation("  ", "!", pc.yellow, line.slice(4));
     return;
   }
 
-  if (line.startsWith("    ✓ ") || line.startsWith("    ! ") || line.startsWith("    ~ ") || line.startsWith("    + ") || line.startsWith("    ? ")) {
-    const marker = line.slice(4, 5);
-    const rest = line.slice(6);
-    const firstSpace = rest.indexOf(" ");
-    const name = firstSpace === -1 ? rest : rest.slice(0, firstSpace);
-    const location = firstSpace === -1 ? "" : rest.slice(firstSpace + 1);
-    const coloredMarker = marker === "✓"
-      ? pc.green("✓")
-      : marker === "!"
-        ? pc.yellow("!")
-        : marker === "~"
-          ? pc.blue("~")
-          : marker === "?"
-            ? pc.red("?")
-            : pc.cyan("+");
-    console.log(`    ${coloredMarker} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
+  if (renderIndentedMarkerLine(line)) {
     return;
   }
 
-  if (
-    trimmed.startsWith("No skills found ")
-    || trimmed === "No bundles found."
-    || trimmed.startsWith("Showing first ")
-    || trimmed.startsWith("... and ")
-  ) {
+  if (trimmed === "No bundles found.") {
     console.log(pc.dim(trimmed));
     return;
   }
