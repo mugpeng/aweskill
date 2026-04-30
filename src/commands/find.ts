@@ -1,11 +1,16 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import type { RuntimeContext } from "../types.js";
 import { sanitizeName } from "../lib/path.js";
 import { parseDownloadSource } from "../lib/source-parser.js";
+import { getSkillDescription } from "../lib/skill-doc.js";
+import { listSkills } from "../lib/skills.js";
 
 const SKILLS_SH_API_BASE = process.env.SKILLS_API_URL || "https://skills.sh";
 const SCISKILL_API_BASE = process.env.SCISKILL_API_URL || "https://sciskillhub.org";
 
-type FindProvider = "skills-sh" | "sciskill";
+type FindProvider = "skills-sh" | "sciskill" | "local";
 
 interface SkillsShResult {
   id: string;
@@ -26,13 +31,16 @@ interface SciskillResult {
 interface FindResult {
   name: string;
   provider: FindProvider;
-  downloadSource: string;
+  downloadSource?: string;
   installCommand?: string;
   installs?: number;
   description?: string;
   similarityScore?: number;
+  localScore?: number;
   downloadable: boolean;
   detailUrl?: string;
+  localPath?: string;
+  readCommand?: string;
 }
 
 export interface FindOptions {
@@ -49,6 +57,9 @@ function getFindTimeoutMs(options: FindOptions): number {
 }
 
 function formatProviderName(provider: FindProvider): string {
+  if (provider === "local") {
+    return provider;
+  }
   return provider === "skills-sh" ? "skills.sh" : provider;
 }
 
@@ -138,6 +149,52 @@ function buildInstallCommand(result: { provider: FindProvider; name: string; dow
   return `aweskill store install ${result.downloadSource}`;
 }
 
+function scoreLocalSkill(query: string, skill: { name: string; description?: string; body: string }): number {
+  const normalizedQuery = query.trim().toLowerCase();
+  const name = skill.name.toLowerCase();
+  const description = (skill.description ?? "").toLowerCase();
+  const body = skill.body.toLowerCase();
+
+  let score = 0;
+  if (name.includes(normalizedQuery)) {
+    score += 100;
+  }
+  if (description.includes(normalizedQuery)) {
+    score += 50;
+  }
+  if (body.includes(normalizedQuery)) {
+    score += 10;
+  }
+  return score;
+}
+
+async function searchLocalStore(context: RuntimeContext, query: string): Promise<FindResult[]> {
+  const skills = await listSkills(context.homeDir);
+  const results: FindResult[] = [];
+
+  for (const skill of skills.filter((entry) => entry.hasSKILLMd)) {
+    const skillFile = path.join(skill.path, "SKILL.md");
+    const content = await readFile(skillFile, "utf8");
+    const description = getSkillDescription(content);
+    const score = scoreLocalSkill(query, { name: skill.name, description, body: content });
+    if (score <= 0) {
+      continue;
+    }
+
+    results.push({
+      name: skill.name,
+      provider: "local",
+      downloadable: false,
+      description,
+      localScore: score,
+      localPath: skill.path,
+      readCommand: `aweskill store show ${skill.name}`,
+    });
+  }
+
+  return results.sort((left, right) => (right.localScore ?? 0) - (left.localScore ?? 0) || left.name.localeCompare(right.name));
+}
+
 async function searchSkillsSh(query: string, limit: number, timeoutMs: number): Promise<FindResult[]> {
   const url = `${SKILLS_SH_API_BASE}/api/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(String(limit))}`;
   const response = await fetchWithTimeout("skills-sh", url, {}, timeoutMs);
@@ -219,8 +276,16 @@ function formatFindResult(result: FindResult, index: number): string {
     `${index + 1}. ${result.name}`,
     `   ${formatMetaLine(result)}`,
     `   ${result.description || "(no description)"}`,
-    `   source: ${result.downloadSource}`,
   ];
+  if (result.provider === "local") {
+    lines.push(`   path: ${result.localPath}`);
+    if (result.readCommand) {
+      lines.push(`   read: ${result.readCommand}`);
+    }
+    return lines.join("\n");
+  }
+
+  lines.push(`   source: ${result.downloadSource}`);
   if (result.installCommand) {
     lines.push(`   install: ${result.installCommand}`);
   }
@@ -248,7 +313,9 @@ export async function runFind(context: RuntimeContext, query: string, options: F
     try {
       const results = provider === "skills-sh"
         ? await searchSkillsSh(query, limit, timeoutMs)
-        : await searchSciskill(query, { ...options, limit });
+        : provider === "sciskill"
+          ? await searchSciskill(query, { ...options, limit })
+          : await searchLocalStore(context, query);
       resultsByProvider.set(provider, results);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -271,6 +338,7 @@ export async function runFind(context: RuntimeContext, query: string, options: F
   const merged = dedupeFindResults([
     ...(resultsByProvider.get("skills-sh") ?? []),
     ...(resultsByProvider.get("sciskill") ?? []),
+    ...(resultsByProvider.get("local") ?? []),
   ]);
   const visibleResults = options.provider ? merged.slice(0, limit) : merged;
 

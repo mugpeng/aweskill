@@ -2,46 +2,57 @@
 
 ## Unreleased
 
-This unreleased update repositions `aweskill` as a skill package manager, renames `store download` to `store install` across the CLI and all documentation, and restructures the built-in `aweskill` meta-skill around task-routing workflow sections. The underlying install and update semantics are unchanged, but the user-facing command names, help text, documentation, and built-in skill guidance were updated.
+This unreleased update also adds a local central-store search mode and a direct skill-inspection command. `find` can now search the local `~/.aweskill/skills/` repository through a `local` provider, and `store show` can print a summary, the raw `SKILL.md`, or just the file path for one managed skill.
 
-### `store download` is now `store install`
+### Local search provider and `store show`
 
-`aweskill store download` has been renamed to `aweskill store install`. The top-level alias `aweskill download` is now `aweskill install`. All README sections, workflow examples, and command reference entries have been updated accordingly. The flag interface and behavior are unchanged.
+`aweskill find <query> --local` and `aweskill store find <query> --local` now search the local central store instead of the remote registries. The same behavior is also available through `--provider local`. Local results are ranked by matches in the skill name, description, and body text from `SKILL.md`, and they print the skill path plus an `aweskill store show <skill>` hint instead of a remote install command.
 
-### README restructured with FAQ and comparison table
-
-Both `README.md` and `README.zh-CN.md` were restructured:
-
-- The old "Why aweskill" and "Find -> Download -> Update" sections were replaced with an FAQ section covering common questions (who it is for, where skills are stored, agent support, local-first status, agent-callable skills, and the find/install/update lifecycle).
-- A new **Comparison** table was added comparing `aweskill` against `cc-switch`, `sciskill`, `skillfish`, and `skills` across eight capability dimensions.
-- The project headline changed to "Skill Packages for AI Agents" with the tagline "A CLI-first skill package manager that AI agents can operate themselves."
-- The coverage line now reads: "Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more."
-
-### Built-in `aweskill` meta-skill restructured around task routing
-
-The built-in `aweskill` skill (`resources/skills/aweskill/`) was rewritten to guide AI agents through a task-router model instead of a flat command list:
-
-- A new **Task Router** section classifies incoming requests into four domains: Store Work, Source Lifecycle, Bundle Work, and Projection Work, with keyword-based routing hints for each.
-- Workflow sections now map directly to task domains, each with decision-order guidance and inspection-before-mutation rules.
-- Source Lifecycle is a new first-class section covering `find`, `install`, and `update` with a recommended decision order (find → install → update --check → update).
-- Escalation rules to `$aweskill-doctor` were expanded with explicit conditions (broken projections, dedup cleanup, suspicious entries, diagnosis-first tasks).
-- `command-map.md` was reorganized into the same four task-domain sections and now includes source-lifecycle commands and `agent recover`.
-- `common-flows.md` was expanded with new flow sections for source discovery, install, update check, and agent recover, and section headings were normalized.
-- References to `projection-flows.md` and `bundle-flows.md` were removed from `SKILL.md`; their content is now covered by the task-domain workflow sections.
-
-### package.json description updated
-
-The `description` field in `package.json` now matches the CLI-first tagline.
+`aweskill store show <skill>` is a new inspection command for managed local skills. It prints a short summary by default, supports `--raw` to print the full `SKILL.md`, and supports `--path` to print only the resolved `SKILL.md` path. Both READMEs now document the new search mode and inspection workflow.
 
 ### Highlights
 
-- Renamed `store download` → `store install` and `aweskill download` → `aweskill install` across CLI docs and all workflow examples.
-- Added FAQ section to both READMEs covering common questions and use cases.
-- Added comparison table (cc-switch, sciskill, skillfish, skills) to both READMEs.
-- Updated project headline, tagline, coverage line, and install placement in both READMEs and `package.json`.
-- Restructured the built-in `aweskill` meta-skill around a four-domain task router (Store, Source Lifecycle, Bundle, Projection).
-- Added Source Lifecycle guidance with `find` → `install` → `update` decision order to the built-in skill.
-- Reorganized `command-map.md` and `common-flows.md` to match the task-domain structure.
+- Added a `local` search provider for `aweskill find` / `aweskill store find`, plus the `--local` shortcut.
+- Added `aweskill store show <skill>` with summary, raw, and path output modes.
+- Updated `README.md` and `README.zh-CN.md` to document local central-store search and direct skill inspection.
+
+## v0.2.7
+
+`v0.2.7` is the release where `aweskill` fully repositions itself as a CLI-first skill package manager. Since `v0.2.6`, the CLI renamed `store download` to `store install`, refreshed its top-level aliases and help text around the install/update lifecycle, reworked both READMEs into a FAQ-first and comparison-driven format, and rewrote the built-in `aweskill` meta-skill around task-routing workflow sections. The underlying install and update semantics stay the same, but the command surface, documentation, and built-in agent guidance are more explicit and more consistent.
+
+### `store download` is now `store install`
+
+`aweskill store download` was renamed to `aweskill store install`. The top-level alias `aweskill download` was renamed to `aweskill install` as part of the same cleanup. The CLI help text, README examples, and related tests were updated to use the install-oriented naming consistently, while the actual source resolution and tracked update behavior remained unchanged.
+
+### README restructured with FAQ and comparison table
+
+Both `README.md` and `README.zh-CN.md` were restructured around a more product-level overview:
+
+- The old "Why aweskill" and "Find -> Download -> Update" sections were replaced with an FAQ section covering who aweskill is for, where skills are stored, supported agent types, the local-first model, built-in agent-callable skills, and the find/install/update lifecycle.
+- A new comparison table was added to position `aweskill` against `cc-switch`, `sciskill`, `skillfish`, and `skills` across several capability dimensions.
+- The project headline and tagline were updated to frame aweskill as a CLI-first skill package manager for AI agents.
+
+### Built-in `aweskill` meta-skill restructured around task routing
+
+The built-in `aweskill` skill under `resources/skills/aweskill/` was rewritten from a flat command reference into a task-router model:
+
+- A new Task Router section classifies requests into Store Work, Source Lifecycle, Bundle Work, and Projection Work.
+- Workflow guidance now follows those task domains and emphasizes inspection before mutation.
+- Source Lifecycle became a first-class section covering `find`, `install`, and `update` with an explicit decision order.
+- The references under `command-map.md` and `common-flows.md` were reorganized to match the same task-domain structure.
+
+### Supporting documentation and package metadata refresh
+
+`docs/CONTRIBUTING.md`, `docs/DESIGN.md`, and `package.json` were refreshed to match the new CLI-first positioning and updated command names. The version badges and install snippets in both READMEs were also bumped for the `0.2.7` release.
+
+### Highlights
+
+- Renamed `store download` → `store install` and `aweskill download` → `aweskill install`.
+- Updated CLI help text, implementation, and tests to use the new install terminology consistently.
+- Reworked both READMEs into FAQ-first docs with a new comparison table and refreshed positioning.
+- Restructured the built-in `aweskill` meta-skill around a four-domain task router.
+- Reorganized built-in reference docs to match the new task-domain workflow model.
+- Refreshed related docs and package metadata for the `0.2.7` release.
 
 ## v0.2.6
 

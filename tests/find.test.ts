@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { runFind } from "../src/commands/find.js";
+import { getSkillPath } from "../src/lib/skills.js";
 import { createRuntime, createTempWorkspace } from "./helpers.js";
 
 describe("find command", () => {
@@ -211,5 +214,35 @@ describe("find command", () => {
     expect(output).toContain("source: smithery.ai");
     expect(output).toContain("aweskill store install does not support this source");
     expect(output).not.toContain("https://skills.sh/");
+  });
+
+  it("searches local central-store skills by name, description, and body", async () => {
+    const workspace = await createTempWorkspace();
+    const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
+    const skillDir = getSkillPath(workspace.homeDir, "paper-review");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(path.join(skillDir, "SKILL.md"), [
+      "---",
+      "name: paper-review",
+      "description: Review scientific manuscripts and methods.",
+      "---",
+      "",
+      "# Paper Review",
+      "",
+      "Use this skill for manuscript critique and experimental design review.",
+      "",
+    ].join("\n"), "utf8");
+
+    const result = await runFind(context, "manuscript", { provider: "local" });
+
+    expect(result.results).toHaveLength(1);
+    expect(result.results[0]?.name).toBe("paper-review");
+    const output = lines.join("\n");
+    expect(output).toContain("Found 1 skill");
+    expect(output).toContain("   local");
+    expect(output).toContain("   Review scientific manuscripts and methods.");
+    expect(output).toContain(`   path: ${skillDir}`);
+    expect(output).toContain("   read: aweskill store show paper-review");
+    expect(output).not.toContain("install:");
   });
 });

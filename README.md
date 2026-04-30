@@ -139,7 +139,7 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 
 `aweskill` combines local orchestration with a source-aware skill lifecycle:
 
-- **Find** skills across [skills.sh](https://skills.sh/) and [sciskillhub.org](https://sciskillhub.org/) with one command
+- **Find** skills across [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), or the local central store with one command
 - **Install** skills from GitHub-style sources, local paths, or `sciskill:<skill-id>` identifiers into the central store
 - **Update** tracked installs from their recorded sources while protecting local central-store edits
 - **Project** the same managed skills into Codex, Claude Code, Cursor, Gemini CLI, and other agents
@@ -151,7 +151,7 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 | Capability | `cc-switch` | `sciskill` | `skillfish` | `skills` | How aweskill does it |
 |---|---|---|---|---|---|
 | One central local skill store | ✗ | ✗ | ✗ | ✗ | Keeps all managed skills in `~/.aweskill/skills/` as the source of truth |
-| Search across major skill registries | ✗ | ✓ | ✓ | ✓ | Searches both [skills.sh](https://skills.sh/) and [sciskillhub.org](https://sciskillhub.org/) with `aweskill find` |
+| Search across major skill registries | ✗ | ✓ | ✓ | ✓ | Searches [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), or the local central store with `aweskill find` |
 | Install from registries, GitHub-style sources, and local paths | ✗ | ✗ | ✓ | ✓ | Imports from GitHub-style sources, local paths, and `sciskill:<skill-id>` into the central store |
 | Tracked updates from recorded sources | ✗ | ✗ | ✓ | ✓ | Records source metadata, then refreshes with `aweskill update` while protecting local central-store edits |
 | Plug-and-play multi-agent projection | ✓ | ✗ | ✓ | ✓ | Projects selected skills from the central store into agent-specific directories using `symlink`, junction, or managed `copy` |
@@ -172,6 +172,9 @@ aweskill store where --verbose
 
 # 3. Find a skill across supported providers
 aweskill find protein
+
+# 3b. Search the local central store only
+aweskill find review --local
 
 # 4. Install a discovered skill into the central store
 aweskill install sciskill:open-source/research/lifesciences-proteomics
@@ -241,7 +244,8 @@ Discovery and install sources:
 
 - [skills.sh](https://skills.sh/) is used as a community discovery source and may return directly installable GitHub-style sources or discover-only entries that point you to the upstream skills.sh page
 - [sciskillhub.org](https://sciskillhub.org/) is used as a scientific and technical skill registry and provides installable `sciskill:<skill-id>` sources
-- `aweskill find` searches both by default, merges results by normalized name, and lets `--limit` apply per provider before merge and dedupe
+- The local central store is available as a `local` search provider and reads `~/.aweskill/skills/*/SKILL.md`
+- `aweskill find` searches `skills.sh` and `sciskill` by default, merges results by normalized name, and lets `--limit` apply per provider before merge and dedupe; use `--local` or `--provider local` to search only the local central store
 - `aweskill store install` currently accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers
 
 ## Common Workflows
@@ -276,6 +280,16 @@ aweskill find protein
 
 # Search one provider only
 aweskill find protein --provider sciskill
+
+# Search the local central store and print matching skill paths
+aweskill find review --local
+
+# Inspect one local skill summary
+aweskill store show paper-review
+
+# Print the full markdown or just the path
+aweskill store show paper-review --raw
+aweskill store show paper-review --path
 
 # Install a skill from a GitHub-style source discovered via skills.sh
 aweskill store install owner/repo
@@ -370,10 +384,11 @@ Top-level convenience commands are available for high-frequency search and track
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | Scan supported agent skill directories for a chosen scope and agent set; add `--import` to immediately import scan results into the central store |
 | `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | Import a skill or an entire skills root; external paths keep their source by default, and `--track-source` records explicit local imports for future `store update` runs |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | Import the current scan results for a chosen scope and agent set; scanned agent paths link back to aweskill by default |
-| `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | Search skills across `skills.sh` and `sciskill`, merge results by name, and print either a directly installable `source` or a discover-only result with an explanatory note and details URL |
+| `aweskill store find <query> [--provider <skills-sh\|sciskill\|local>] [--local] [--limit <n>] [--domain <domain>] [--stage <stage>]` | Search `skills.sh` and `sciskill` by default, or search the local central store with `--local` / `--provider local`; remote results print installable `source` values or discover-only notes, while local results print skill paths and `store show` hints |
 | `aweskill store install <source> [--list] [--skill <name>] [--all] [--ref <ref>] [--as <name>] [--override]` | Install skills from a local path, GitHub source, or `sciskill:<skill-id>` into the central store and record them for future `store update` runs |
 | `aweskill store update [skill...] [--check] [--dry-run] [--source <source>] [--override]` | Check or refresh tracked skills from their recorded source while treating the central store copy as the protected local state |
 | `aweskill store list [--verbose]` | List skills in the central store |
+| `aweskill store show <skill> [--summary\|--raw\|--path]` | Show a central-store skill summary by default, print the full `SKILL.md`, or print only the `SKILL.md` path |
 | `aweskill store remove <skill> [--force]` | Remove one skill from the central store and clean any tracked lock entry for that skill |
 | `aweskill bundle list [--verbose]` | List central bundles |
 | `aweskill bundle create <name>` | Create a bundle |
@@ -393,7 +408,7 @@ Top-level convenience commands are available for high-frequency search and track
 
 </details>
 
-`aweskill find` prefers to print `source` values that `aweskill store install` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct install and tells you to visit the matching `skills.sh` page so you can inspect the upstream installation instructions there. When searching both providers at once, `--limit` applies per provider before merge and dedupe.
+`aweskill find` prefers to print `source` values that `aweskill store install` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct install and tells you to visit the matching `skills.sh` page so you can inspect the upstream installation instructions there. Local search results do not print install commands; they print the skill path and an `aweskill store show <skill>` hint instead. When searching both remote providers at once, `--limit` applies per provider before merge and dedupe.
 
 ## Built-in Skills
 

@@ -24,6 +24,7 @@ import { runRemove } from "./commands/remove.js";
 import { runRestore } from "./commands/restore.js";
 import { runRmdup } from "./commands/rmdup.js";
 import { runScan } from "./commands/scan.js";
+import { runShow } from "./commands/show.js";
 import { runSync } from "./commands/sync.js";
 import { runUpdate } from "./commands/update.js";
 import { runClean } from "./commands/clean.js";
@@ -212,13 +213,14 @@ function addFindCommand(parent: Command, context: RuntimeContext, title: string)
     .command("find")
     .argument("<query>")
     .description("Search skills across configured providers")
-    .option("-p, --provider <provider>", "limit search to one provider (skills-sh or sciskill)")
+    .option("-p, --provider <provider>", "limit search to one provider (skills-sh, sciskill, or local)")
+    .option("--local", "search the local central store only", false)
     .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
     .option("--domain <domain>", "pass an exact domain filter to sciskill")
     .option("--stage <stage>", "pass an exact stage filter to sciskill")
     .action(async (query, options) => {
-      const provider = options.provider as "skills-sh" | "sciskill" | undefined;
-      if (provider && provider !== "skills-sh" && provider !== "sciskill") {
+      const provider = (options.local ? "local" : options.provider) as "skills-sh" | "sciskill" | "local" | undefined;
+      if (provider && provider !== "skills-sh" && provider !== "sciskill" && provider !== "local") {
         throw new Error(`Unsupported provider: ${provider}`);
       }
       await runFramedCommand(title, async () =>
@@ -507,6 +509,20 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
           projectDir: options.project,
         }),
       );
+    });
+  store
+    .command("show")
+    .argument("<skill>")
+    .description("Show a central-store skill summary or its SKILL.md contents")
+    .option("--summary", "print the skill summary (default)", false)
+    .option("--raw", "print the full SKILL.md markdown", false)
+    .option("--path", "print only the SKILL.md path", false)
+    .action(async (skillName, options) => {
+      await runShow(context, skillName, {
+        summary: options.summary,
+        raw: options.raw,
+        path: options.path,
+      });
     });
   store
     .command("backup")

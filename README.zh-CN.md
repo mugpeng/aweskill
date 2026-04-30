@@ -139,7 +139,7 @@ npm install -g ./aweskill-<version>.tgz
 
 `aweskill` 把本地 orchestration 和带来源追踪的 skill 生命周期放在一起：
 
-- **Find**：用一条命令同时搜索 [skills.sh](https://skills.sh/) 和 [sciskillhub.org](https://sciskillhub.org/)
+- **Find**：用一条命令同时搜索 [skills.sh](https://skills.sh/)、[sciskillhub.org](https://sciskillhub.org/) 或本地中央仓库
 - **Install**：从 GitHub 风格 source、本地路径或 `sciskill:<skill-id>` 标识安装到中央仓库
 - **Update**：按记录的来源刷新 tracked install，同时保护中央仓库里的本地修改
 - **Project**：把同一批托管 skill 投影到 Codex、Claude Code、Cursor、Gemini CLI 等 agent
@@ -151,7 +151,7 @@ npm install -g ./aweskill-<version>.tgz
 | 能力维度 | `cc-switch` | `sciskill` | `skillfish` | `skills` | aweskill 如何实现 |
 |---|---|---|---|---|---|
 | 单一中央本地 skill 仓库 | ✗ | ✗ | ✗ | ✗ | 把所有托管 skills 放在 `~/.aweskill/skills/`，作为唯一事实来源 |
-| 跨主流 skill registry 搜索 | ✗ | ✓ | ✓ | ✓ | 用 `aweskill find` 同时搜索 [skills.sh](https://skills.sh/) 和 [sciskillhub.org](https://sciskillhub.org/) |
+| 跨主流 skill registry 搜索 | ✗ | ✓ | ✓ | ✓ | 用 `aweskill find` 搜索 [skills.sh](https://skills.sh/)、[sciskillhub.org](https://sciskillhub.org/) 或本地中央仓库 |
 | 从 registry、GitHub 风格 source、本地路径安装 | ✗ | ✗ | ✓ | ✓ | 从 GitHub 风格 source、本地路径和 `sciskill:<skill-id>` 导入到中央仓库 |
 | 按记录来源追踪更新 | ✗ | ✗ | ✓ | ✓ | 记录 source 元数据，再用 `aweskill update` 刷新，同时保护中央仓库里的本地修改 |
 | 多 agent 按需插拔投影 | ✓ | ✗ | ✓ | ✓ | 通过 `symlink`、junction 或受管 `copy`，把中央仓库里的 skills 投影到各 agent 目录 |
@@ -172,6 +172,9 @@ aweskill store where --verbose
 
 # 3. 跨支持的 provider 查找 skill
 aweskill find protein
+
+# 3b. 只搜索本地中央仓库
+aweskill find review --local
 
 # 4. 把发现到的 skill 安装到中央仓库
 aweskill install sciskill:open-source/research/lifesciences-proteomics
@@ -241,7 +244,8 @@ aweskill agent add bundle frontend --global --agent codex
 
 - [skills.sh](https://skills.sh/) 现在作为社区 skill 发现源使用，可能返回可直接安装的 GitHub 风格 source，也可能返回只能跳转查看上游安装说明的 discover-only 条目
 - [sciskillhub.org](https://sciskillhub.org/) 现在作为科研和技术类 skill registry 使用，提供可安装的 `sciskill:<skill-id>` source
-- `aweskill find` 默认会同时搜索这两边，按规范化后的名字合并结果；`--limit` 会先按 provider 分别生效，再做合并去重
+- 本地中央仓库也可以作为 `local` provider 搜索，读取 `~/.aweskill/skills/*/SKILL.md`
+- `aweskill find` 默认同时搜索 `skills.sh` 和 `sciskill`，按规范化后的名字合并结果；`--limit` 会先按 provider 分别生效，再做合并去重；用 `--local` 或 `--provider local` 可只搜索本地中央仓库
 - `aweskill store install` 当前支持本地路径、GitHub source 和 `sciskill:<skill-id>` 标识
 
 ## 常见工作流
@@ -276,6 +280,16 @@ aweskill find protein
 
 # 只搜索一个 provider
 aweskill find protein --provider sciskill
+
+# 搜索本地中央仓库并查看命中的 skill 路径
+aweskill find review --local
+
+# 查看一个本地 skill 的摘要
+aweskill store show paper-review
+
+# 输出完整 markdown 或只输出路径
+aweskill store show paper-review --raw
+aweskill store show paper-review --path
 
 # 安装一个从 skills.sh 发现到的 GitHub 风格 source
 aweskill store install owner/repo
@@ -370,10 +384,11 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill store scan [--global\|--project [dir]] [--agent <agent>] [--import] [--keep-source] [--override] [--verbose]` | 按指定 scope 和 agent 集合扫描支持的 agent skill 目录；加上 `--import` 会立即把扫描结果导入中央仓库 |
 | `aweskill store import <path> [--keep-source\|--link-source] [--track-source] [--override]` | 导入单个 skill 或整个 skills 根目录；外部路径默认保留原目录，`--track-source` 可为显式本地导入建立后续 `store update` 追踪 |
 | `aweskill store import --scan [--global\|--project [dir]] [--agent <agent>] [--keep-source\|--link-source] [--override]` | 按指定 scope 和 agent 集合导入当前扫描结果；扫描到的 agent 路径默认会回写为 aweskill 托管投影 |
-| `aweskill store find <query> [--provider <skills-sh\|sciskill>] [--limit <n>] [--domain <domain>] [--stage <stage>]` | 与上面相同的搜索命令，只是保留在 `store` 命名空间下 |
+| `aweskill store find <query> [--provider <skills-sh\|sciskill\|local>] [--local] [--limit <n>] [--domain <domain>] [--stage <stage>]` | 默认搜索 `skills.sh` 和 `sciskill`，也可用 `--local` / `--provider local` 只搜索本地中央仓库；远程结果输出可安装 `source` 或 discover-only 提示，本地结果输出 skill 路径和 `store show` 提示 |
 | `aweskill store install <source> [--list] [--skill <name>] [--all] [--ref <ref>] [--as <name>] [--override]` | 从本地路径、GitHub source 或 `sciskill:<skill-id>` 安装 skill 到中央仓库，并为后续 `store update` 建立追踪记录 |
 | `aweskill store update [skill...] [--check] [--dry-run] [--source <source>] [--override]` | 从已记录的 source 检查或刷新 tracked skill，并把中央仓库中的副本当作受保护的本地状态 |
 | `aweskill store list [--verbose]` | 列出中央仓库中的 skill |
+| `aweskill store show <skill> [--summary\|--raw\|--path]` | 默认输出中央仓库 skill 的摘要，也可以输出完整 `SKILL.md` 或只输出 `SKILL.md` 路径 |
 | `aweskill store remove <skill> [--force]` | 从中央仓库删除一个 skill，并同步清理该 skill 的 tracked lock 记录 |
 | `aweskill bundle list [--verbose]` | 列出 bundle |
 | `aweskill bundle create <name>` | 创建 bundle |
@@ -393,7 +408,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 </details>
 
-`aweskill find` 会优先输出 `aweskill store install` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接安装，并提示你去对应的 `skills.sh` 页面查看上游安装说明。默认同时搜索两个 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
+`aweskill find` 会优先输出 `aweskill store install` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接安装，并提示你去对应的 `skills.sh` 页面查看上游安装说明。本地搜索结果不会输出安装命令，而是输出 skill 路径和 `aweskill store show <skill>` 提示。默认同时搜索两个远程 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
 
 ## 内置 Skill
 

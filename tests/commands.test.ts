@@ -272,6 +272,80 @@ describe("commands", () => {
     expect(output).toContain(`  - bundles: 1 entry -> ${path.join(workspace.homeDir, ".aweskill", "bundles")}`);
   });
 
+  it("supports --local as a find shortcut for central-store skills", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "local-search"), "Local Search");
+    await program.parseAsync(["node", "aweskill", "find", "local", "--local"], { from: "node" });
+
+    const output = lines.join("\n");
+    expect(output).toContain("Found 1 skill");
+    expect(output).toContain("local-search");
+    expect(output).toContain("read: aweskill store show local-search");
+  });
+
+  it("shows a central-store skill summary by default and raw markdown with --raw", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const skillDir = getSkillPath(workspace.homeDir, "paper-review");
+    const skillPath = path.join(skillDir, "SKILL.md");
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(skillPath, [
+      "---",
+      "name: paper-review",
+      "description: Review scientific manuscripts.",
+      "---",
+      "",
+      "# Paper Review",
+      "",
+      "Full instructions stay in the raw view.",
+      "",
+    ].join("\n"), "utf8");
+
+    await program.parseAsync(["node", "aweskill", "store", "show", "paper-review"], { from: "node" });
+    expect(lines.join("\n")).toContain("paper-review");
+    expect(lines.join("\n")).toContain("Review scientific manuscripts.");
+    expect(lines.join("\n")).toContain(`path: ${skillPath}`);
+    expect(lines.join("\n")).not.toContain("Full instructions stay in the raw view.");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "show", "paper-review", "--summary"], { from: "node" });
+    expect(lines.join("\n")).toContain("Review scientific manuscripts.");
+    expect(lines.join("\n")).not.toContain("Full instructions stay in the raw view.");
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "show", "paper-review", "--raw"], { from: "node" });
+    expect(lines).toEqual([[
+      "---",
+      "name: paper-review",
+      "description: Review scientific manuscripts.",
+      "---",
+      "",
+      "# Paper Review",
+      "",
+      "Full instructions stay in the raw view.",
+      "",
+    ].join("\n")]);
+
+    lines.length = 0;
+    await program.parseAsync(["node", "aweskill", "store", "show", "paper-review", "--path"], { from: "node" });
+    expect(lines).toEqual([skillPath]);
+  });
+
   it("backs up skills and bundles to a user-provided archive path by default", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
