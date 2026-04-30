@@ -172,45 +172,97 @@ npm install -g ./aweskill-<version>.tgz
 
 当你的核心问题不只是“装一个 skill”，而是“长期维护一套可复用、可更新、可恢复、可跨 agent 复用，而且出问题后还能诊断和修复的本地 skills 资产”时，`aweskill` 更合适。
 
+## 内置 Agent Skills
+
+`aweskill` 最适合的用法，是先让你的编码 agent 能直接操作它。
+
+建议先把内置的 `aweskill` 和 `aweskill-doctor` skills 投影给当前 agent：
+
+- `aweskill` 负责日常操作，例如 `find`、`install`、`update`、`bundle` 和 `agent add`
+- `aweskill-doctor` 负责修复优先的工作流，例如 `doctor sync`、`doctor clean`、`doctor dedup`、`doctor fix-skills` 和 `agent recover`
+- 如果不先投影这两个 skill，agent 当然也能直接跑 shell 命令，但它不会自带这些面向 aweskill 的操作指引，也就不容易稳定地从自然语言请求进入合适的工作流
+
 ## 快速开始
 
+`aweskill` 的推荐路径很简单：CLI 只安装一次，先把内置管理 skills 装给 agent，之后就让 agent 用自然语言来日常操作 aweskill。
+
+### 1. 一次性完成 aweskill 引导
+
 ```bash
-# 1. 初始化 aweskill 家目录
+# 安装 aweskill 并初始化中央仓库
+npm install -g aweskill
 aweskill store init
 
-# 2. 查看 aweskill store 在哪里
+# 看一下 aweskill store 在哪里
 aweskill store where --verbose
+```
 
-# 3. 跨支持的 provider 查找 skill
+### 2. 给 agent 装上管理能力
+
+```bash
+# 查看支持的 agent id
+aweskill agent supported
+
+# 把内置管理 skills 投影给当前 agent
+aweskill agent add skill aweskill,aweskill-doctor --global --agent codex
+
+# 确认当前投影状态
+aweskill agent list --global --agent codex
+```
+
+把 `codex` 换成你正在使用的 agent id。
+
+### 3. 开始用自然语言驱动 aweskill
+
+投影好 `aweskill` 和 `aweskill-doctor` 之后，你就可以直接对编码 agent 说：
+
+```text
+帮我找一个适合 Python 数据分析的 skill，并安装到 aweskill central store。
+
+把 frontend bundle 投影到 Codex 和 Cursor。
+
+扫描我现有的 agent skill 目录，把未托管的 skills 导入 aweskill。
+
+检查已安装 skill 是否有来源更新。
+
+先检查 Codex 下有没有 broken 或 duplicate skill，不要立即修改。
+
+修复 Codex 下 broken 和 duplicate 的投影，必要时先备份。
+```
+
+### 4. 常见手动 CLI 流程
+
+```bash
+# 跨支持的 provider 查找 skill
 aweskill find protein
 
-# 3b. 只搜索本地中央仓库
+# 只搜索本地中央仓库
 aweskill find review --local
 
-# 4. 把发现到的 skill 安装到中央仓库
+# 把发现到的 skill 安装到中央仓库
 aweskill install sciskill:open-source/research/lifesciences-proteomics
 
-# 5. 检查 tracked install 是否有来源更新
+# 检查 tracked install 是否有来源更新
 aweskill update --check
 
-# 6. 扫描已有 agent 的 skill 目录
+# 扫描已有 agent 的 skill 目录
 aweskill store scan
 
-# 7. 把扫描到的 agent skill 导入中央仓库
-aweskill store import --scan
+# 把扫描到的 agent skill 导入中央仓库
+aweskill store scan --import
 
-# 8. 导入一个 skills 根目录或单个 skill
+# 导入一个 skills 根目录或单个 skill
 aweskill store import ~/.agents/skills
 # aweskill store import /path/to/my-skill --link-source
 
-# 9. 创建 bundle
+# 创建 bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 10. 为一个 agent 启用这个 bundle
+# 为一个 agent 启用这个 bundle
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 11. 查看当前投影状态
+# 查看当前投影状态
 aweskill agent list
 ```
 

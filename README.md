@@ -172,45 +172,97 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 
 Use `aweskill` when your main problem is not just installing a skill once, but maintaining a reusable local skill inventory across multiple AI agents over time and keeping that local state repairable when it inevitably gets messy.
 
+## Built-In Agent Skills
+
+`aweskill` works best when your coding agent can operate it directly.
+
+Project the built-in `aweskill` and `aweskill-doctor` skills into your agent first:
+
+- `aweskill` covers day-to-day operations such as `find`, `install`, `update`, `bundle`, and `agent add`
+- `aweskill-doctor` covers repair-first workflows such as `doctor sync`, `doctor clean`, `doctor dedup`, `doctor fix-skills`, and `agent recover`
+- Without projecting them, an agent can still run shell commands, but it will not have the built-in skill guidance that makes aweskill workflows easier to discover and apply from natural-language requests
+
 ## Quick Start
 
+`aweskill` is designed for a simple loop: install the CLI once, equip your agent with the built-in management skills, then let the agent operate aweskill for day-to-day work.
+
+### 1. Bootstrap aweskill once
+
 ```bash
-# 1. Initialize the aweskill home
+# Install aweskill and initialize the central store
+npm install -g aweskill
 aweskill store init
 
-# 2. Show where the aweskill store lives
+# Show where the aweskill store lives
 aweskill store where --verbose
+```
 
-# 3. Find a skill across supported providers
+### 2. Equip your agent
+
+```bash
+# See supported agent ids
+aweskill agent supported
+
+# Project the built-in management skills into your current agent
+aweskill agent add skill aweskill,aweskill-doctor --global --agent codex
+
+# Verify the current projected state
+aweskill agent list --global --agent codex
+```
+
+Replace `codex` with your agent id.
+
+### 3. Use aweskill through natural language
+
+After projecting `aweskill` and `aweskill-doctor`, you can ask your coding agent to do things like:
+
+```text
+Find a Python data-science skill and install the best match into aweskill.
+
+Project my frontend bundle to Codex and Cursor.
+
+Scan my existing agent skill directories and import anything unmanaged into the aweskill store.
+
+Check whether any installed skills have source updates.
+
+Inspect my Codex skills for broken or duplicate projections, but do not modify anything yet.
+
+Repair broken and duplicate Codex projections, and back up anything risky first.
+```
+
+### 4. Common manual CLI flows
+
+```bash
+# Find a skill across supported providers
 aweskill find protein
 
-# 3b. Search the local central store only
+# Search the local central store only
 aweskill find review --local
 
-# 4. Install a discovered skill into the central store
+# Install a discovered skill into the central store
 aweskill install sciskill:open-source/research/lifesciences-proteomics
 
-# 5. Check tracked installs for source updates
+# Check tracked installs for source updates
 aweskill update --check
 
-# 6. Scan existing agent skill directories
+# Scan existing agent skill directories
 aweskill store scan
 
-# 7. Scan and import discovered agent skills into the central store
+# Scan and import discovered agent skills into the central store
 aweskill store scan --import
 
-# 8. Import a skills root or a single skill
+# Import a skills root or a single skill
 aweskill store import ~/.agents/skills
 # aweskill store import /path/to/my-skill --link-source
 
-# 9. Create a bundle
+# Create a bundle
 aweskill bundle create frontend
 aweskill bundle add frontend my-skill
 
-# 10. Enable the bundle for one agent
+# Enable the bundle for one agent
 aweskill agent add bundle frontend --global --agent claude-code
 
-# 11. Inspect current projected skills
+# Inspect current projected skills
 aweskill agent list
 ```
 
