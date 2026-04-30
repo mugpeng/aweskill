@@ -18,9 +18,9 @@ describe("cli ui formatting", () => {
 
     const output = logSpy.mock.calls.map((call) => String(call[0]));
     expect(output.some((line) => line.includes("1. scientific-writing"))).toBe(true);
-    expect(output.some((line) => line.includes("   skills-sh · 984 installs"))).toBe(true);
-    expect(output.some((line) => line.includes("   (no description)"))).toBe(true);
-    expect(output.some((line) => line.includes("   source: owner/repo"))).toBe(true);
+    expect(output.some((line) => line.includes("skills-sh · 984 installs"))).toBe(true);
+    expect(output.some((line) => line.includes("(no description)"))).toBe(true);
+    expect(output.some((line) => line.includes("source: owner/repo"))).toBe(true);
   });
 
   it("formats indented sync markers without changing their line shape", () => {
