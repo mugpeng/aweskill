@@ -1,10 +1,11 @@
-import { resolveAgentsForMutation, resolveAgentSkillsDir } from "../lib/agents.js";
+import path from "node:path";
+import type { AgentId } from "../lib/agents.js";
+import { resolveAgentSkillsDir, resolveAgentsForMutation } from "../lib/agents.js";
 import { listBundles } from "../lib/bundles.js";
 import { getAweskillPaths, normalizeNameList, sanitizeName, uniqueSorted } from "../lib/path.js";
 import { skillExists } from "../lib/skills.js";
 import { inspectProjectionTarget, listManagedSkillNames, removeProjectionTarget } from "../lib/symlink.js";
-import type { ActivationType, AgentId, RuntimeContext, Scope } from "../types.js";
-import path from "node:path";
+import type { ActivationType, RuntimeContext, Scope } from "../types.js";
 
 function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): string {
   return explicitProjectDir ?? context.cwd;
@@ -17,7 +18,12 @@ async function resolveDisableTargets(
   scope: Scope,
   baseDir: string,
   agents: AgentId[],
-): Promise<{ requestedNames: string[]; existingTargetNames: string[]; missingTargetNames: string[]; skillNames: string[] }> {
+): Promise<{
+  requestedNames: string[];
+  existingTargetNames: string[];
+  missingTargetNames: string[];
+  skillNames: string[];
+}> {
   const normalizedNames = normalizeNameList(names);
   const { skillsDir: centralSkillsDir } = getAweskillPaths(context.homeDir);
 
@@ -39,9 +45,7 @@ async function resolveDisableTargets(
         return listManagedSkillNames(agentSkillsDir, centralSkillsDir);
       }),
     );
-    const managedSkillNames = uniqueSorted(
-      scopedManaged.flatMap((managed) => [...managed.keys()]),
-    );
+    const managedSkillNames = uniqueSorted(scopedManaged.flatMap((managed) => [...managed.keys()]));
 
     return {
       requestedNames: ["all"],
@@ -56,7 +60,9 @@ async function resolveDisableTargets(
     const bundleMap = new Map(bundles.map((bundle) => [bundle.name, bundle]));
     const existingTargetNames = normalizedNames.filter((bundleName) => bundleMap.has(bundleName));
     const missingTargetNames = normalizedNames.filter((bundleName) => !bundleMap.has(bundleName));
-    const skillNames = uniqueSorted(existingTargetNames.flatMap((bundleName) => bundleMap.get(bundleName)?.skills ?? []));
+    const skillNames = uniqueSorted(
+      existingTargetNames.flatMap((bundleName) => bundleMap.get(bundleName)?.skills ?? []),
+    );
     return {
       requestedNames: normalizedNames,
       existingTargetNames,
@@ -224,13 +230,16 @@ export async function runDisable(
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
   if (targets.existingTargetNames.length > 0) {
     const targetLabel = targets.existingTargetNames.join(", ");
-    context.write(`Disabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`);
+    context.write(
+      `Disabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${removed.length > 0 ? ` (${removed.length} removed)` : ""}`,
+    );
   }
   if (targets.missingTargetNames.length > 0) {
     const noun = options.type === "bundle" ? "bundles" : "skills";
-    const hint = options.type === "bundle"
-      ? 'Run "aweskill bundle list" to see available bundles.'
-      : 'Run "aweskill store list" to see available skills.';
+    const hint =
+      options.type === "bundle"
+        ? 'Run "aweskill bundle list" to see available bundles.'
+        : 'Run "aweskill store list" to see available skills.';
     context.write(`Missing ${noun}: ${targets.missingTargetNames.join(", ")}. ${hint}`);
   }
   return { agents, skillNames, removed, missingTargetNames: targets.missingTargetNames };

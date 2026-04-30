@@ -116,7 +116,7 @@ export async function findDuplicateSkills(homeDir: string): Promise<DuplicateGro
   }
 
   const duplicates: DuplicateGroup[] = [];
-  for (const [baseName, entries] of grouped) {
+  for (const [_baseName, entries] of grouped) {
     if (entries.length < 2) {
       continue;
     }

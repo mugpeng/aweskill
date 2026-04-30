@@ -25,9 +25,7 @@ describe("bundles", () => {
       name: "backend",
       skills: ["python", "shell"],
     });
-    await expect(listBundles(workspace.homeDir)).resolves.toEqual([
-      { name: "backend", skills: ["python", "shell"] },
-    ]);
+    await expect(listBundles(workspace.homeDir)).resolves.toEqual([{ name: "backend", skills: ["python", "shell"] }]);
 
     await removeSkillFromBundle(workspace.homeDir, "backend", "shell");
     await expect(readBundle(workspace.homeDir, "backend")).resolves.toEqual({

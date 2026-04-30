@@ -1,14 +1,23 @@
-import path from "node:path";
 import { rm } from "node:fs/promises";
-
-import { formatDetectedAgentsForScope, formatNoAgentsDetectedForScope, resolveAgentsForListingOrSync, resolveAgentSkillsDir } from "../lib/agents.js";
+import path from "node:path";
+import {
+  formatDetectedAgentsForScope,
+  formatNoAgentsDetectedForScope,
+  resolveAgentSkillsDir,
+  resolveAgentsForListingOrSync,
+} from "../lib/agents.js";
 import { pathExists } from "../lib/fs.js";
 import { getAweskillPaths } from "../lib/path.js";
 import { resolveCanonicalSkillName } from "../lib/rmdup.js";
-import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
-import { createSkillSymlink, listBrokenSymlinkNames, listManagedSkillNames, removeManagedProjection } from "../lib/symlink.js";
+import { getSkillPath, listSkillEntriesInDirectory, listSkills } from "../lib/skills.js";
+import {
+  createSkillSymlink,
+  listBrokenSymlinkNames,
+  listManagedSkillNames,
+  removeManagedProjection,
+} from "../lib/symlink.js";
+import type { RuntimeContext, Scope } from "../types.js";
 import { buildCentralCanonicalSkills, classifyCheckedSkill } from "./agent-inspection.js";
-import type { AgentId, RuntimeContext, Scope } from "../types.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
 
@@ -153,9 +162,13 @@ export async function runSync(
       }
 
       if (checkedSkill.category === "duplicate" || checkedSkill.category === "matched") {
-        await createSkillSymlink(getSkillPath(context.homeDir, checkedSkill.canonicalName ?? checkedSkill.name), checkedSkill.path, {
-          allowReplaceExisting: true,
-        });
+        await createSkillSymlink(
+          getSkillPath(context.homeDir, checkedSkill.canonicalName ?? checkedSkill.name),
+          checkedSkill.path,
+          {
+            allowReplaceExisting: true,
+          },
+        );
         relinked.push(`${agentId}:${checkedSkill.name}`);
         continue;
       }
@@ -189,9 +202,8 @@ export async function runSync(
       }
     }
 
-    const title = options.scope === "global"
-      ? `Global skills for ${agentId}:`
-      : `Project skills for ${agentId} (${projectDir}):`;
+    const title =
+      options.scope === "global" ? `Global skills for ${agentId}:` : `Project skills for ${agentId} (${projectDir}):`;
     lines.push("");
     lines.push(...formatSkillBlockWithSummary(title, entries, options.verbose));
   }
@@ -199,25 +211,39 @@ export async function runSync(
   lines.push("");
   if (!options.apply) {
     if (repairableCount > 0) {
-      lines.push("Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.");
+      lines.push(
+        "Re-run with aweskill doctor sync --apply to repair broken projections and relink duplicate/matched entries.",
+      );
     }
     if (suspiciousCount > 0) {
-      lines.push("Suspicious agent skill entries were reported only. Re-run with aweskill doctor sync --apply --remove-suspicious to remove them.");
+      lines.push(
+        "Suspicious agent skill entries were reported only. Re-run with aweskill doctor sync --apply --remove-suspicious to remove them.",
+      );
     }
     if (newEntries.length > 0) {
-      lines.push("New agent skill entries found. Use aweskill store scan --import with same scope and agent filters to import them.");
+      lines.push(
+        "New agent skill entries found. Use aweskill store scan --import with same scope and agent filters to import them.",
+      );
     }
   } else {
     lines.push(`Repaired ${repairedBroken.length} broken symlink projection${repairedBroken.length === 1 ? "" : "s"}.`);
     lines.push(`Removed ${removedBroken.length} broken projection${removedBroken.length === 1 ? "" : "s"}.`);
-    lines.push(`Relinked ${relinked.length} duplicate or matched agent skill entr${relinked.length === 1 ? "y" : "ies"}.`);
+    lines.push(
+      `Relinked ${relinked.length} duplicate or matched agent skill entr${relinked.length === 1 ? "y" : "ies"}.`,
+    );
     if (options.removeSuspicious) {
-      lines.push(`Removed ${removedSuspicious.length} suspicious agent skill entr${removedSuspicious.length === 1 ? "y" : "ies"}.`);
+      lines.push(
+        `Removed ${removedSuspicious.length} suspicious agent skill entr${removedSuspicious.length === 1 ? "y" : "ies"}.`,
+      );
     } else if (suspiciousCount > 0) {
-      lines.push("Suspicious agent skill entries were reported only. Re-run with --apply --remove-suspicious to remove them.");
+      lines.push(
+        "Suspicious agent skill entries were reported only. Re-run with --apply --remove-suspicious to remove them.",
+      );
     }
     if (newEntries.length > 0) {
-      lines.push("New agent skill entries were found. Use aweskill store scan --import with same scope and agent filters to import them.");
+      lines.push(
+        "New agent skill entries were found. Use aweskill store scan --import with same scope and agent filters to import them.",
+      );
     }
   }
 

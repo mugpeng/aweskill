@@ -2,18 +2,17 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
-
-import { computeDirectoryHash } from "../src/lib/hash.js";
 import {
   classifyDownloadConflict,
+  DuplicateSkillNameError,
   discoverDownloadableSkills,
   discoverDownloadableSkillsByName,
-  DuplicateSkillNameError,
   findDownloadableSkillForLockEntry,
   formatDownloadConflictLines,
   formatDuplicateSkillNameConflict,
   throwDownloadConflict,
 } from "../src/lib/download.js";
+import { computeDirectoryHash } from "../src/lib/hash.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { createTempWorkspace, writeSkill } from "./helpers.js";
 

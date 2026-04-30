@@ -1,11 +1,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-
-import type { RuntimeContext } from "../types.js";
 import { sanitizeName } from "../lib/path.js";
-import { parseDownloadSource } from "../lib/source-parser.js";
 import { getSkillDescription } from "../lib/skill-doc.js";
 import { listSkills } from "../lib/skills.js";
+import { parseDownloadSource } from "../lib/source-parser.js";
+import type { RuntimeContext } from "../types.js";
 
 const SKILLS_SH_API_BASE = process.env.SKILLS_API_URL || "https://skills.sh";
 const SCISKILL_API_BASE = process.env.SCISKILL_API_URL || "https://sciskillhub.org";
@@ -79,12 +78,16 @@ function validateFindOptions(options: FindOptions): void {
     throw new Error("--domain and --stage are only supported with the sciskill provider.");
   }
 
-  if (options.domain && !SCISKILL_DOMAINS.includes(options.domain as typeof SCISKILL_DOMAINS[number])) {
-    throw new Error(`Invalid --domain value: "${options.domain}". Allowed values: ${formatAllowedValues(SCISKILL_DOMAINS)}.`);
+  if (options.domain && !SCISKILL_DOMAINS.includes(options.domain as (typeof SCISKILL_DOMAINS)[number])) {
+    throw new Error(
+      `Invalid --domain value: "${options.domain}". Allowed values: ${formatAllowedValues(SCISKILL_DOMAINS)}.`,
+    );
   }
 
-  if (options.stage && !SCISKILL_STAGES.includes(options.stage as typeof SCISKILL_STAGES[number])) {
-    throw new Error(`Invalid --stage value: "${options.stage}". Allowed values: ${formatAllowedValues(SCISKILL_STAGES)}.`);
+  if (options.stage && !SCISKILL_STAGES.includes(options.stage as (typeof SCISKILL_STAGES)[number])) {
+    throw new Error(
+      `Invalid --stage value: "${options.stage}". Allowed values: ${formatAllowedValues(SCISKILL_STAGES)}.`,
+    );
   }
 }
 
@@ -100,7 +103,12 @@ function formatProviderName(provider: FindProvider): string {
   return provider === "skills-sh" ? "skills.sh" : provider;
 }
 
-async function fetchWithTimeout(provider: FindProvider, input: string | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
+async function fetchWithTimeout(
+  provider: FindProvider,
+  input: string | URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -176,7 +184,12 @@ function pickDownloadSource(source?: string): { source: string; downloadable: bo
   }
 }
 
-function buildInstallCommand(result: { provider: FindProvider; name: string; downloadSource: string; downloadable: boolean }): string | undefined {
+function buildInstallCommand(result: {
+  provider: FindProvider;
+  name: string;
+  downloadSource: string;
+  downloadable: boolean;
+}): string | undefined {
   if (!result.downloadable) {
     return undefined;
   }
@@ -229,7 +242,9 @@ async function searchLocalStore(context: RuntimeContext, query: string): Promise
     });
   }
 
-  return results.sort((left, right) => (right.localScore ?? 0) - (left.localScore ?? 0) || left.name.localeCompare(right.name));
+  return results.sort(
+    (left, right) => (right.localScore ?? 0) - (left.localScore ?? 0) || left.name.localeCompare(right.name),
+  );
 }
 
 async function searchSkillsSh(query: string, limit: number, timeoutMs: number): Promise<FindResult[]> {
@@ -239,14 +254,16 @@ async function searchSkillsSh(query: string, limit: number, timeoutMs: number): 
     throw new Error(`skills.sh search failed: HTTP ${response.status}`);
   }
 
-  const payload = await response.json() as { skills?: SkillsShResult[] };
+  const payload = (await response.json()) as { skills?: SkillsShResult[] };
   return (payload.skills ?? [])
     .map((result) => {
       const resolved = pickDownloadSource(result.source ?? result.id);
       const findResult = {
         name: result.name,
         provider: "skills-sh" as const,
-        downloadSource: resolved.downloadable ? resolved.source : (result.source?.trim() || "unsupported by aweskill install"),
+        downloadSource: resolved.downloadable
+          ? resolved.source
+          : result.source?.trim() || "unsupported by aweskill install",
         downloadable: resolved.downloadable,
         installs: result.installs ?? 0,
         description: result.description,
@@ -261,21 +278,26 @@ async function searchSkillsSh(query: string, limit: number, timeoutMs: number): 
 }
 
 async function searchSciskill(query: string, options: FindOptions): Promise<FindResult[]> {
-  const response = await fetchWithTimeout("sciskill", `${SCISKILL_API_BASE}/api/v1/skills/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query,
-      limit: options.limit ?? 10,
-      ...(options.domain ? { domain: options.domain } : {}),
-      ...(options.stage ? { stage: options.stage } : {}),
-    }),
-  }, getFindTimeoutMs(options));
+  const response = await fetchWithTimeout(
+    "sciskill",
+    `${SCISKILL_API_BASE}/api/v1/skills/search`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        limit: options.limit ?? 10,
+        ...(options.domain ? { domain: options.domain } : {}),
+        ...(options.stage ? { stage: options.stage } : {}),
+      }),
+    },
+    getFindTimeoutMs(options),
+  );
   if (!response.ok) {
     throw new Error(`sciskill search failed: HTTP ${response.status}`);
   }
 
-  const payload = await response.json() as { results?: SciskillResult[] };
+  const payload = (await response.json()) as { results?: SciskillResult[] };
   return (payload.results ?? [])
     .map((result) => {
       const findResult = {
@@ -350,11 +372,12 @@ export async function runFind(context: RuntimeContext, query: string, options: F
 
   for (const provider of requestedProviders) {
     try {
-      const results = provider === "skills-sh"
-        ? await searchSkillsSh(query, limit, timeoutMs)
-        : provider === "sciskill"
-          ? await searchSciskill(query, { ...options, limit })
-          : await searchLocalStore(context, query);
+      const results =
+        provider === "skills-sh"
+          ? await searchSkillsSh(query, limit, timeoutMs)
+          : provider === "sciskill"
+            ? await searchSciskill(query, { ...options, limit })
+            : await searchLocalStore(context, query);
       resultsByProvider.set(provider, results);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

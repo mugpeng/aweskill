@@ -14,10 +14,7 @@ describe("storage modules", () => {
     await addSkillToBundle(workspace.homeDir, "frontend", "pr-review");
     await addSkillToBundle(workspace.homeDir, "frontend", "frontend-design");
 
-    expect((await readBundle(workspace.homeDir, "frontend")).skills).toEqual([
-      "frontend-design",
-      "pr-review",
-    ]);
+    expect((await readBundle(workspace.homeDir, "frontend")).skills).toEqual(["frontend-design", "pr-review"]);
 
     await removeSkillFromBundle(workspace.homeDir, "frontend", "frontend-design");
     expect((await listBundles(workspace.homeDir))[0].skills).toEqual(["pr-review"]);

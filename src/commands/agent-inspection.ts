@@ -1,5 +1,5 @@
 import { buildCanonicalSkillIndex, parseSkillName, resolveCanonicalSkillName } from "../lib/rmdup.js";
-import { getSkillSuspicionReason, listSkills } from "../lib/skills.js";
+import { getSkillSuspicionReason, type listSkills } from "../lib/skills.js";
 
 export type CheckCategory = "linked" | "broken" | "duplicate" | "matched" | "new" | "suspicious";
 
@@ -57,6 +57,8 @@ export function classifyCheckedSkill(
   };
 }
 
-export function buildCentralCanonicalSkills(centralSkillEntries: Awaited<ReturnType<typeof listSkills>>): Map<string, { name: string }> {
+export function buildCentralCanonicalSkills(
+  centralSkillEntries: Awaited<ReturnType<typeof listSkills>>,
+): Map<string, { name: string }> {
   return buildCanonicalSkillIndex(centralSkillEntries);
 }

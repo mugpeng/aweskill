@@ -10,12 +10,11 @@ describe("cli ui formatting", () => {
   it("preserves layered indentation for numbered find results", () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-    writeCliMessage([
-      "1. scientific-writing",
-      "   skills-sh · 984 installs",
-      "   (no description)",
-      "   source: owner/repo",
-    ].join("\n"));
+    writeCliMessage(
+      ["1. scientific-writing", "   skills-sh · 984 installs", "   (no description)", "   source: owner/repo"].join(
+        "\n",
+      ),
+    );
 
     const output = logSpy.mock.calls.map((call) => String(call[0]));
     expect(output.some((line) => line.includes("1. scientific-writing"))).toBe(true);
@@ -27,13 +26,15 @@ describe("cli ui formatting", () => {
   it("formats indented sync markers without changing their line shape", () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-    writeCliMessage([
-      "    ✓ linked-skill /tmp/linked-skill",
-      "    ! duplicate-skill /tmp/duplicate-skill",
-      "    ~ matched-skill /tmp/matched-skill",
-      "    + new-skill /tmp/new-skill",
-      "    ? suspicious-skill /tmp/suspicious-skill",
-    ].join("\n"));
+    writeCliMessage(
+      [
+        "    ✓ linked-skill /tmp/linked-skill",
+        "    ! duplicate-skill /tmp/duplicate-skill",
+        "    ~ matched-skill /tmp/matched-skill",
+        "    + new-skill /tmp/new-skill",
+        "    ? suspicious-skill /tmp/suspicious-skill",
+      ].join("\n"),
+    );
 
     const output = logSpy.mock.calls.map((call) => String(call[0]));
     expect(output).toHaveLength(5);

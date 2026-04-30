@@ -1,17 +1,15 @@
 import { computeDirectoryHash } from "../lib/hash.js";
 import { importPath, importScannedSkills, listImportableChildren } from "../lib/import.js";
 import { upsertSkillLockEntry } from "../lib/lock.js";
-import { parseDownloadSource } from "../lib/source-parser.js";
-import { getSkillPath } from "../lib/skills.js";
 import { scanSkills } from "../lib/scanner.js";
+import { getSkillPath } from "../lib/skills.js";
+import { parseDownloadSource } from "../lib/source-parser.js";
 import type { RuntimeContext, Scope } from "../types.js";
 
 async function trackImportedLocalSources(
   context: RuntimeContext,
   sourcePath: string,
-  result:
-    | Awaited<ReturnType<typeof importPath>>
-    | Awaited<ReturnType<typeof importScannedSkills>>,
+  result: Awaited<ReturnType<typeof importPath>> | Awaited<ReturnType<typeof importScannedSkills>>,
   override = false,
 ): Promise<string[]> {
   const source = parseDownloadSource(sourcePath, context.cwd);
@@ -101,7 +99,9 @@ export async function runImport(
       context.write(`Overwritten ${result.overwritten.length} existing skills: ${result.overwritten.join(", ")}`);
     }
     if (result.skipped.length > 0) {
-      context.write(`Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`);
+      context.write(
+        `Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`,
+      );
     }
     if (result.missingSources > 0) {
       context.write(`Missing source files: ${result.missingSources}`);
@@ -109,13 +109,15 @@ export async function runImport(
     if (linkSource) {
       context.write(`Replaced ${result.linkedSources.length} scanned source paths with aweskill-managed projections.`);
     } else {
-      context.write("Source paths were kept in place. Re-run without --keep-source to replace scanned agent skills with aweskill-managed projections.");
+      context.write(
+        "Source paths were kept in place. Re-run without --keep-source to replace scanned agent skills with aweskill-managed projections.",
+      );
     }
     return result;
   }
 
   if (!options.sourcePath) {
-    throw new Error('import requires a source path or --scan');
+    throw new Error("import requires a source path or --scan");
   }
 
   const result = await importPath({
@@ -124,7 +126,9 @@ export async function runImport(
     override: options.override,
     linkSource,
   });
-  const trackedNames = options.trackSource ? await trackImportedLocalSources(context, options.sourcePath, result, options.override) : [];
+  const trackedNames = options.trackSource
+    ? await trackImportedLocalSources(context, options.sourcePath, result, options.override)
+    : [];
 
   if (result.kind === "single") {
     for (const warning of result.warnings) {
@@ -140,7 +144,9 @@ export async function runImport(
     if (result.linkedSourcePath) {
       context.write(`Replaced source path with an aweskill-managed projection: ${result.linkedSourcePath}`);
     } else {
-      context.write("Source was kept in place. Re-run with --link-source to replace it with an aweskill-managed projection.");
+      context.write(
+        "Source was kept in place. Re-run with --link-source to replace it with an aweskill-managed projection.",
+      );
     }
     if (trackedNames.length > 0) {
       context.write(`Tracked ${trackedNames.join(", ")} for future store update runs.`);
@@ -159,7 +165,9 @@ export async function runImport(
     context.write(`Overwritten ${result.overwritten.length} existing skills: ${result.overwritten.join(", ")}`);
   }
   if (result.skipped.length > 0) {
-    context.write(`Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`);
+    context.write(
+      `Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`,
+    );
   }
   if (result.missingSources > 0) {
     context.write(`Missing source files: ${result.missingSources}`);
@@ -167,7 +175,9 @@ export async function runImport(
   if (linkSource) {
     context.write(`Replaced ${result.linkedSources.length} source paths with aweskill-managed projections.`);
   } else {
-    context.write("Source paths were kept in place. Re-run with --link-source to replace them with aweskill-managed projections.");
+    context.write(
+      "Source paths were kept in place. Re-run with --link-source to replace them with aweskill-managed projections.",
+    );
   }
   if (trackedNames.length > 0) {
     context.write(`Tracked ${trackedNames.length} imported skills for future store update runs.`);

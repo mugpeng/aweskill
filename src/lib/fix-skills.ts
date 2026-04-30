@@ -120,9 +120,7 @@ function salvageFrontmatter(frontmatterText: string): Record<string, unknown> {
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && key in parsed) {
         result[key] = (parsed as Record<string, unknown>)[key];
       }
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return result;
@@ -219,7 +217,7 @@ function uniqueStrings(values: string[]): string[] {
 }
 
 function hasInformationalFix(kind: SkillDocFixKind): boolean {
-  return INFORMATIONAL_FIX_KINDS.includes(kind as typeof INFORMATIONAL_FIX_KINDS[number]);
+  return INFORMATIONAL_FIX_KINDS.includes(kind as (typeof INFORMATIONAL_FIX_KINDS)[number]);
 }
 
 export function hasActionableSkillDocFix(result: Pick<SkillDocFixResult, "fixes">): boolean {
@@ -258,8 +256,9 @@ function normalizeRequiredPermissions(raw: unknown): { value?: string[]; changed
   if (Array.isArray(raw)) {
     const asStrings = raw.map((item) => String(item).trim()).filter(Boolean);
     const normalized = uniqueStrings(asStrings);
-    const changed = raw.length !== normalized.length
-      || raw.some((item, index) => typeof item !== "string" || item !== normalized[index]);
+    const changed =
+      raw.length !== normalized.length ||
+      raw.some((item, index) => typeof item !== "string" || item !== normalized[index]);
     return { value: normalized.length > 0 ? normalized : undefined, changed };
   }
 
@@ -290,9 +289,9 @@ function serializeScalar(value: unknown): string {
   }
 
   if (
-    !/^\s|\s$/.test(text)
-    && !/:\s|[\[\]{}#,|>*&!%@`]/.test(text)
-    && !/^(true|false|null|~|-?\d+(\.\d+)?)$/i.test(text)
+    !/^\s|\s$/.test(text) &&
+    !/:\s|[[\]{}#,|>*&!%@`]/.test(text) &&
+    !/^(true|false|null|~|-?\d+(\.\d+)?)$/i.test(text)
   ) {
     return text;
   }
@@ -361,9 +360,10 @@ export function normalizeSkillDoc(content: string, skillName: string): SkillDocF
   }
 
   const pruned = pruneEmpty(parsed.data);
-  const prunedData = (pruned.value && typeof pruned.value === "object" && !Array.isArray(pruned.value))
-    ? pruned.value as Record<string, unknown>
-    : {};
+  const prunedData =
+    pruned.value && typeof pruned.value === "object" && !Array.isArray(pruned.value)
+      ? (pruned.value as Record<string, unknown>)
+      : {};
   if (pruned.removedEmpty) {
     fixes.push("removed-empty-fields");
   }
@@ -392,8 +392,9 @@ export function normalizeSkillDoc(content: string, skillName: string): SkillDocF
     fixes.push("normalized-required-permissions");
   }
 
-  const unknownEntries = Object.entries(prunedData)
-    .filter(([key]) => !KNOWN_FIELD_ORDER.includes(key as typeof KNOWN_FIELD_ORDER[number]));
+  const unknownEntries = Object.entries(prunedData).filter(
+    ([key]) => !KNOWN_FIELD_ORDER.includes(key as (typeof KNOWN_FIELD_ORDER)[number]),
+  );
   if (unknownEntries.length > 0) {
     fixes.push("preserved-unknown-fields");
   }
@@ -432,11 +433,12 @@ function formatResultLines(results: SkillDocFixResult[], verbose?: boolean): str
   return lines;
 }
 
-export async function scanSkillDocFixes(homeDir: string, options: ScanSkillDocFixOptions = {}): Promise<SkillDocFixResult[]> {
+export async function scanSkillDocFixes(
+  homeDir: string,
+  options: ScanSkillDocFixOptions = {},
+): Promise<SkillDocFixResult[]> {
   const skills = await listSkills(homeDir);
-  const selectedSkills = options.skills && options.skills.length > 0
-    ? new Set(options.skills)
-    : undefined;
+  const selectedSkills = options.skills && options.skills.length > 0 ? new Set(options.skills) : undefined;
   const availableSkills = new Set(skills.map((skill) => skill.name));
   if (selectedSkills) {
     for (const skillName of selectedSkills) {
@@ -498,7 +500,8 @@ export function formatSkillDocFixReport(
   const lines = formatResultLines(results, options.verbose);
   lines.push("");
   if (options.apply) {
-    const rewrittenCount = options.rewrittenCount ?? results.filter((result) => hasActionableSkillDocFix(result)).length;
+    const rewrittenCount =
+      options.rewrittenCount ?? results.filter((result) => hasActionableSkillDocFix(result)).length;
     lines.push(`Rewrote ${rewrittenCount} skill doc${rewrittenCount === 1 ? "" : "s"}.`);
   } else {
     lines.push("Dry run only. Use --apply to rewrite skill docs.");

@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, rm } from "node:fs/promises";
+import { cp, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { createSkillsBackupArchive, extractSkillsArchive, formatBackupLabel } from "../lib/backup.js";
@@ -43,7 +43,9 @@ export async function runRestore(
     const extractedBundles = includeBundles ? extractedScan.validBundles : [];
     const currentBundles = includeBundles ? currentScan.validBundles : [];
     const currentBundleNames = new Set(currentBundles.map((bundle) => bundle.name));
-    const bundleConflicts = extractedBundles.map((bundle) => bundle.name).filter((name) => currentBundleNames.has(name));
+    const bundleConflicts = extractedBundles
+      .map((bundle) => bundle.name)
+      .filter((name) => currentBundleNames.has(name));
 
     const backupArchivePath = await createSkillsBackupArchive(context.homeDir, { includeBundles });
     const skippedSkills = new Set(options.override ? [] : conflicts);
@@ -74,14 +76,20 @@ export async function runRestore(
           if (skippedBundles.has(bundle.name)) {
             continue;
           }
-          await cp(path.join(extractedBundlesDir, `${bundle.name}.yaml`), path.join(bundlesDir, `${bundle.name}.yaml`), { recursive: true });
+          await cp(
+            path.join(extractedBundlesDir, `${bundle.name}.yaml`),
+            path.join(bundlesDir, `${bundle.name}.yaml`),
+            { recursive: true },
+          );
         }
       }
     }
 
     const restoredSkillCount = options.override ? extracted.length : extracted.length - skippedSkills.size;
     const restoredBundleCount = includeBundles
-      ? (options.override ? extractedBundles.length : extractedBundles.length - skippedBundles.size)
+      ? options.override
+        ? extractedBundles.length
+        : extractedBundles.length - skippedBundles.size
       : 0;
     const restoredLabel = includeBundles
       ? `Restored ${restoredSkillCount} skills and ${restoredBundleCount} bundles from ${options.archivePath}`
@@ -94,7 +102,9 @@ export async function runRestore(
       context.write(`Skipped existing bundles: ${[...skippedBundles].sort().join(", ")}`);
     }
     if (extractedScan.findings.length > 0) {
-      context.write(`Skipped suspicious restore source entries: ${extractedScan.findings.map((finding) => finding.relativePath).join(", ")}`);
+      context.write(
+        `Skipped suspicious restore source entries: ${extractedScan.findings.map((finding) => finding.relativePath).join(", ")}`,
+      );
     }
     context.write(`Backed up current ${formatBackupLabel(includeBundles)} to ${backupArchivePath}`);
     return {

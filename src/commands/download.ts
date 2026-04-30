@@ -6,21 +6,21 @@ import { promisify } from "node:util";
 
 import {
   classifyDownloadConflict,
+  type DownloadableSkill,
+  DuplicateSkillNameError,
   discoverDownloadableSkills,
   discoverDownloadableSkillsByName,
-  DuplicateSkillNameError,
   formatDownloadConflictLines,
   formatDuplicateSkillNameConflict,
   throwDownloadConflict,
-  type DownloadableSkill,
 } from "../lib/download.js";
-import { computeDirectoryHash } from "../lib/hash.js";
-import { fetchGitHubRepoTree, getGitHubTreeShaForSubpath, type GitHubRepoTree } from "../lib/github-tree.js";
 import { pathExists } from "../lib/fs.js";
+import { fetchGitHubRepoTree, type GitHubRepoTree, getGitHubTreeShaForSubpath } from "../lib/github-tree.js";
+import { computeDirectoryHash } from "../lib/hash.js";
 import { importPath } from "../lib/import.js";
 import { upsertSkillLockEntry } from "../lib/lock.js";
 import { normalizeNameList, sanitizeName } from "../lib/path.js";
-import { parseDownloadSource, type DownloadSource } from "../lib/source-parser.js";
+import { type DownloadSource, parseDownloadSource } from "../lib/source-parser.js";
 import type { RuntimeContext } from "../types.js";
 
 const execFileAsync = promisify(execFile);
@@ -57,7 +57,9 @@ async function wrapFlatSciskillArchive(extractRoot: string, skillId: string): Pr
   }
 }
 
-export async function resolveSourceRoot(source: DownloadSource): Promise<{ root: string; cleanup?: () => Promise<void> }> {
+export async function resolveSourceRoot(
+  source: DownloadSource,
+): Promise<{ root: string; cleanup?: () => Promise<void> }> {
   if (source.type === "local") {
     return { root: source.localPath! };
   }
@@ -123,7 +125,11 @@ function selectUnrequestedSkills(skills: DownloadableSkill[], options: DownloadO
   throw new Error("Multiple skills found. Use --skill <name> or --all.");
 }
 
-async function discoverRequestedSkills(sourceRoot: string, sourceSubpath: string | undefined, options: DownloadOptions): Promise<DownloadableSkill[]> {
+async function discoverRequestedSkills(
+  sourceRoot: string,
+  sourceSubpath: string | undefined,
+  options: DownloadOptions,
+): Promise<DownloadableSkill[]> {
   const requested = normalizeNameList(options.skill ?? []);
   if (requested.length === 0) {
     return discoverDownloadableSkills(sourceRoot, sourceSubpath);
@@ -138,7 +144,11 @@ async function discoverRequestedSkills(sourceRoot: string, sourceSubpath: string
       continue;
     }
     if (matches.length > 1) {
-      throw new DuplicateSkillNameError(name, { path: matches[0]!.path, subpath: matches[0]!.subpath }, { path: matches[1]!.path, subpath: matches[1]!.subpath });
+      throw new DuplicateSkillNameError(
+        name,
+        { path: matches[0]!.path, subpath: matches[0]!.subpath },
+        { path: matches[1]!.path, subpath: matches[1]!.subpath },
+      );
     }
     selected.push(matches[0]!);
   }
@@ -198,9 +208,8 @@ export async function runDownload(context: RuntimeContext, input: string, option
       return { downloaded: [], listed: discovered };
     }
 
-    const selected = options.skill && options.skill.length > 0
-      ? discovered
-      : selectUnrequestedSkills(discovered, options);
+    const selected =
+      options.skill && options.skill.length > 0 ? discovered : selectUnrequestedSkills(discovered, options);
     if (options.as && selected.length !== 1) {
       throw new Error("--as can only be used when installing a single skill.");
     }

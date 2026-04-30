@@ -1,9 +1,10 @@
-import { resolveAgentsForMutation, resolveAgentSkillsDir } from "../lib/agents.js";
-import { classifyCheckedSkill } from "./agent-inspection.js";
+import type { AgentId } from "../lib/agents.js";
+import { resolveAgentSkillsDir, resolveAgentsForMutation } from "../lib/agents.js";
 import { getAweskillPaths } from "../lib/path.js";
+import { getSkillPath, listSkillEntriesInDirectory, listSkills } from "../lib/skills.js";
 import { createSkillSymlink, listManagedSkillNames } from "../lib/symlink.js";
-import { listSkillEntriesInDirectory, listSkills, getSkillPath } from "../lib/skills.js";
-import type { AgentId, RuntimeContext, Scope } from "../types.js";
+import type { RuntimeContext, Scope } from "../types.js";
+import { classifyCheckedSkill } from "./agent-inspection.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
 
@@ -21,7 +22,9 @@ function formatDuplicateGroups(
     lines.push(`${group.agentId} ${group.skillsDir}: ${group.skillNames.length}`);
     const preview = verbose ? group.skillNames : group.skillNames.slice(0, DEFAULT_PREVIEW_COUNT);
     if (!verbose && group.skillNames.length > preview.length) {
-      lines.push(`Showing first ${preview.length} duplicate agent skill entries in ${group.agentId} (use --verbose to show all)`);
+      lines.push(
+        `Showing first ${preview.length} duplicate agent skill entries in ${group.agentId} (use --verbose to show all)`,
+      );
     }
     for (const skillName of preview) {
       lines.push(`  - ${skillName}`);

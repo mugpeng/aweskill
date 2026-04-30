@@ -1,7 +1,7 @@
-import { gunzipSync, gzipSync } from "node:zlib";
-import { cp, mkdtemp, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { gunzipSync, gzipSync } from "node:zlib";
 
 import { pathExists } from "./fs.js";
 import { scanStoreHygiene } from "./hygiene.js";
@@ -27,7 +27,10 @@ export interface BackupManifest {
 }
 
 function formatTimestamp(date: Date): string {
-  return date.toISOString().replace(/:/g, "-").replace(/\.\d{3}Z$/, "Z");
+  return date
+    .toISOString()
+    .replace(/:/g, "-")
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
 function formatBackupLabel(includeBundles: boolean): string {
@@ -96,7 +99,7 @@ function createTarHeader(entry: TarEntry): Buffer {
   for (const byte of header) {
     checksum += byte;
   }
-  Buffer.from(checksum.toString(8).padStart(6, "0") + "\0 ", "ascii").copy(header, 148);
+  Buffer.from(`${checksum.toString(8).padStart(6, "0")}\0 `, "ascii").copy(header, 148);
   return header;
 }
 
@@ -191,7 +194,7 @@ async function collectTarEntries(rootDir: string, relativeDir: string): Promise<
     const absolutePath = path.join(absoluteDir, entry.name);
     const archivePath = normalizeTarPath(path.join(relativeDir, entry.name));
     if (entry.isDirectory()) {
-      entries.push(...await collectTarEntries(rootDir, path.join(relativeDir, entry.name)));
+      entries.push(...(await collectTarEntries(rootDir, path.join(relativeDir, entry.name))));
       continue;
     }
 
@@ -214,35 +217,39 @@ async function collectTarEntries(rootDir: string, relativeDir: string): Promise<
 async function collectTarEntriesForFile(rootDir: string, relativeFilePath: string): Promise<TarEntry[]> {
   const absolutePath = path.join(rootDir, relativeFilePath);
   const entryStats = await stat(absolutePath);
-  return [{
-    name: normalizeTarPath(relativeFilePath),
-    type: "file",
-    mode: entryStats.mode & 0o777,
-    data: await readFile(absolutePath),
-  }];
+  return [
+    {
+      name: normalizeTarPath(relativeFilePath),
+      type: "file",
+      mode: entryStats.mode & 0o777,
+      data: await readFile(absolutePath),
+    },
+  ];
 }
 
 async function archiveEntries(homeDir: string, includeBundles: boolean): Promise<TarEntry[]> {
   const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(homeDir);
-  const entries: TarEntry[] = [{
-    name: BACKUP_MANIFEST_FILE,
-    type: "file",
-    mode: 0o644,
-    data: Buffer.from(`${JSON.stringify(createBackupManifest(includeBundles), null, 2)}\n`, "utf8"),
-  }];
+  const entries: TarEntry[] = [
+    {
+      name: BACKUP_MANIFEST_FILE,
+      type: "file",
+      mode: 0o644,
+      data: Buffer.from(`${JSON.stringify(createBackupManifest(includeBundles), null, 2)}\n`, "utf8"),
+    },
+  ];
   const hygiene = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeBundles });
 
   if (hygiene.validSkills.length > 0) {
     entries.push({ name: "skills", type: "directory", mode: 0o755 });
     for (const skill of hygiene.validSkills) {
-      entries.push(...await collectTarEntries(rootDir, path.relative(rootDir, skill.path)));
+      entries.push(...(await collectTarEntries(rootDir, path.relative(rootDir, skill.path))));
     }
   }
 
   if (includeBundles && hygiene.validBundles.length > 0) {
     entries.push({ name: "bundles", type: "directory", mode: 0o755 });
     for (const bundle of hygiene.validBundles) {
-      entries.push(...await collectTarEntriesForFile(rootDir, path.join("bundles", `${bundle.name}.yaml`)));
+      entries.push(...(await collectTarEntriesForFile(rootDir, path.join("bundles", `${bundle.name}.yaml`))));
     }
   }
 

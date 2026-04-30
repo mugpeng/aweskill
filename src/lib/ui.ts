@@ -14,11 +14,7 @@ const SUCCESS_PREFIXES = [
   "Sync applied ",
 ] as const;
 
-const HEADING_PREFIXES = [
-  "Skills in central repo:",
-  "Global skills for ",
-  "Project skills for ",
-] as const;
+const HEADING_PREFIXES = ["Skills in central repo:", "Global skills for ", "Project skills for "] as const;
 
 const HEADING_EXACT = new Set([
   "Scanned skills:",
@@ -54,7 +50,12 @@ function splitNameAndLocation(value: string): { name: string; location: string }
   };
 }
 
-function renderNameAndLocation(indent: string, marker: string, colorizeMarker: (value: string) => string, value: string): void {
+function renderNameAndLocation(
+  indent: string,
+  marker: string,
+  colorizeMarker: (value: string) => string,
+  value: string,
+): void {
   const { name, location } = splitNameAndLocation(value);
   console.log(`${indent}${colorizeMarker(marker)} ${pc.cyan(name)}${location ? ` ${pc.dim(location)}` : ""}`);
 }

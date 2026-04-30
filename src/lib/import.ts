@@ -1,4 +1,4 @@
-import { cp, lstat, mkdir, readlink, readdir, rm, stat } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir, readlink, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { ImportResult, ScanCandidate } from "../types.js";
@@ -249,10 +249,7 @@ export async function importPath(options: {
   skillName?: string;
   override?: boolean;
   linkSource?: boolean;
-}): Promise<
-  | ({ kind: "single"; alreadyExisted: boolean } & ImportResult)
-  | (BatchImportSummary & { kind: "batch" })
-> {
+}): Promise<({ kind: "single"; alreadyExisted: boolean } & ImportResult) | (BatchImportSummary & { kind: "batch" })> {
   if (await pathExists(path.join(options.sourcePath, "SKILL.md"))) {
     const skillName = sanitizeName(options.skillName ?? path.basename(options.sourcePath));
     const alreadyExisted = skillName ? await skillExists(options.homeDir, skillName) : false;

@@ -1,7 +1,7 @@
 import { cp, mkdir, readlink, unlink } from "node:fs/promises";
 import path from "node:path";
 
-import { resolveAgentsForMutation, resolveAgentSkillsDir } from "../lib/agents.js";
+import { resolveAgentSkillsDir, resolveAgentsForMutation } from "../lib/agents.js";
 import { getAweskillPaths } from "../lib/path.js";
 import { listManagedSkillNames } from "../lib/symlink.js";
 import type { RuntimeContext, Scope } from "../types.js";
@@ -55,6 +55,8 @@ export async function runRecover(
   }
 
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
-  context.write(`Recovered ${recovered.length} skill projection(s) in ${scopeLabel}${recovered.length > 0 ? `: ${recovered.join(", ")}` : ""}`);
+  context.write(
+    `Recovered ${recovered.length} skill projection(s) in ${scopeLabel}${recovered.length > 0 ? `: ${recovered.join(", ")}` : ""}`,
+  );
   return { agents, recovered };
 }

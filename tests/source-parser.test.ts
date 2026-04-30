@@ -41,7 +41,9 @@ describe("download source parser", () => {
   });
 
   it("parses sciskill download URLs", () => {
-    expect(parseDownloadSource("https://sciskillhub.org/api/v1/download/open-source%2Fresearch%2Fskills%2Fprotein")).toEqual({
+    expect(
+      parseDownloadSource("https://sciskillhub.org/api/v1/download/open-source%2Fresearch%2Fskills%2Fprotein"),
+    ).toEqual({
       type: "sciskill",
       source: "sciskill:open-source/research/skills/protein",
       sourceUrl: "https://sciskillhub.org/api/v1/download/open-source%2Fresearch%2Fskills%2Fprotein",

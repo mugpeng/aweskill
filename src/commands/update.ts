@@ -1,19 +1,19 @@
-import { resolveSourceRoot } from "./download.js";
 import {
+  type DownloadableSkill,
   DuplicateSkillNameError,
   findDownloadableSkillForLockEntry,
   formatDuplicateSkillNameConflict,
-  type DownloadableSkill,
 } from "../lib/download.js";
+import { pathExists } from "../lib/fs.js";
+import { fetchGitHubRepoTree, getGitHubTreeShaForSubpath } from "../lib/github-tree.js";
 import { computeDirectoryHash } from "../lib/hash.js";
-import { fetchGitHubRepoTree, getGitHubTreeShaForSubpath, type GitHubRepoTree } from "../lib/github-tree.js";
 import { importPath } from "../lib/import.js";
-import { readSkillLock, upsertSkillLockEntry, type SkillLockEntry } from "../lib/lock.js";
+import { readSkillLock, type SkillLockEntry, upsertSkillLockEntry } from "../lib/lock.js";
 import { getSkillPath } from "../lib/skills.js";
 import { parseDownloadSource } from "../lib/source-parser.js";
 import { formatNoTrackedUpdatesMessage, formatUpdateStatusLines } from "../lib/update.js";
-import { pathExists } from "../lib/fs.js";
 import type { RuntimeContext } from "../types.js";
+import { resolveSourceRoot } from "./download.js";
 
 export interface UpdateOptions {
   check?: boolean;

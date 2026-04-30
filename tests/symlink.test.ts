@@ -2,7 +2,7 @@ import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-
+import { getSkillPath } from "../src/lib/skills.js";
 import {
   createSkillCopy,
   createSkillSymlink,
@@ -12,7 +12,6 @@ import {
   removeManagedProjection,
   setDirectoryLinkCreatorForTesting,
 } from "../src/lib/symlink.js";
-import { getSkillPath } from "../src/lib/skills.js";
 import { createTempWorkspace, writeSkill } from "./helpers.js";
 
 describe("symlink helpers", () => {
@@ -69,7 +68,9 @@ describe("symlink helpers", () => {
     await expect(createSkillSymlink(sourcePath, targetPath)).resolves.toEqual({ status: "created", mode: "copy" });
     expect((await lstat(targetPath)).isDirectory()).toBe(true);
     await expect(readFile(path.join(targetPath, "SKILL.md"), "utf8")).resolves.toContain("Fallback Me");
-    await expect(readFile(path.join(targetPath, ".aweskill-projection.json"), "utf8")).resolves.toContain("\"managedBy\": \"aweskill\"");
+    await expect(readFile(path.join(targetPath, ".aweskill-projection.json"), "utf8")).resolves.toContain(
+      '"managedBy": "aweskill"',
+    );
   });
 
   it("skips recreating an existing managed copy for the same source", async () => {

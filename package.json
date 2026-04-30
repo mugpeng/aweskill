@@ -1,6 +1,6 @@
 {
   "name": "aweskill",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "CLI-first skill package manager that AI agents can operate themselves.",
   "license": "MPL-2.0",
   "type": "module",
@@ -18,6 +18,9 @@
   "scripts": {
     "build": "tsup --config config/tsup.config.ts",
     "dev": "tsx src/index.ts",
+    "lint": "biome check src/ tests/",
+    "lint:fix": "biome check --fix src/ tests/",
+    "format": "biome format --write src/ tests/",
     "prepare": "npm run build",
     "prepack": "npm run build",
     "test": "vitest run --config config/vitest.config.ts"
@@ -40,6 +43,7 @@
     "yaml": "^2.8.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
     "@types/node": "^24.7.2",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",

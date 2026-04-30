@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-async function collectFiles(baseDir: string, currentDir: string, files: Array<{ relativePath: string; content: Buffer }>): Promise<void> {
+async function collectFiles(
+  baseDir: string,
+  currentDir: string,
+  files: Array<{ relativePath: string; content: Buffer }>,
+): Promise<void> {
   const entries = await readdir(currentDir, { withFileTypes: true });
 
   for (const entry of entries) {

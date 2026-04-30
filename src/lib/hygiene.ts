@@ -1,4 +1,4 @@
-import { lstat, readFile, readdir } from "node:fs/promises";
+import { lstat, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
@@ -41,7 +41,7 @@ export async function scanStoreHygiene(options: {
   const validSkills: SkillEntry[] = [];
   const validBundles: BundleDefinition[] = [];
 
-  if (includeSkills && await pathExists(options.skillsDir)) {
+  if (includeSkills && (await pathExists(options.skillsDir))) {
     const entries = await readdir(options.skillsDir, { withFileTypes: true });
     for (const entry of entries) {
       const entryPath = path.join(options.skillsDir, entry.name);
@@ -69,7 +69,7 @@ export async function scanStoreHygiene(options: {
     }
   }
 
-  if (includeBundles && await pathExists(options.bundlesDir)) {
+  if (includeBundles && (await pathExists(options.bundlesDir))) {
     const entries = await readdir(options.bundlesDir, { withFileTypes: true });
     for (const entry of entries) {
       const entryPath = path.join(options.bundlesDir, entry.name);
@@ -85,9 +85,14 @@ export async function scanStoreHygiene(options: {
       try {
         const parsed = parse(await readFile(entryPath, "utf8")) as Partial<BundleDefinition> | null;
         validBundles.push({
-          name: String(parsed?.name ?? entry.name.replace(/\.yaml$/, "")).trim().toLowerCase(),
+          name: String(parsed?.name ?? entry.name.replace(/\.yaml$/, ""))
+            .trim()
+            .toLowerCase(),
           skills: Array.isArray(parsed?.skills)
-            ? parsed.skills.map((skill) => String(skill).trim().toLowerCase()).filter(Boolean).sort()
+            ? parsed.skills
+                .map((skill) => String(skill).trim().toLowerCase())
+                .filter(Boolean)
+                .sort()
             : [],
         });
       } catch {

@@ -1,9 +1,9 @@
-import { scanSkills } from "../lib/scanner.js";
 import { importPath } from "../lib/import.js";
 import { getBuiltinSkillsDir } from "../lib/resources.js";
+import { scanSkills } from "../lib/scanner.js";
 import { ensureHomeLayout } from "../lib/skills.js";
-import { formatScanSummary } from "./scan.js";
 import type { RuntimeContext } from "../types.js";
+import { formatScanSummary } from "./scan.js";
 
 export async function runInit(context: RuntimeContext, options: { scan?: boolean; verbose?: boolean }) {
   await ensureHomeLayout(context.homeDir);

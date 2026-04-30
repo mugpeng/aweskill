@@ -27,8 +27,12 @@ describe("backup helpers", () => {
       version: 1,
       includesBundles: false,
     });
-    await expect(readFile(path.join(extracted.extractedSkillsDir, "demo-skill", "SKILL.md"), "utf8")).resolves.toContain("Demo Skill");
-    await expect(readFile(path.join(extracted.extractedSkillsDir, "demo-skill", "scripts", "run.ts"), "utf8")).resolves.toContain("ok = true");
+    await expect(
+      readFile(path.join(extracted.extractedSkillsDir, "demo-skill", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Demo Skill");
+    await expect(
+      readFile(path.join(extracted.extractedSkillsDir, "demo-skill", "scripts", "run.ts"), "utf8"),
+    ).resolves.toContain("ok = true");
     await expect(readFile(path.join(extracted.tempDir, "backup.json"), "utf8")).resolves.toContain('"version": 1');
   });
 
@@ -42,6 +46,8 @@ describe("backup helpers", () => {
 
     const extracted = await extractSkillsArchive(restoreSource);
     expect(extracted.manifest).toBeUndefined();
-    await expect(readFile(path.join(extracted.extractedSkillsDir, "legacy-skill", "SKILL.md"), "utf8")).resolves.toContain("Legacy Skill");
+    await expect(
+      readFile(path.join(extracted.extractedSkillsDir, "legacy-skill", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Legacy Skill");
   });
 });

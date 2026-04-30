@@ -24,9 +24,8 @@ export function parseSkillDoc(content: string): ParsedSkillDoc {
   } catch {
     return { frontmatter: {}, body };
   }
-  const frontmatter = parsed && typeof parsed === "object" && !Array.isArray(parsed)
-    ? parsed as Record<string, unknown>
-    : {};
+  const frontmatter =
+    parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
 
   return { frontmatter, body };
 }

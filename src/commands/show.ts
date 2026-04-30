@@ -38,10 +38,6 @@ export async function runShow(context: RuntimeContext, skillName: string, option
   }
 
   const description = getSkillDescription(content);
-  context.write([
-    normalizedName,
-    `description: ${description || "(no description)"}`,
-    `path: ${skillFile}`,
-  ].join("\n"));
+  context.write([normalizedName, `description: ${description || "(no description)"}`, `path: ${skillFile}`].join("\n"));
   return { path: skillFile, description };
 }

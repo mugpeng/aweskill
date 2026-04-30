@@ -1,14 +1,19 @@
-import { getAweskillPaths } from "../lib/path.js";
 import { listBundlesInDirectory } from "../lib/bundles.js";
-import { getTemplateBundlesDir } from "../lib/templates.js";
 import { formatHygieneHint, scanStoreHygiene } from "../lib/hygiene.js";
+import { getAweskillPaths } from "../lib/path.js";
+import { getTemplateBundlesDir } from "../lib/templates.js";
 import type { RuntimeContext } from "../types.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
 
 export async function runListSkills(context: RuntimeContext, options: { verbose?: boolean } = {}) {
   const { rootDir, skillsDir, bundlesDir } = getAweskillPaths(context.homeDir);
-  const { validSkills: skills, findings } = await scanStoreHygiene({ rootDir, skillsDir, bundlesDir, includeBundles: true });
+  const { validSkills: skills, findings } = await scanStoreHygiene({
+    rootDir,
+    skillsDir,
+    bundlesDir,
+    includeBundles: true,
+  });
 
   if (skills.length === 0) {
     context.write(["No skills found in central repo.", ...formatHygieneHint(findings)].join("\n"));
@@ -41,10 +46,13 @@ function formatBundleLines(title: string, bundles: { name: string; skills: strin
   }
   for (const bundle of preview) {
     const skillsPreview = verbose ? bundle.skills : bundle.skills.slice(0, DEFAULT_PREVIEW_COUNT);
-    const suffix = !verbose && bundle.skills.length > skillsPreview.length
-      ? `, ... (+${bundle.skills.length - skillsPreview.length} more)`
-      : "";
-    lines.push(`  - ${bundle.name}: ${bundle.skills.length} skills${skillsPreview.length > 0 ? ` -> ${skillsPreview.join(", ")}${suffix}` : " -> (empty)"}`);
+    const suffix =
+      !verbose && bundle.skills.length > skillsPreview.length
+        ? `, ... (+${bundle.skills.length - skillsPreview.length} more)`
+        : "";
+    lines.push(
+      `  - ${bundle.name}: ${bundle.skills.length} skills${skillsPreview.length > 0 ? ` -> ${skillsPreview.join(", ")}${suffix}` : " -> (empty)"}`,
+    );
   }
   return lines;
 }
@@ -58,7 +66,11 @@ export async function runListBundles(context: RuntimeContext, options: { verbose
     includeSkills: false,
     includeBundles: true,
   });
-  context.write([...formatBundleLines("Bundles in central repo", bundles, options.verbose), ...formatHygieneHint(findings)].join("\n"));
+  context.write(
+    [...formatBundleLines("Bundles in central repo", bundles, options.verbose), ...formatHygieneHint(findings)].join(
+      "\n",
+    ),
+  );
   return bundles;
 }
 

@@ -22,7 +22,9 @@ describe("import helpers", () => {
     });
 
     expect(result.warnings[0]).toContain(`Source ${linkedDir} is a symlink; copied from ${realDir}`);
-    await expect(readFile(path.join(getSkillPath(workspace.homeDir, "linked-skill"), "SKILL.md"), "utf8")).resolves.toContain("Linked Skill");
+    await expect(
+      readFile(path.join(getSkillPath(workspace.homeDir, "linked-skill"), "SKILL.md"), "utf8"),
+    ).resolves.toContain("Linked Skill");
   });
 
   it("returns an existing single-skill destination without overriding it", async () => {
@@ -82,6 +84,8 @@ describe("import helpers", () => {
 
     expect(result.linkedSourcePath).toBe(sourceDir);
     expect((await lstat(sourceDir)).isSymbolicLink()).toBe(true);
-    expect(path.resolve(path.dirname(sourceDir), await readlink(sourceDir))).toBe(getSkillPath(workspace.homeDir, "external-skill"));
+    expect(path.resolve(path.dirname(sourceDir), await readlink(sourceDir))).toBe(
+      getSkillPath(workspace.homeDir, "external-skill"),
+    );
   });
 });

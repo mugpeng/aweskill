@@ -1,4 +1,12 @@
-import { addSkillToBundle, createBundle, deleteBundle, readBundle, readBundleFromDirectory, removeSkillFromBundle, writeBundle } from "../lib/bundles.js";
+import {
+  addSkillToBundle,
+  createBundle,
+  deleteBundle,
+  readBundle,
+  readBundleFromDirectory,
+  removeSkillFromBundle,
+  writeBundle,
+} from "../lib/bundles.js";
 import { normalizeNameList } from "../lib/path.js";
 import { getTemplateBundlesDir } from "../lib/templates.js";
 import type { RuntimeContext } from "../types.js";
@@ -19,7 +27,11 @@ export async function runBundleShow(context: RuntimeContext, bundleName: string)
   return bundles;
 }
 
-export async function runBundleAddSkill(context: RuntimeContext, bundleName: string | string[], skillName: string | string[]) {
+export async function runBundleAddSkill(
+  context: RuntimeContext,
+  bundleName: string | string[],
+  skillName: string | string[],
+) {
   const bundleNames = parseNames(bundleName);
   const skillNames = parseNames(skillName);
   const bundles = [];
@@ -34,7 +46,11 @@ export async function runBundleAddSkill(context: RuntimeContext, bundleName: str
   return bundles;
 }
 
-export async function runBundleRemoveSkill(context: RuntimeContext, bundleName: string | string[], skillName: string | string[]) {
+export async function runBundleRemoveSkill(
+  context: RuntimeContext,
+  bundleName: string | string[],
+  skillName: string | string[],
+) {
   const bundleNames = parseNames(bundleName);
   const skillNames = parseNames(skillName);
   const bundles = [];
@@ -95,9 +111,11 @@ export async function runBundleAddTemplate(
 
   context.write(
     bundles
-      .map((bundle) => bundle.overwritten
-        ? `Overwrote bundle ${bundle.name} from template`
-        : `Added bundle ${bundle.name} from template`)
+      .map((bundle) =>
+        bundle.overwritten
+          ? `Overwrote bundle ${bundle.name} from template`
+          : `Added bundle ${bundle.name} from template`,
+      )
       .join("\n"),
   );
   return bundles;

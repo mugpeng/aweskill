@@ -26,10 +26,12 @@ export async function runFixSkills(
 
   const rewritable = results.filter((result) => hasActionableSkillDocFix(result));
   await applySkillDocFixes(context.homeDir, rewritable, { backup: options.backup });
-  context.write(formatSkillDocFixReport(results, {
-    apply: true,
-    rewrittenCount: rewritable.length,
-    verbose: options.verbose,
-  }));
+  context.write(
+    formatSkillDocFixReport(results, {
+      apply: true,
+      rewrittenCount: rewritable.length,
+      verbose: options.verbose,
+    }),
+  );
   return { results, rewritten: rewritable.map((result) => result.relativePath) };
 }

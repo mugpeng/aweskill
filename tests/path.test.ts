@@ -2,7 +2,14 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { expandHomePath, getAweskillPaths, getDuplicateMatchKey, isPathSafe, sanitizeName, stripVersionSuffix } from "../src/lib/path.js";
+import {
+  expandHomePath,
+  getAweskillPaths,
+  getDuplicateMatchKey,
+  isPathSafe,
+  sanitizeName,
+  stripVersionSuffix,
+} from "../src/lib/path.js";
 
 describe("path helpers", () => {
   it("sanitizes skill names", () => {
@@ -16,8 +23,12 @@ describe("path helpers", () => {
   it("builds duplicate match keys by comparing text after removing symbols", () => {
     expect(getDuplicateMatchKey("FFmpeg Video Editor")).toBe("ffmpegvideoeditor");
     expect(getDuplicateMatchKey("ffmpeg-video-editor-1.0.0")).toBe("ffmpegvideoeditor");
-    expect(getDuplicateMatchKey("Self-Improving Agent (With Self-Reflection)")).toBe("selfimprovingagentwithselfreflection");
-    expect(getDuplicateMatchKey("self-improving-agent-with-self-reflection")).toBe("selfimprovingagentwithselfreflection");
+    expect(getDuplicateMatchKey("Self-Improving Agent (With Self-Reflection)")).toBe(
+      "selfimprovingagentwithselfreflection",
+    );
+    expect(getDuplicateMatchKey("self-improving-agent-with-self-reflection")).toBe(
+      "selfimprovingagentwithselfreflection",
+    );
   });
 
   it("expands home prefixes", () => {

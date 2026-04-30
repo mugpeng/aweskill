@@ -1,11 +1,11 @@
 import path from "node:path";
 
-import type { AgentDefinition, AgentId, ProjectionMode, Scope } from "../types.js";
+import type { AgentDefinition, ProjectionMode, Scope } from "../types.js";
 import { pathExists } from "./fs.js";
 import { uniqueSorted } from "./path.js";
 
 function defineAgent(
-  id: AgentId,
+  id: string,
   displayName: string,
   options: {
     defaultProjectionMode?: ProjectionMode;
@@ -26,7 +26,7 @@ function defineAgent(
   };
 }
 
-const AGENTS: Record<AgentId, AgentDefinition> = {
+const AGENTS = {
   adal: defineAgent("adal", "AdaL", {
     rootDir: (homeDir) => path.join(homeDir, ".adal"),
     globalSkillsDir: (homeDir) => path.join(homeDir, ".adal", "skills"),
@@ -263,12 +263,14 @@ const AGENTS: Record<AgentId, AgentDefinition> = {
   }),
 };
 
+export type AgentId = keyof typeof AGENTS;
+
 export function listSupportedAgents(): AgentDefinition[] {
   return Object.values(AGENTS).sort((left, right) => left.id.localeCompare(right.id));
 }
 
 export function listSupportedAgentIds(): AgentId[] {
-  return listSupportedAgents().map((agent) => agent.id);
+  return listSupportedAgents().map((agent) => agent.id as AgentId);
 }
 
 export function formatDetectedAgentsForScope(scope: Scope, agents: AgentId[], projectDir?: string): string {
@@ -305,37 +307,38 @@ export function getProjectionMode(agentId: AgentId): ProjectionMode {
   return getAgentDefinition(agentId).defaultProjectionMode;
 }
 
-export async function detectInstalledAgents(options: {
-  homeDir: string;
-  projectDir?: string;
-}): Promise<AgentId[]> {
+export async function detectInstalledAgents(options: { homeDir: string; projectDir?: string }): Promise<AgentId[]> {
   const installed: AgentId[] = [];
 
   for (const agent of listSupportedAgents()) {
+    const agentId = agent.id as AgentId;
     const globalRootPath = agent.supportsGlobal ? agent.rootDir(options.homeDir) : null;
-    const projectPath = agent.supportsProject && options.projectDir
-      ? resolveAgentSkillsDir(agent.id, "project", options.projectDir)
-      : null;
+    const projectPath =
+      agent.supportsProject && options.projectDir
+        ? resolveAgentSkillsDir(agentId, "project", options.projectDir)
+        : null;
 
     if (globalRootPath && (await pathExists(globalRootPath))) {
-      installed.push(agent.id);
+      installed.push(agentId);
       continue;
     }
 
     if (projectPath && (await pathExists(projectPath))) {
-      installed.push(agent.id);
+      installed.push(agentId);
     }
   }
 
   return installed;
 }
 
-export async function listSupportedAgentsWithGlobalStatus(homeDir: string): Promise<Array<{
-  id: AgentId;
-  displayName: string;
-  installed: boolean;
-  skillsDir?: string;
-}>> {
+export async function listSupportedAgentsWithGlobalStatus(homeDir: string): Promise<
+  Array<{
+    id: AgentId;
+    displayName: string;
+    installed: boolean;
+    skillsDir?: string;
+  }>
+> {
   const results: Array<{
     id: AgentId;
     displayName: string;
@@ -344,9 +347,10 @@ export async function listSupportedAgentsWithGlobalStatus(homeDir: string): Prom
   }> = [];
 
   for (const agent of listSupportedAgents()) {
+    const agentId = agent.id as AgentId;
     if (!agent.supportsGlobal || !agent.globalSkillsDir) {
       results.push({
-        id: agent.id,
+        id: agentId,
         displayName: agent.displayName,
         installed: false,
       });
@@ -355,7 +359,7 @@ export async function listSupportedAgentsWithGlobalStatus(homeDir: string): Prom
 
     const skillsDir = agent.globalSkillsDir(homeDir);
     results.push({
-      id: agent.id,
+      id: agentId,
       displayName: agent.displayName,
       installed: await pathExists(agent.rootDir(homeDir)),
       skillsDir,
@@ -374,21 +378,22 @@ export async function detectAgentsForListingScope(
   const installed: AgentId[] = [];
 
   for (const agent of listSupportedAgents()) {
+    const agentId = agent.id as AgentId;
     if (scope === "global") {
       if (!agent.supportsGlobal) {
         continue;
       }
       const rootPath = agent.rootDir(homeDir);
       if (await pathExists(rootPath)) {
-        installed.push(agent.id);
+        installed.push(agentId);
       }
     } else {
       if (!agent.supportsProject || !projectDir) {
         continue;
       }
-      const skillsPath = resolveAgentSkillsDir(agent.id, "project", projectDir);
+      const skillsPath = resolveAgentSkillsDir(agentId, "project", projectDir);
       if (await pathExists(skillsPath)) {
-        installed.push(agent.id);
+        installed.push(agentId);
       }
     }
   }
@@ -465,7 +470,7 @@ export function formatNoAgentsDetectedForScope(scope: Scope, projectDir: string 
 
 export function formatNoInstalledAgentsForMutation(scope: Scope, projectDir: string | undefined): string {
   if (scope === "global") {
-    return 'No installed agents detected for global scope. Install an agent or pass --agent <id> or --agent all explicitly.';
+    return "No installed agents detected for global scope. Install an agent or pass --agent <id> or --agent all explicitly.";
   }
   return `No installed agents detected for project scope at ${projectDir}. Add a project-local agent skill directory or pass --agent <id> or --agent all explicitly.`;
 }

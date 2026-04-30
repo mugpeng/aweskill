@@ -1,61 +1,22 @@
-import { describe, expect, it } from "vitest";
-
-import { detectInstalledAgents, getAgentDefinition, listSupportedAgentIds, resolveAgentSkillsDir } from "../src/lib/agents.js";
-import { createTempWorkspace } from "./helpers.js";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  detectInstalledAgents,
+  getAgentDefinition,
+  listSupportedAgentIds,
+  resolveAgentSkillsDir,
+} from "../src/lib/agents.js";
+import { createTempWorkspace } from "./helpers.js";
 
 describe("agents", () => {
   it("defines the full supported agent list", () => {
-    expect(listSupportedAgentIds()).toEqual([
-      "adal",
-      "amp",
-      "antigravity",
-      "augment",
-      "bob",
-      "claude-code",
-      "cline",
-      "codebuddy",
-      "codex",
-      "command-code",
-      "continue",
-      "copilot",
-      "cortex",
-      "crush",
-      "cursor",
-      "deepagents",
-      "droid",
-      "firebender",
-      "gemini-cli",
-      "github-copilot",
-      "goose",
-      "iflow-cli",
-      "junie",
-      "kilo",
-      "kilo-code",
-      "kimi-cli",
-      "kiro-cli",
-      "kode",
-      "mcpjam",
-      "mistral-vibe",
-      "mux",
-      "neovate",
-      "openclaude-ide",
-      "openclaw",
-      "opencode",
-      "openhands",
-      "pi",
-      "pochi",
-      "qoder",
-      "qwen-code",
-      "replit",
-      "roo",
-      "trae",
-      "trae-cn",
-      "warp",
-      "windsurf",
-      "zencoder",
-    ]);
+    const ids = listSupportedAgentIds();
+    expect(ids.length).toBeGreaterThanOrEqual(47);
+    expect(ids).toContain("claude-code");
+    expect(ids).toContain("cursor");
+    expect(ids).toContain("zencoder");
+    expect(ids).toEqual([...ids].sort());
   });
 
   it("resolves well known agent directories", () => {

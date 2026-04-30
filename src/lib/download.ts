@@ -1,10 +1,11 @@
+import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { pathExists } from "./fs.js";
 import { computeDirectoryHash } from "./hash.js";
-import { readSkillLock, type NewSkillLockEntry } from "./lock.js";
+import { type NewSkillLockEntry, readSkillLock } from "./lock.js";
 import { assertPathSafe, sanitizeName } from "./path.js";
 import { getSkillPath, skillExists } from "./skills.js";
 
@@ -28,7 +29,9 @@ export class DuplicateSkillNameError extends Error {
   duplicate: RecordedSkillLocation;
 
   constructor(skillName: string, existing: RecordedSkillLocation, duplicate: RecordedSkillLocation) {
-    super(`Duplicate skill name "${skillName}" found in source: ${existing.subpath} and ${duplicate.subpath}. Use a unique folder name before downloading.`);
+    super(
+      `Duplicate skill name "${skillName}" found in source: ${existing.subpath} and ${duplicate.subpath}. Use a unique folder name before downloading.`,
+    );
     this.name = "DuplicateSkillNameError";
     this.skillName = skillName;
     this.existing = existing;
@@ -62,7 +65,10 @@ function formatSourceSubpath(options: DuplicateSkillNameFormatOptions | undefine
   return subpath;
 }
 
-export function formatDuplicateSkillNameConflict(error: DuplicateSkillNameError, options?: DuplicateSkillNameFormatOptions): string[] {
+export function formatDuplicateSkillNameConflict(
+  error: DuplicateSkillNameError,
+  options?: DuplicateSkillNameFormatOptions,
+): string[] {
   const existing = formatSourceSubpath(options, error.existing.subpath);
   const duplicate = formatSourceSubpath(options, error.duplicate.subpath);
   const commandName = options?.commandName ?? "aweskill install";
@@ -146,7 +152,7 @@ async function discoverRecursive(
     return;
   }
 
-  let entries;
+  let entries: Dirent[];
   try {
     entries = await readdir(currentDir, { withFileTypes: true });
   } catch {
@@ -184,7 +190,7 @@ async function discoverNamedRecursive(
     return;
   }
 
-  let entries;
+  let entries: Dirent[];
   try {
     entries = await readdir(currentDir, { withFileTypes: true });
   } catch {
@@ -220,12 +226,14 @@ export async function discoverDownloadableSkills(baseDir: string, subpath?: stri
 
   if (await hasSkillMd(searchRoot)) {
     const name = sanitizeName(path.basename(searchRoot));
-    return name ? [{ name, path: searchRoot, subpath: path.relative(baseDir, searchRoot).split(path.sep).join("/") || "." }] : [];
+    return name
+      ? [{ name, path: searchRoot, subpath: path.relative(baseDir, searchRoot).split(path.sep).join("/") || "." }]
+      : [];
   }
 
   for (const relativeDir of PRIORITY_SKILL_DIRS) {
     const directoryPath = relativeDir ? path.join(searchRoot, relativeDir) : searchRoot;
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(directoryPath, { withFileTypes: true });
     } catch {
@@ -259,7 +267,11 @@ export async function discoverDownloadableSkills(baseDir: string, subpath?: stri
   return results.sort((left, right) => left.name.localeCompare(right.name));
 }
 
-export async function discoverDownloadableSkillsByName(baseDir: string, targetName: string, subpath?: string): Promise<DownloadableSkill[]> {
+export async function discoverDownloadableSkillsByName(
+  baseDir: string,
+  targetName: string,
+  subpath?: string,
+): Promise<DownloadableSkill[]> {
   const normalizedName = sanitizeName(targetName);
   if (!normalizedName) {
     return [];
@@ -271,7 +283,7 @@ export async function discoverDownloadableSkillsByName(baseDir: string, targetNa
 
   for (const relativeDir of PRIORITY_SKILL_DIRS) {
     const directoryPath = relativeDir ? path.join(searchRoot, relativeDir) : searchRoot;
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(directoryPath, { withFileTypes: true });
     } catch {
@@ -312,19 +324,31 @@ export async function findDownloadableSkillForLockEntry(
 ): Promise<DownloadableSkill | undefined> {
   if (entry.subpath) {
     const skillsAtLockedPath = await discoverDownloadableSkills(sourceRoot, entry.subpath);
-    const matchedAtLockedPath = skillsAtLockedPath.find((skill) => skill.name === name || skill.subpath === entry.subpath);
+    const matchedAtLockedPath = skillsAtLockedPath.find(
+      (skill) => skill.name === name || skill.subpath === entry.subpath,
+    );
     return matchedAtLockedPath;
   }
 
   const skills = await discoverDownloadableSkillsByName(sourceRoot, name);
   if (skills.length > 1) {
-    throw new DuplicateSkillNameError(name, { path: skills[0]!.path, subpath: skills[0]!.subpath }, { path: skills[1]!.path, subpath: skills[1]!.subpath });
+    throw new DuplicateSkillNameError(
+      name,
+      { path: skills[0]!.path, subpath: skills[0]!.subpath },
+      { path: skills[1]!.path, subpath: skills[1]!.subpath },
+    );
   }
   return skills[0];
 }
 
 function sameSource(left: NewSkillLockEntry, right: NewSkillLockEntry): boolean {
-  return left.source === right.source && left.sourceType === right.sourceType && left.sourceUrl === right.sourceUrl && left.ref === right.ref && left.subpath === right.subpath;
+  return (
+    left.source === right.source &&
+    left.sourceType === right.sourceType &&
+    left.sourceUrl === right.sourceUrl &&
+    left.ref === right.ref &&
+    left.subpath === right.subpath
+  );
 }
 
 export async function classifyDownloadConflict(options: {

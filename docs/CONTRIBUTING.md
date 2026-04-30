@@ -189,6 +189,7 @@ please update the relevant docs in the same change:
 Before opening a PR, run:
 
 ```bash
+npm run lint
 npm test
 npm run build
 ```
@@ -196,6 +197,39 @@ npm run build
 If you changed command behavior, add or update command-level tests in `tests/commands.test.ts`.
 
 If you changed low-level behavior, prefer focused tests near the affected modules rather than only relying on broad end-to-end coverage.
+
+### Linting
+
+The project uses [Biome](https://biomejs.dev/) for linting and formatting.
+
+```bash
+npm run lint       # check for issues
+npm run lint:fix   # auto-fix safe issues
+npm run format     # format all files
+```
+
+The CI pipeline runs `npm run lint` before tests. Formatting and lint issues will block merges.
+
+## Releasing
+
+Releases are automated via GitHub Actions.
+
+1. Update the version in `package.json`
+2. Add a changelog entry in `docs/CHANGELOG.md` with the format `## v<version>`
+3. Commit: `git commit -m "chore: prepare release v<version>"`
+4. Tag: `git tag v<version>`
+5. Push: `git push origin main --tags`
+
+The release workflow will:
+
+- Run tests
+- Build the CLI
+- Create a GitHub Release with the changelog excerpt
+- Publish to npm (requires `NPM_TOKEN` secret in repo settings)
+
+### Required Secrets
+
+- `NPM_TOKEN`: An npm automation token with publish access to the `aweskill` package. Set this in GitHub repo settings under Settings > Secrets and variables > Actions.
 
 ## Related Projects
 

@@ -20,10 +20,9 @@ export async function runRemove(
 
   if (referenceCount > 0 && !options.force) {
     throw new Error(
-      `Skill ${options.skillName} is still referenced: ${[
-        ...references.bundles,
-        ...references.agentProjections,
-      ].join(", ")}`,
+      `Skill ${options.skillName} is still referenced: ${[...references.bundles, ...references.agentProjections].join(
+        ", ",
+      )}`,
     );
   }
 

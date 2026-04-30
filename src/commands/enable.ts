@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-import { getProjectionMode, resolveAgentsForMutation, resolveAgentSkillsDir } from "../lib/agents.js";
+import { getProjectionMode, resolveAgentSkillsDir, resolveAgentsForMutation } from "../lib/agents.js";
 import { listBundles, readBundle } from "../lib/bundles.js";
 import { getAweskillPaths, normalizeNameList, uniqueSorted } from "../lib/path.js";
 import { getSkillPath, listSkills, skillExists } from "../lib/skills.js";
@@ -12,7 +12,11 @@ function getProjectDir(context: RuntimeContext, explicitProjectDir?: string): st
   return explicitProjectDir ?? context.cwd;
 }
 
-async function resolveSkillNames(context: RuntimeContext, type: ActivationType, names: string | string[]): Promise<string[]> {
+async function resolveSkillNames(
+  context: RuntimeContext,
+  type: ActivationType,
+  names: string | string[],
+): Promise<string[]> {
   const normalizedNames = normalizeNameList(names);
 
   if (normalizedNames.includes("all")) {
@@ -123,9 +127,10 @@ export async function runEnable(
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(context.homeDir, skillName);
       const targetPath = path.join(skillsDir, skillName);
-      const result = mode === "symlink"
-        ? await createSkillSymlink(sourcePath, targetPath, { allowReplaceExisting: options.force })
-        : await createSkillCopy(sourcePath, targetPath, { allowReplaceExisting: options.force });
+      const result =
+        mode === "symlink"
+          ? await createSkillSymlink(sourcePath, targetPath, { allowReplaceExisting: options.force })
+          : await createSkillCopy(sourcePath, targetPath, { allowReplaceExisting: options.force });
       if (result.status === "created") {
         created.push(`${agentId}:${skillName}`);
       }
@@ -134,6 +139,8 @@ export async function runEnable(
 
   const scopeLabel = options.scope === "global" ? "global scope" : (projectDir ?? context.cwd);
   const targetLabel = normalizeNameList(options.name).join(", ");
-  context.write(`Enabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${created.length > 0 ? ` (${created.length} created)` : ""}`);
+  context.write(
+    `Enabled ${options.type} ${targetLabel} for ${agents.join(", ")} in ${scopeLabel}${created.length > 0 ? ` (${created.length} created)` : ""}`,
+  );
   return { agents, skillNames, created };
 }

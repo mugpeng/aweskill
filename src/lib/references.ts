@@ -1,6 +1,7 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
 
+import type { AgentId } from "./agents.js";
 import { listSupportedAgents, resolveAgentSkillsDir, supportsScope } from "./agents.js";
 import { listBundles, writeBundle } from "./bundles.js";
 import { getAweskillPaths, sanitizeName } from "./path.js";
@@ -30,19 +31,18 @@ export async function findSkillReferences(options: {
     .map((bundle) => bundle.name);
 
   const agentProjections: string[] = [];
-  const baseDirs: Array<{ scope: "global" | "project"; dir: string }> = [
-    { scope: "global", dir: options.homeDir },
-  ];
+  const baseDirs: Array<{ scope: "global" | "project"; dir: string }> = [{ scope: "global", dir: options.homeDir }];
   if (options.projectDir) {
     baseDirs.push({ scope: "project", dir: options.projectDir });
   }
 
   for (const { scope, dir } of baseDirs) {
     for (const agent of listSupportedAgents()) {
-      if (!supportsScope(agent.id, scope)) {
+      const agentId = agent.id as AgentId;
+      if (!supportsScope(agentId, scope)) {
         continue;
       }
-      const agentSkillsDir = resolveAgentSkillsDir(agent.id, scope, dir);
+      const agentSkillsDir = resolveAgentSkillsDir(agentId, scope, dir);
       const managed = await listManagedSkillNames(agentSkillsDir, skillsDir);
       if (managed.has(normalizedSkill)) {
         agentProjections.push(`${agent.id}(${scope}):${normalizedSkill}`);
@@ -76,19 +76,18 @@ export async function removeSkillWithReferences(options: {
   }
 
   // Remove managed projections across all known agent dirs
-  const baseDirs: Array<{ scope: "global" | "project"; dir: string }> = [
-    { scope: "global", dir: options.homeDir },
-  ];
+  const baseDirs: Array<{ scope: "global" | "project"; dir: string }> = [{ scope: "global", dir: options.homeDir }];
   if (options.projectDir) {
     baseDirs.push({ scope: "project", dir: options.projectDir });
   }
 
   for (const { scope, dir } of baseDirs) {
     for (const agent of listSupportedAgents()) {
-      if (!supportsScope(agent.id, scope)) {
+      const agentId = agent.id as AgentId;
+      if (!supportsScope(agentId, scope)) {
         continue;
       }
-      const agentSkillsDir = resolveAgentSkillsDir(agent.id, scope, dir);
+      const agentSkillsDir = resolveAgentSkillsDir(agentId, scope, dir);
       const managed = await listManagedSkillNames(agentSkillsDir, skillsDir);
       if (managed.has(normalizedSkill)) {
         await removeManagedProjection(path.join(agentSkillsDir, normalizedSkill));

@@ -80,7 +80,9 @@ export async function runScan(
       context.write(`Overwritten ${result.overwritten.length} existing skills: ${result.overwritten.join(", ")}`);
     }
     if (result.skipped.length > 0) {
-      context.write(`Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`);
+      context.write(
+        `Skipped ${result.skipped.length} existing skills (use --override to overwrite): ${result.skipped.join(", ")}`,
+      );
     }
     if (result.missingSources > 0) {
       context.write(`Missing source files: ${result.missingSources}`);
@@ -88,7 +90,9 @@ export async function runScan(
     if (linkSource) {
       context.write(`Replaced ${result.linkedSources.length} scanned source paths with aweskill-managed projections.`);
     } else {
-      context.write("Source paths were kept in place. Re-run without --keep-source to replace scanned agent skills with aweskill-managed projections.");
+      context.write(
+        "Source paths were kept in place. Re-run without --keep-source to replace scanned agent skills with aweskill-managed projections.",
+      );
     }
     return { candidates, ...result };
   }

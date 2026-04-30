@@ -1,7 +1,8 @@
 import { access, lstat, readdir, readlink } from "node:fs/promises";
 import path from "node:path";
 
-import type { AgentId, ScanCandidate, Scope } from "../types.js";
+import type { ScanCandidate, Scope } from "../types.js";
+import type { AgentId } from "./agents.js";
 import { isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "./agents.js";
 import { pathExists } from "./fs.js";
 import { sanitizeName } from "./path.js";
@@ -38,7 +39,12 @@ async function resolveSymlinkSource(targetPath: string): Promise<{ sourcePath?: 
   }
 }
 
-async function scanDirectory(baseDir: string, agentId: ScanCandidate["agentId"], scope: ScanCandidate["scope"], projectDir?: string) {
+async function scanDirectory(
+  baseDir: string,
+  agentId: ScanCandidate["agentId"],
+  scope: ScanCandidate["scope"],
+  projectDir?: string,
+) {
   try {
     const entries = await readdir(baseDir, { withFileTypes: true });
     const candidates: ScanCandidate[] = [];

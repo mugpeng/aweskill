@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parse, stringify } from "yaml";
@@ -67,7 +67,11 @@ export async function createBundle(homeDir: string, bundleName: string): Promise
   return writeBundle(homeDir, { name: normalizedName, skills: [] });
 }
 
-export async function addSkillToBundle(homeDir: string, bundleName: string, skillName: string): Promise<BundleDefinition> {
+export async function addSkillToBundle(
+  homeDir: string,
+  bundleName: string,
+  skillName: string,
+): Promise<BundleDefinition> {
   const normalizedSkill = sanitizeName(skillName);
   if (!(await skillExists(homeDir, normalizedSkill))) {
     throw new Error(`Unknown skill: ${normalizedSkill}`);
@@ -78,7 +82,11 @@ export async function addSkillToBundle(homeDir: string, bundleName: string, skil
   return writeBundle(homeDir, bundle);
 }
 
-export async function removeSkillFromBundle(homeDir: string, bundleName: string, skillName: string): Promise<BundleDefinition> {
+export async function removeSkillFromBundle(
+  homeDir: string,
+  bundleName: string,
+  skillName: string,
+): Promise<BundleDefinition> {
   const bundle = await readBundle(homeDir, bundleName);
   const normalizedSkill = sanitizeName(skillName);
   bundle.skills = bundle.skills.filter((skill) => skill !== normalizedSkill);

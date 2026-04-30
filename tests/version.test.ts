@@ -2,9 +2,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
-
-import { AWESKILL_VERSION, resolveVersionForModuleUrl } from "../src/lib/version.js";
 import packageJson from "../package.json" with { type: "json" };
+import { AWESKILL_VERSION, resolveVersionForModuleUrl } from "../src/lib/version.js";
 
 const repoRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 

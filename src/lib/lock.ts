@@ -61,7 +61,11 @@ export async function writeSkillLock(homeDir: string, lock: SkillLockFile): Prom
   await writeFile(lockPath, `${JSON.stringify({ version: LOCK_VERSION, skills: sortedSkills }, null, 2)}\n`, "utf8");
 }
 
-export async function upsertSkillLockEntry(homeDir: string, skillName: string, entry: NewSkillLockEntry): Promise<void> {
+export async function upsertSkillLockEntry(
+  homeDir: string,
+  skillName: string,
+  entry: NewSkillLockEntry,
+): Promise<void> {
   const lock = await readSkillLock(homeDir);
   const now = new Date().toISOString();
   lock.skills[skillName] = {

@@ -1,0 +1,566 @@
+import { Command } from "commander";
+
+import { runBackup } from "../commands/backup.js";
+import {
+  runBundleAddSkill,
+  runBundleAddTemplate,
+  runBundleCreate,
+  runBundleDelete,
+  runBundleRemoveSkill,
+  runBundleShow,
+} from "../commands/bundle.js";
+import { runClean } from "../commands/clean.js";
+import { runDisable } from "../commands/disable.js";
+import { runDownload } from "../commands/download.js";
+import { runEnable } from "../commands/enable.js";
+import { runFind } from "../commands/find.js";
+import { runFixSkills } from "../commands/fix-skills.js";
+import { runImport } from "../commands/import.js";
+import { runInit } from "../commands/init.js";
+import { runListBundles, runListSkills, runListTemplateBundles } from "../commands/list.js";
+import { runRecover } from "../commands/recover.js";
+import { runRemove } from "../commands/remove.js";
+import { runRestore } from "../commands/restore.js";
+import { runRmdup } from "../commands/rmdup.js";
+import { runScan } from "../commands/scan.js";
+import { runShow } from "../commands/show.js";
+import { runSync } from "../commands/sync.js";
+import { runUpdate } from "../commands/update.js";
+import { runStoreWhere } from "../commands/where.js";
+import { AWESKILL_VERSION } from "../lib/version.js";
+import type { RuntimeContext, Scope } from "../types.js";
+import {
+  collectAgents,
+  configureCommandTree,
+  createRuntimeContext,
+  getActivationType,
+  runFramedCommand,
+  writeSupportedAgents,
+} from "./helpers.js";
+
+function addImportCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("import")
+    .argument("[path]")
+    .description("Import one skill or a skills root directory")
+    .option("--scan", "import scanned skills", false)
+    .option("--global", "scan global scope when used with --scan (default when no scope flag given)")
+    .option("--project [dir]", "scan project scope when used with --scan; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .option("--keep-source", "keep the source path in place after importing", false)
+    .option("--link-source", "replace the source path with an aweskill-managed projection after importing", false)
+    .option("--track-source", "record the explicit local import path for future store update runs", false)
+    .option("--override", "overwrite existing files when importing", false)
+    .action(async (sourcePath, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(title, async () =>
+        runImport(context, {
+          sourcePath,
+          scan: options.scan,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          override: options.override,
+          keepSource: options.keepSource,
+          linkSource: options.linkSource,
+          trackSource: options.trackSource,
+        }),
+      );
+    });
+}
+
+function addFindCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("find")
+    .argument("<query>")
+    .description("Search skills across configured providers")
+    .option("-p, --provider <provider>", "limit search to one provider (skills-sh, sciskill, or local)")
+    .option("--local", "search the local central store only", false)
+    .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
+    .option("--domain <domain>", 'sciskill domain filter, e.g. "Life Sciences", "Chemistry", "Engineering"')
+    .option("--stage <stage>", 'sciskill stage filter, e.g. "Study Design", "Data Analysis", "Writing"')
+    .action(async (query, options) => {
+      const provider = (options.local ? "local" : options.provider) as "skills-sh" | "sciskill" | "local" | undefined;
+      if (provider && provider !== "skills-sh" && provider !== "sciskill" && provider !== "local") {
+        throw new Error(`Unsupported provider: ${provider}`);
+      }
+      await runFramedCommand(title, async () =>
+        runFind(context, query, {
+          provider,
+          limit: options.limit,
+          domain: options.domain,
+          stage: options.stage,
+        }),
+      );
+    });
+}
+
+function addInstallCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("install")
+    .argument("<source>")
+    .description("Install skills from a local path, GitHub source, or sciskill:<skill-id> into the central store")
+    .option("--list", "list downloadable skills without installing", false)
+    .option("--skill <skill>", "repeat or use comma list; select skills to install", collectAgents)
+    .option("--all", "install all skills from the source", false)
+    .option("--ref <ref>", "git branch or tag to install from (GitHub sources only)")
+    .option("--override", "overwrite existing skills when installing", false)
+    .option("--as <name>", "install a single selected skill under a different name")
+    .action(async (source, options) => {
+      await runFramedCommand(title, async () =>
+        runDownload(context, source, {
+          list: options.list,
+          skill: options.skill,
+          all: options.all,
+          ref: options.ref,
+          override: options.override,
+          as: options.as,
+        }),
+      );
+    });
+}
+
+function addUpdateCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("update")
+    .argument("[skill...]")
+    .description("Update tracked central-store skills from their recorded sources")
+    .option("--check", "check for updates without modifying files", false)
+    .option("--dry-run", "show update actions without modifying files", false)
+    .option("--source <source>", "only update skills from a source")
+    .option("--override", "discard local changes and overwrite from source", false)
+    .action(async (skillNames, options) => {
+      await runFramedCommand(title, async () =>
+        runUpdate(context, {
+          skills: skillNames,
+          check: options.check,
+          dryRun: options.dryRun,
+          source: options.source,
+          override: options.override,
+        }),
+      );
+    });
+}
+
+export function createProgram(overrides: Partial<RuntimeContext> = {}) {
+  const context = createRuntimeContext(overrides);
+  const program = new Command();
+
+  program
+    .name("aweskill")
+    .description("Local skill orchestration CLI for AI agents")
+    .version(AWESKILL_VERSION, "-v, --version", "output the version number")
+    .helpOption("-h, --help", "Display help");
+
+  addInstallCommand(program, context, " aweskill install ");
+  addFindCommand(program, context, " aweskill find ");
+  addUpdateCommand(program, context, " aweskill update ");
+
+  const bundle = program.command("bundle").description("Manage skill bundles");
+  bundle
+    .command("list")
+    .description("List bundles in the central store")
+    .option("--verbose", "show all bundles instead of a short preview", false)
+    .action(async (options) => {
+      await runListBundles(context, { verbose: options.verbose });
+    });
+  bundle
+    .command("create")
+    .argument("<name>")
+    .description("Create a bundle")
+    .action(async (name) => {
+      await runFramedCommand(" aweskill bundle create ", async () => runBundleCreate(context, name));
+    });
+  bundle
+    .command("show")
+    .argument("<name>")
+    .description("Show bundle contents")
+    .action(async (name) => {
+      await runBundleShow(context, name);
+    });
+  bundle
+    .command("add")
+    .argument("<bundle>")
+    .argument("<skill...>")
+    .description("Add skill entries to one or more bundles")
+    .action(async (bundleName, skillNames) => {
+      await runFramedCommand(" aweskill bundle add ", async () => runBundleAddSkill(context, bundleName, skillNames));
+    });
+  bundle
+    .command("remove")
+    .argument("<bundle>")
+    .argument("<skill...>")
+    .description("Remove skill entries from one or more bundles")
+    .action(async (bundleName, skillNames) => {
+      await runFramedCommand(" aweskill bundle remove ", async () =>
+        runBundleRemoveSkill(context, bundleName, skillNames),
+      );
+    });
+  bundle
+    .command("delete")
+    .argument("<name>")
+    .description("Delete a bundle")
+    .action(async (name) => {
+      await runFramedCommand(" aweskill bundle delete ", async () => runBundleDelete(context, name));
+    });
+  const bundleTemplate = bundle.command("template").description("Manage built-in bundle templates");
+  bundleTemplate
+    .command("list")
+    .description("List available built-in bundle templates")
+    .option("--verbose", "show all bundle templates instead of a short preview", false)
+    .action(async (options) => {
+      await runListTemplateBundles(context, { verbose: options.verbose });
+    });
+  bundleTemplate
+    .command("import")
+    .argument("<name>")
+    .description("Copy built-in templates into the central store")
+    .option("--override", "overwrite existing bundles when importing templates", false)
+    .action(async (name, options) => {
+      await runFramedCommand(" aweskill bundle template import ", async () =>
+        runBundleAddTemplate(context, name, { override: options.override }),
+      );
+    });
+
+  const agent = program.command("agent").description("Manage skills used by agents");
+  agent
+    .command("supported")
+    .description("List supported agent ids and display names")
+    .action(async () => {
+      await writeSupportedAgents(context);
+    });
+  agent
+    .command("list")
+    .description("Inspect agent skill directories")
+    .option("--global", "check global scope (default when no scope flag given)")
+    .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all agents detected at this scope; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .option("--verbose", "show all skills in each category instead of a short preview", false)
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill agent list ", async () =>
+        runSync(context, {
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          apply: false,
+          verbose: options.verbose,
+        }),
+      );
+    });
+  agent
+    .command("add")
+    .description("Create skill projections in agent directories")
+    .argument("<type>", "bundle or skill", getActivationType)
+    .argument("<name...>", 'bundle or skill name(s), space-separated, comma-separated, or "all"')
+    .option("--global", "apply to global scope (default when no scope flag given)")
+    .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .option("--force", "replace existing duplicate, foreign, or unmanaged targets in agent directories", false)
+    .action(async (type, targetNames, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill agent add ", async () =>
+        runEnable(context, {
+          type,
+          name: targetNames,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          force: options.force,
+        }),
+      );
+    });
+  agent
+    .command("remove")
+    .description("Remove skill projections in agent directories")
+    .argument("<type>", "bundle or skill", getActivationType)
+    .argument("<name...>", 'bundle or skill name(s), space-separated, comma-separated, or "all"')
+    .option("--global", "apply to global scope (default when no scope flag given)")
+    .option("--project [dir]", "apply to project scope; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .option(
+      "--force",
+      "with skill: remove a single bundle member or delete duplicate, foreign, or unmanaged targets in agent directories",
+      false,
+    )
+    .action(async (type, targetNames, options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill agent remove ", async () =>
+        runDisable(context, {
+          type,
+          name: targetNames,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          force: options.force,
+        }),
+      );
+    });
+  agent
+    .command("recover")
+    .description("Convert aweskill-managed symlink projections into full skill directories")
+    .option("--global", "recover global scope (default when no scope flag given)")
+    .option("--project [dir]", "recover project scope; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill agent recover ", async () =>
+        runRecover(context, {
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+        }),
+      );
+    });
+
+  const store = program.command("store").description("Manage the aweskill local store");
+  store
+    .command("init")
+    .description("Create ~/.aweskill layout")
+    .option("--scan", "scan existing agent directories after init", false)
+    .option("--verbose", "show scanned skill details instead of per-agent totals", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill store init ", async () => runInit(context, options));
+    });
+  store
+    .command("list")
+    .description("List skills in the central store")
+    .option("--verbose", "show all skills instead of a short preview", false)
+    .action(async (options) => {
+      await runListSkills(context, { verbose: options.verbose });
+    });
+  store
+    .command("scan")
+    .description("Scan supported agent skill directories")
+    .option("--global", "scan global scope (default when no scope flag given)")
+    .option("--project [dir]", "scan project scope; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .option("--import", "scan and then import the discovered skills into the central store", false)
+    .option("--keep-source", "when used with --import, keep the source path in place after importing", false)
+    .option("--override", "when used with --import, overwrite existing files while importing", false)
+    .option("--verbose", "show scanned skill details instead of per-agent totals", false)
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill store scan ", async () =>
+        runScan(context, {
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          import: options.import,
+          keepSource: options.keepSource,
+          override: options.override,
+          verbose: options.verbose,
+        }),
+      );
+    });
+  addImportCommand(store, context, " aweskill store import ");
+  addInstallCommand(store, context, " aweskill store install ");
+  addUpdateCommand(store, context, " aweskill store update ");
+  addFindCommand(store, context, " aweskill store find ");
+  store
+    .command("remove")
+    .argument("<skill>")
+    .description("Remove a skill from the central store")
+    .option("--force", "remove and clean references", false)
+    .option("--project <dir>", "project config to inspect")
+    .action(async (skillName, options) => {
+      await runFramedCommand(" aweskill store remove ", async () =>
+        runRemove(context, {
+          skillName,
+          force: options.force,
+          projectDir: options.project,
+        }),
+      );
+    });
+  store
+    .command("show")
+    .argument("<skill>")
+    .description("Show a central-store skill summary or its SKILL.md contents")
+    .option("--summary", "print the skill summary (default)")
+    .option("--raw", "print the full SKILL.md markdown", false)
+    .option("--path", "print only the SKILL.md path", false)
+    .action(async (skillName, options) => {
+      await runShow(context, skillName, {
+        summary: options.summary,
+        raw: options.raw,
+        path: options.path,
+      });
+    });
+  store
+    .command("backup")
+    .argument("[archive]")
+    .description("Create a timestamped archive of the central skills repository")
+    .option("--both", "include bundle definitions in the backup archive (default behavior)", true)
+    .option("--skills-only", "back up only skills/ without bundles/", false)
+    .action(async (archivePath, options) => {
+      await runFramedCommand(" aweskill store backup ", async () =>
+        runBackup(context, {
+          archivePath,
+          includeBundles: options.skillsOnly ? false : options.both,
+        }),
+      );
+    });
+  store
+    .command("restore")
+    .argument("<archive>")
+    .description(
+      "Restore skills from a backup archive or unpacked backup directory and auto-back up the current store first",
+    )
+    .option("--override", "replace existing skills with the archive contents", false)
+    .option("--both", "restore bundle definitions and include them in the pre-restore backup (default behavior)", true)
+    .option("--skills-only", "restore only skills/ without bundles/", false)
+    .action(async (archivePath, options) => {
+      await runFramedCommand(" aweskill store restore ", async () =>
+        runRestore(context, {
+          archivePath,
+          override: options.override,
+          includeBundles: options.skillsOnly ? false : options.both,
+        }),
+      );
+    });
+  store
+    .command("where")
+    .description("Show the aweskill store location and optionally summarize its contents")
+    .option("--verbose", "show core store directories and entry counts", false)
+    .action(async (options) => {
+      await runStoreWhere(context, { verbose: options.verbose });
+    });
+
+  const doctor = program.command("doctor").description("Diagnose and repair repository issues");
+  doctor
+    .command("clean")
+    .description("Find and optionally remove suspicious non-store entries in skills/ and bundles/")
+    .option("--apply", "remove suspicious entries instead of reporting only", false)
+    .option("--skills-only", "scan only skills/", false)
+    .option("--bundles-only", "scan only bundles/", false)
+    .option("--verbose", "show all suspicious entries instead of a short preview", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill doctor clean ", async () =>
+        runClean(context, {
+          apply: options.apply,
+          skillsOnly: options.skillsOnly,
+          bundlesOnly: options.bundlesOnly,
+          verbose: options.verbose,
+        }),
+      );
+    });
+  doctor
+    .command("dedup")
+    .description("Find or remove duplicate central-store skills with numeric/version suffixes")
+    .option("--apply", "move duplicate skills into dup_skills (or delete them with --delete)", false)
+    .option("--backup", "copy duplicate skills into backup/dedup before moving or deleting them", false)
+    .option("--delete", "when used with --apply, permanently delete duplicates instead of moving them", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill doctor dedup ", async () =>
+        runRmdup(context, {
+          apply: options.apply,
+          backup: options.backup,
+          delete: options.delete,
+        }),
+      );
+    });
+  doctor
+    .command("fix-skills")
+    .summary("Inspect and optionally normalize malformed SKILL.md frontmatter")
+    .description(
+      "Inspect and optionally normalize malformed SKILL.md frontmatter; dry-run by default.\n" +
+        "Actionable fixes (reported by default):\n" +
+        "  missing-closing-delimiter: add the missing closing --- before body content.\n" +
+        "  invalid-yaml: rebuild frontmatter from recoverable fields and body text.\n" +
+        "  added-frontmatter: add minimal frontmatter when the file starts with body content.\n" +
+        "  normalized-name: replace a missing or unusable name with the canonical skill name.\n" +
+        "  normalized-description: replace a missing or unusable description with the first body sentence.\n" +
+        "Informational checks (only with --include-info, never rewritten):\n" +
+        "  normalized-required-permissions: report permissions that could be normalized into the canonical list form.\n" +
+        "  preserved-unknown-fields: report frontmatter fields outside the built-in core set.\n" +
+        "  removed-empty-fields: report blank arrays, objects, or scalar values that could be dropped.\n" +
+        "See docs/fix-skills-categories.md for full details and before/after examples.",
+    )
+    .option("--skill <skill>", "repeat or use comma list; limit fixes to exact skill names", collectAgents)
+    .option("--apply", "rewrite malformed skill docs instead of reporting only", false)
+    .option("--backup", "copy original SKILL.md files into backup/fix_skills before rewriting them", false)
+    .option("--include-info", "include informational checks that are reported but never rewritten", false)
+    .option("--verbose", "show all skill docs needing fixes instead of a short preview", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill doctor fix-skills ", async () =>
+        runFixSkills(context, {
+          skills: options.skill ?? [],
+          apply: options.apply,
+          backup: options.backup,
+          includeInfo: options.includeInfo,
+          verbose: options.verbose,
+        }),
+      );
+    });
+  doctor
+    .command("sync")
+    .description("Inspect and optionally repair agent-side projections; dry-run by default")
+    .option("--apply", "repair broken projections and relink duplicate and matched entries", false)
+    .option(
+      "--remove-suspicious",
+      "when used with --apply, remove suspicious agent entries instead of only reporting them",
+      false,
+    )
+    .option("--global", "check global scope (default when no scope flag given)")
+    .option("--project [dir]", "check project scope; uses cwd when dir is omitted")
+    .option(
+      "--agent <agent>",
+      'repeat or use comma list; defaults to all agents detected at this scope; run "aweskill agent supported" to see supported ids',
+      collectAgents,
+    )
+    .option("--verbose", "show all agent skill entries instead of a short preview", false)
+    .action(async (options) => {
+      const isProject = options.project !== undefined;
+      const scope: Scope = isProject ? "project" : "global";
+      const projectDir = isProject && typeof options.project === "string" ? options.project : undefined;
+      await runFramedCommand(" aweskill doctor sync ", async () =>
+        runSync(context, {
+          apply: options.apply,
+          removeSuspicious: options.removeSuspicious,
+          scope,
+          agents: options.agent ?? [],
+          projectDir,
+          verbose: options.verbose,
+        }),
+      );
+    });
+
+  configureCommandTree(program);
+  return program;
+}

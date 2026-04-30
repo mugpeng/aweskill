@@ -1,5 +1,44 @@
 # change log
 
+## v0.2.9
+
+`v0.2.9` focuses on engineering infrastructure. Since `v0.2.8`, the project added GitHub Actions CI, introduced Biome for linting and formatting, split the monolithic `index.ts` into focused modules, derived the `AgentId` type from the agent registry to eliminate manual synchronization, and added an automated release workflow for tag-triggered npm publishing and GitHub Release creation.
+
+### AgentId single source of truth
+
+The `AgentId` type was previously a manually maintained 46-member string union in `src/types.ts` that required updating in four separate files whenever a new agent was added. It is now derived directly from the `AGENTS` registry keys in `src/lib/agents.ts` via `export type AgentId = keyof typeof AGENTS`. This also fixed a latent type error where `zencoder` was registered in the agent registry but missing from the union type. Adding a new agent now only requires editing `src/lib/agents.ts`.
+
+### `index.ts` split into CLI modules
+
+The 753-line `src/index.ts` entry point was split into four files:
+
+- `src/cli/errors.ts` — error message formatting
+- `src/cli/helpers.ts` — runtime context, CLI utilities, and guards
+- `src/cli/commands.ts` — command tree registration and reusable command builders
+- `src/index.ts` — thin entry shell (~40 lines) that re-exports `createProgram` and `main`
+
+The public API (`createProgram`, `main`) remains available from the same import path.
+
+### Biome lint toolchain
+
+The project now uses [Biome](https://biomejs.dev/) for linting and formatting. New npm scripts: `lint`, `lint:fix`, and `format`. The CI pipeline runs `npm run lint` before tests. All existing lint issues were fixed: unused imports, implicit `any` type annotations, string concatenation to template literals, and import ordering.
+
+### GitHub Actions CI and release automation
+
+Two GitHub Actions workflows were added:
+
+- `.github/workflows/ci.yml` — runs lint and tests on every push to `main`/`dev` and on PRs targeting `main`, across 3 operating systems and 2 Node versions.
+- `.github/workflows/release.yml` — triggered by `v*` tags; runs tests, builds the CLI, creates a GitHub Release from the changelog, and publishes to npm.
+
+### Highlights
+
+- Derived `AgentId` from the `AGENTS` registry, fixing the missing `zencoder` type and eliminating 4-file synchronization for new agents.
+- Split `src/index.ts` (753 lines) into `src/cli/errors.ts`, `src/cli/helpers.ts`, and `src/cli/commands.ts`.
+- Added Biome lint toolchain with `lint`, `lint:fix`, and `format` scripts.
+- Added GitHub Actions CI (lint + test matrix across Ubuntu/macOS/Windows, Node 20/22).
+- Added GitHub Actions release workflow for tag-triggered npm publish and GitHub Release creation.
+- Fixed all existing lint issues: unused imports, implicit `any`, template literals, import ordering.
+
 ## v0.2.8
 
 `v0.2.8` expands the store inspection and hygiene workflow around three areas: local central-store discovery, direct skill inspection, and `SKILL.md` frontmatter repair. Since `v0.2.7`, `find` can now search the local `~/.aweskill/skills/` repository through a `local` provider, `store show` can print a summary, the raw `SKILL.md`, or just the file path for one managed skill, and `doctor fix-skills` can inspect or normalize malformed frontmatter with both actionable and informational categories.

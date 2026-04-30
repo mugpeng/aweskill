@@ -2,6 +2,6 @@ name: caveman
 skills:
   - caveman
   - caveman-commit
-  - caveman-compress
+  - compress
   - caveman-help
   - caveman-review

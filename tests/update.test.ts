@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatNoTrackedUpdatesMessage,
-  formatUpdateStatusLines,
-  type UpdateStatusReason,
-} from "../src/lib/update.js";
+import { formatNoTrackedUpdatesMessage, formatUpdateStatusLines, type UpdateStatusReason } from "../src/lib/update.js";
 
 describe("update helpers", () => {
   const cases: Array<{ reason: UpdateStatusReason; expected: string[] }> = [

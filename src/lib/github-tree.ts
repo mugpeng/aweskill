@@ -30,14 +30,17 @@ export async function fetchGitHubRepoTree(ownerRepo: string, ref?: string): Prom
 
   for (const candidateRef of refs) {
     try {
-      const response = await fetch(`https://api.github.com/repos/${ownerRepo}/git/trees/${encodeURIComponent(candidateRef)}?recursive=1`, {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "aweskill",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      const response = await fetch(
+        `https://api.github.com/repos/${ownerRepo}/git/trees/${encodeURIComponent(candidateRef)}?recursive=1`,
+        {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "aweskill",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: AbortSignal.timeout(GITHUB_TREE_TIMEOUT_MS),
         },
-        signal: AbortSignal.timeout(GITHUB_TREE_TIMEOUT_MS),
-      });
+      );
       if (!response.ok) {
         continue;
       }
@@ -47,9 +50,7 @@ export async function fetchGitHubRepoTree(ownerRepo: string, ref?: string): Prom
         continue;
       }
       return { sha: data.sha, ref: candidateRef, tree: data.tree };
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return undefined;
