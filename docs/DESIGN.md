@@ -99,18 +99,27 @@ Mutating agent commands should default to the detected installed agent set for t
 - new backup archives should include a lightweight root manifest with format and version metadata
 - `restore` should accept older backup archives and unpacked backup directories that do not include that manifest
 
-## Find, Download, and Update
+## Find, Install, Show, and Update
 
-`find` searches across two skill providers:
+`find` searches across three skill providers:
 
 - `skills.sh` — community skill directory with downloadable GitHub sources
 - `sciskill` — scientific and technical skill registry with `sciskill:<skill-id>` identifiers
+- `local` — the local central store at `~/.aweskill/skills/*/SKILL.md`
 
-Results are merged by normalized name. When a provider returns a discover-only source, the result still appears but is marked as unsupported for direct install.
+Results are merged by normalized name. When a provider returns a discover-only source, the result still appears but is marked as unsupported for direct install. Local results do not print install commands; they point back to the managed skill path and `store show`.
+
+`show <skill>` is the primary inspection command for one managed local skill. It can print a summary, the raw `SKILL.md`, or just the resolved path.
 
 `install <source>` accepts local paths, GitHub sources, and `sciskill:<skill-id>` identifiers. Installed skills are recorded in the lock file for future `store update` runs.
 
 `update [skill...]` checks or refreshes tracked skills from their recorded source.
+
+### Filter Validation
+
+- `--domain` and `--stage` are sciskill-only filters
+- invalid sciskill enum values should fail fast before the network request
+- `skills-sh` should reject `--domain` and `--stage` instead of silently ignoring them
 
 ### Limit Behavior
 

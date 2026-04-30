@@ -4,7 +4,7 @@
   <p><strong>以 CLI 为核心的 Skill 包管理器，AI agent 也能自己调用和维护。</strong></p>
   <p>在 Codex、Claude Code、Cursor、Gemini CLI、Qwen Code、Windsurf 等工具之间安装、更新、打包并投影 skills。</p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.7-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.8-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -69,7 +69,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.2.7
+npm install -g aweskill@0.2.8
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -426,7 +426,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 `aweskill find` 会优先输出 `aweskill store install` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接安装，并提示你去对应的 `skills.sh` 页面查看上游安装说明。本地搜索结果不会输出安装命令，而是输出 skill 路径和 `aweskill store show <skill>` 提示。默认同时搜索两个远程 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
 
-使用 `--domain` 或 `--stage` 时，传入值必须与对应的 `sciskill` 枚举完全一致，包括空格和大小写。
+`--domain` 和 `--stage` 只适用于 sciskill。若和 `--provider skills-sh` 一起传入，`aweskill` 现在会直接报错，而不是忽略过滤条件。对 sciskill 使用这两个参数时，传入值必须与对应枚举完全一致，包括空格和大小写；非法值也会直接报错，并列出允许值。
 
 ### `--domain` 可用值
 

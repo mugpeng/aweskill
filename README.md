@@ -4,7 +4,7 @@
   <p><strong>A CLI-first skill package manager that AI agents can operate themselves.</strong></p>
   <p>Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more.</p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.7-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.8-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
@@ -69,7 +69,7 @@ aweskill --help
 To pin a specific release:
 
 ```bash
-npm install -g aweskill@0.2.7
+npm install -g aweskill@0.2.8
 ```
 
 Package page: [npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)
@@ -426,7 +426,7 @@ Top-level convenience commands are available for high-frequency search and track
 
 `aweskill find` prefers to print `source` values that `aweskill store install` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct install and tells you to visit the matching `skills.sh` page so you can inspect the upstream installation instructions there. Local search results do not print install commands; they print the skill path and an `aweskill store show <skill>` hint instead. When searching both remote providers at once, `--limit` applies per provider before merge and dedupe.
 
-When using `--domain` or `--stage`, the value must exactly match the corresponding `sciskill` enum, including spaces and capitalization.
+`--domain` and `--stage` are sciskill-only filters. If you pass either flag with `--provider skills-sh`, `aweskill` now fails fast instead of ignoring the filter. When using `--domain` or `--stage` with sciskill, the value must exactly match the corresponding enum, including spaces and capitalization; invalid values also fail fast and print the allowed values.
 
 ### `--domain` Values
 

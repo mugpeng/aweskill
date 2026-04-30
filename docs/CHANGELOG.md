@@ -1,8 +1,8 @@
 # change log
 
-## Unreleased
+## v0.2.8
 
-This unreleased update also adds a local central-store search mode and a direct skill-inspection command. `find` can now search the local `~/.aweskill/skills/` repository through a `local` provider, and `store show` can print a summary, the raw `SKILL.md`, or just the file path for one managed skill.
+`v0.2.8` expands the store inspection and hygiene workflow around three areas: local central-store discovery, direct skill inspection, and `SKILL.md` frontmatter repair. Since `v0.2.7`, `find` can now search the local `~/.aweskill/skills/` repository through a `local` provider, `store show` can print a summary, the raw `SKILL.md`, or just the file path for one managed skill, and `doctor fix-skills` can inspect or normalize malformed frontmatter with both actionable and informational categories.
 
 ### Local search provider and `store show`
 
@@ -10,10 +10,21 @@ This unreleased update also adds a local central-store search mode and a direct 
 
 `aweskill store show <skill>` is a new inspection command for managed local skills. It prints a short summary by default, supports `--raw` to print the full `SKILL.md`, and supports `--path` to print only the resolved `SKILL.md` path. Both READMEs now document the new search mode and inspection workflow.
 
+### `doctor fix-skills` and frontmatter normalization
+
+`aweskill doctor fix-skills` is a new dry-run-by-default hygiene command for malformed `SKILL.md` frontmatter. It can report and optionally rewrite missing closing delimiters, invalid YAML, missing frontmatter blocks, unusable names, and unusable descriptions. With `--include-info`, it also reports non-rewritten informational categories such as normalizable permissions, preserved unknown fields, and removable empty fields. With `--backup`, it copies original files into `~/.aweskill/backup/fix_skills/` before rewriting. The new `docs/fix-skills-categories.md` document explains each category with before/after examples.
+
+### `find` filter validation tightened
+
+`aweskill find` now validates `--domain` and `--stage` before sending a sciskill request. Invalid enum values fail fast and list the allowed values. The `skills-sh` provider also rejects `--domain` and `--stage` directly instead of silently falling back to partial remote results.
+
 ### Highlights
 
 - Added a `local` search provider for `aweskill find` / `aweskill store find`, plus the `--local` shortcut.
 - Added `aweskill store show <skill>` with summary, raw, and path output modes.
+- Added `aweskill doctor fix-skills` with actionable fixes, optional informational checks, and pre-rewrite backups.
+- Added `docs/fix-skills-categories.md` with per-category behavior and before/after examples.
+- Tightened `find` validation so invalid sciskill filters and `skills-sh`-only misuse fail fast.
 - Updated `README.md` and `README.zh-CN.md` to document local central-store search and direct skill inspection.
 
 ## v0.2.7
