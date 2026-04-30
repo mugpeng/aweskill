@@ -35,7 +35,7 @@ import { listSupportedAgentsWithGlobalStatus } from "./lib/agents.js";
 import { pathExists } from "./lib/fs.js";
 import { getAweskillPaths } from "./lib/path.js";
 import { isDirectCliEntry } from "./lib/runtime.js";
-import { introCommand, outroCommand, writeCliError, writeCliMessage } from "./lib/ui.js";
+import { introCommand, outroCommand, writeCliError, writeCliMessage, writeCliRaw } from "./lib/ui.js";
 import type { ActivationType, RuntimeContext, Scope } from "./types.js";
 
 function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeContext {
@@ -43,6 +43,7 @@ function createRuntimeContext(overrides: Partial<RuntimeContext> = {}): RuntimeC
     cwd: overrides.cwd ?? process.cwd(),
     homeDir: overrides.homeDir ?? process.env.AWESKILL_HOME ?? homedir(),
     write: overrides.write ?? writeCliMessage,
+    writeRaw: overrides.writeRaw ?? writeCliRaw,
     error: overrides.error ?? writeCliError,
   };
 }
@@ -598,8 +599,17 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("fix-skills")
     .description(
       "Inspect and optionally normalize malformed SKILL.md frontmatter; dry-run by default.\n"
-      + "Actionable fixes (reported by default): missing-closing-delimiter, invalid-yaml, added-frontmatter, normalized-name, normalized-description.\n"
-      + "Informational checks (only with --include-info, never rewritten): normalized-required-permissions, preserved-unknown-fields, removed-empty-fields.",
+      + "Actionable fixes (reported by default):\n"
+      + "  missing-closing-delimiter: add the missing closing --- before body content.\n"
+      + "  invalid-yaml: rebuild frontmatter from recoverable fields and body text.\n"
+      + "  added-frontmatter: add minimal frontmatter when the file starts with body content.\n"
+      + "  normalized-name: replace a missing or unusable name with the canonical skill name.\n"
+      + "  normalized-description: replace a missing or unusable description with the first body sentence.\n"
+      + "Informational checks (only with --include-info, never rewritten):\n"
+      + "  normalized-required-permissions: report permissions that could be normalized into the canonical list form.\n"
+      + "  preserved-unknown-fields: report frontmatter fields outside the built-in core set.\n"
+      + "  removed-empty-fields: report blank arrays, objects, or scalar values that could be dropped.\n"
+      + "See docs/fix-skills-categories.md for full details and before/after examples.",
     )
     .option("--skill <skill>", "repeat or use comma list; limit fixes to exact skill names", collectAgents)
     .option("--apply", "rewrite malformed skill docs instead of reporting only", false)

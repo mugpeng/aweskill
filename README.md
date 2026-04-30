@@ -366,7 +366,12 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 All `doctor` commands default to dry-run. Add `--apply` to make real changes.
 
-For `aweskill doctor fix-skills`, see [docs/fix-skills-categories.md](docs/fix-skills-categories.md) for every actionable fix and informational check, each with before/after examples.
+`aweskill doctor fix-skills` reports two groups of categories:
+
+- Actionable fixes: `missing-closing-delimiter` adds the missing frontmatter closing fence, `invalid-yaml` rebuilds broken frontmatter from recoverable fields and body text, `added-frontmatter` inserts minimal frontmatter when the file starts with body content, `normalized-name` restores a usable canonical skill name, and `normalized-description` restores a usable description from the first body sentence.
+- Informational checks: `normalized-required-permissions` reports permissions that could be normalized into the canonical list form, `preserved-unknown-fields` reports frontmatter fields outside the built-in core set, and `removed-empty-fields` reports blank arrays, objects, or scalar values that could be dropped.
+
+See [docs/fix-skills-categories.md](docs/fix-skills-categories.md) for full details and before/after examples.
 
 ## Command Surface
 
@@ -407,7 +412,7 @@ Top-level convenience commands are available for high-frequency search and track
 | `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Dry-run by default; add `--apply` to repair broken entries and relink duplicate / matched ones, and `--apply --remove-suspicious` to also remove suspicious ones; when `--agent` is omitted, print the detected agent set for that scope first |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |
 | `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
-| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | Inspect malformed `SKILL.md` frontmatter; report actionable fixes by default, and include informational checks only with `--include-info`; `--apply` rewrites actionable fixes only |
+| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | Inspect malformed `SKILL.md` frontmatter; actionable fixes include missing closing fences, invalid YAML rebuilds, added frontmatter, normalized names, and normalized descriptions; `--include-info` adds non-rewritten informational checks, and `--apply` rewrites actionable fixes only |
 
 </details>
 

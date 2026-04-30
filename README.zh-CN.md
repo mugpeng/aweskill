@@ -366,7 +366,12 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 所有 `doctor` 命令默认为 dry run，加上 `--apply` 才会真正修改。
 
-对于 `aweskill doctor fix-skills`，可参考 [docs/fix-skills-categories.md](docs/fix-skills-categories.md)：里面列出了所有真修复项和附带信息项，并给出修复前后的示例。
+`aweskill doctor fix-skills` 会报告两类结果：
+
+- 真修复项：`missing-closing-delimiter` 补上 frontmatter 缺失的结束分隔线，`invalid-yaml` 用可恢复字段和正文重建损坏 frontmatter，`added-frontmatter` 在文件直接从正文开始时补最小 frontmatter，`normalized-name` 恢复可用的规范 skill 名称，`normalized-description` 用正文第一句恢复可用描述。
+- 信息项：`normalized-required-permissions` 报告可规范化为标准列表形式的权限，`preserved-unknown-fields` 报告核心字段之外的 frontmatter 字段，`removed-empty-fields` 报告可删除的空数组、空对象或空标量值。
+
+详细说明与修复前后示例见 [docs/fix-skills-categories.md](docs/fix-skills-categories.md)。
 
 ## 命令面
 
@@ -407,7 +412,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 默认 dry run；加上 `--apply` 修复 broken 并重连 duplicate / matched，`--apply --remove-suspicious` 额外删除 suspicious；省略 `--agent` 时，先输出当前 scope 检测到的 agent 集合 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
 | `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
-| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | 检查 `SKILL.md` frontmatter 异常；默认只报告真修复项，只有加 `--include-info` 才附带信息项；`--apply` 只会改写真修复项 |
+| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | 检查 `SKILL.md` frontmatter 异常；真修复项包括补结束分隔线、重建无效 YAML、补 frontmatter、规范 name 和 description；`--include-info` 会附带不改写的信息项，`--apply` 只会改写真修复项 |
 
 </details>
 

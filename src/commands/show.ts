@@ -33,7 +33,7 @@ export async function runShow(context: RuntimeContext, skillName: string, option
 
   const content = await readFile(skillFile, "utf8");
   if (options.raw) {
-    context.write(content);
+    (context.writeRaw ?? context.write)(content);
     return { path: skillFile, content };
   }
 

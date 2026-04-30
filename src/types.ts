@@ -78,6 +78,7 @@ export interface RuntimeContext {
   cwd: string;
   homeDir: string;
   write: (message: string) => void;
+  writeRaw?: (message: string) => void;
   error: (message: string) => void;
 }
 

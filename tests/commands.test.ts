@@ -183,6 +183,7 @@ describe("commands", () => {
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
       write: (message) => lines.push(message),
+      writeRaw: (message) => lines.push(message),
       error: () => undefined,
     });
 
@@ -214,6 +215,7 @@ describe("commands", () => {
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
       write: (message) => lines.push(message),
+      writeRaw: (message) => lines.push(message),
       error: () => undefined,
     });
 
@@ -235,6 +237,7 @@ describe("commands", () => {
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
       write: (message) => lines.push(message),
+      writeRaw: (message) => lines.push(message),
       error: () => undefined,
     });
 
@@ -253,6 +256,7 @@ describe("commands", () => {
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
       write: (message) => lines.push(message),
+      writeRaw: (message) => lines.push(message),
       error: () => undefined,
     });
 
@@ -279,6 +283,7 @@ describe("commands", () => {
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
       write: (message) => lines.push(message),
+      writeRaw: (message) => lines.push(message),
       error: () => undefined,
     });
 
@@ -300,6 +305,7 @@ describe("commands", () => {
       cwd: workspace.projectDir,
       homeDir: workspace.homeDir,
       write: (message) => lines.push(message),
+      writeRaw: (message) => lines.push(message),
       error: () => undefined,
     });
 
@@ -344,6 +350,49 @@ describe("commands", () => {
     lines.length = 0;
     await program.parseAsync(["node", "aweskill", "store", "show", "paper-review", "--path"], { from: "node" });
     expect(lines).toEqual([skillPath]);
+  });
+
+  it("prints store show --raw without framed bullet formatting", async () => {
+    const workspace = await createTempWorkspace();
+    const skillDir = getSkillPath(workspace.homeDir, "paper-review");
+    const skillPath = path.join(skillDir, "SKILL.md");
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      error: () => undefined,
+    });
+
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(skillPath, [
+      "---",
+      "name: paper-review",
+      "description: Review scientific manuscripts.",
+      "---",
+      "",
+      "# Paper Review",
+      "",
+      "Full instructions stay in the raw view.",
+      "",
+    ].join("\n"), "utf8");
+
+    await program.parseAsync(["node", "aweskill", "store", "show", "paper-review", "--raw"], { from: "node" });
+
+    const output = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
+    expect(stderr).not.toHaveBeenCalled();
+    expect(output).toBe([
+      "---",
+      "name: paper-review",
+      "description: Review scientific manuscripts.",
+      "---",
+      "",
+      "# Paper Review",
+      "",
+      "Full instructions stay in the raw view.",
+      "",
+    ].join("\n"));
+    expect(output).not.toContain("•");
   });
 
   it("backs up skills and bundles to a user-provided archive path by default", async () => {
@@ -2747,10 +2796,16 @@ describe("commands", () => {
     const output = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
     expect(stderr).not.toHaveBeenCalled();
     expect(output).toContain("Actionable fixes (reported by default):");
-    expect(output).toContain("missing-closing-delimiter, invalid-yaml,");
-    expect(output).toContain("added-frontmatter, normalized-name, normalized-description.");
+    expect(output).toContain("missing-closing-delimiter: add the missing closing --- before body content.");
+    expect(output).toContain("invalid-yaml: rebuild frontmatter from recoverable fields and body text.");
+    expect(output).toContain("added-frontmatter: add minimal frontmatter when the file starts with body");
+    expect(output).toContain("normalized-name: replace a missing or unusable name with the canonical skill");
+    expect(output).toContain("normalized-description: replace a missing or unusable description with the");
     expect(output).toContain("Informational checks (only with --include-info, never rewritten):");
-    expect(output).toContain("normalized-required-permissions, preserved-unknown-fields, removed-empty-fields.");
+    expect(output).toContain("normalized-required-permissions: report permissions that could be normalized");
+    expect(output).toContain("preserved-unknown-fields: report frontmatter fields outside the built-in core");
+    expect(output).toContain("removed-empty-fields: report blank arrays, objects, or scalar values that");
+    expect(output).toContain("See docs/fix-skills-categories.md for full details and before/after examples.");
   });
 
   it("doctor fix-skills --apply rewrites malformed skill docs into normalized frontmatter", async () => {

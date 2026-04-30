@@ -182,6 +182,10 @@ export function writeCliMessage(message: string) {
   }
 }
 
+export function writeCliRaw(message: string) {
+  process.stdout.write(message);
+}
+
 export function writeCliError(message: string) {
   for (const line of message.split("\n")) {
     if (!line.trim()) {
