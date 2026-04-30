@@ -1,5 +1,6 @@
 import { mkdir, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
@@ -10,7 +11,7 @@ describe("runtime entry detection", () => {
   it("matches direct file execution", async () => {
     const workspace = await createTempWorkspace();
     const entryPath = path.join(workspace.rootDir, "index.js");
-    const importMetaUrl = `file://${entryPath}`;
+    const importMetaUrl = pathToFileURL(entryPath).href;
     expect(isDirectCliEntry(importMetaUrl, entryPath)).toBe(true);
   });
 
@@ -23,7 +24,7 @@ describe("runtime entry detection", () => {
     await mkdir(path.dirname(binPath), { recursive: true });
     await writeFile(realPath, "#!/usr/bin/env node\n", "utf8");
     await symlink(realPath, binPath);
-    const importMetaUrl = `file://${realPath}`;
+    const importMetaUrl = pathToFileURL(realPath).href;
 
     expect(isDirectCliEntry(importMetaUrl, binPath)).toBe(true);
   });

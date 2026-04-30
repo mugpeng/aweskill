@@ -36,7 +36,7 @@ describe("config layout", () => {
       }
 
       const content = readFileSync(skillPath, "utf8");
-      const match = content.match(/^---\n([\s\S]*?)\n---/);
+      const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
       expect(match, `${skillPath} should contain YAML front matter`).not.toBeNull();
 
       const metadata = parse(match![1]) as { description?: unknown; name?: unknown } | null;

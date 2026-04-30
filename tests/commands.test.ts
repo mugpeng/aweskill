@@ -2041,8 +2041,8 @@ describe("commands", () => {
 
     expect(lines.join("\n")).toContain("Duplicate skill names found in source:");
     expect(lines.join("\n")).toContain("caveman");
-    expect(lines.join("\n")).toContain("skills/caveman");
-    expect(lines.join("\n")).toContain(".codex/skills/caveman");
+    expect(lines.join("\n")).toContain(path.join("skills", "caveman"));
+    expect(lines.join("\n")).toContain(path.join(".codex", "skills", "caveman"));
     expect(lines.join("\n")).toContain(
       "Please check the candidate source paths above and confirm which one you want to use.",
     );
@@ -2108,130 +2108,139 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("Installed renamed");
   });
 
-  it("downloads a sciskill source via archive API and records a sciskill lock entry", async () => {
-    const workspace = await createTempWorkspace();
-    const lines: string[] = [];
-    const program = createProgram({
-      cwd: workspace.projectDir,
-      homeDir: workspace.homeDir,
-      write: (message) => lines.push(message),
-      error: () => undefined,
-    });
-    const archiveRoot = path.join(workspace.rootDir, "sciskill-archive");
-    const archiveSkill = path.join(archiveRoot, "lifesciences-proteomics");
-    const archivePath = path.join(workspace.rootDir, "sciskill.zip");
-    await writeSkill(archiveSkill, "Proteomics");
-    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+  it.skipIf(process.platform === "win32")(
+    "downloads a sciskill source via archive API and records a sciskill lock entry",
+    async () => {
+      const workspace = await createTempWorkspace();
+      const lines: string[] = [];
+      const program = createProgram({
+        cwd: workspace.projectDir,
+        homeDir: workspace.homeDir,
+        write: (message) => lines.push(message),
+        error: () => undefined,
+      });
+      const archiveRoot = path.join(workspace.rootDir, "sciskill-archive");
+      const archiveSkill = path.join(archiveRoot, "lifesciences-proteomics");
+      const archivePath = path.join(workspace.rootDir, "sciskill.zip");
+      await writeSkill(archiveSkill, "Proteomics");
+      execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
 
-    const archiveBuffer = await readFile(archivePath);
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      arrayBuffer: async () =>
-        archiveBuffer.buffer.slice(archiveBuffer.byteOffset, archiveBuffer.byteOffset + archiveBuffer.byteLength),
-    }));
-    vi.stubGlobal("fetch", fetchMock);
+      const archiveBuffer = await readFile(archivePath);
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () =>
+          archiveBuffer.buffer.slice(archiveBuffer.byteOffset, archiveBuffer.byteOffset + archiveBuffer.byteLength),
+      }));
+      vi.stubGlobal("fetch", fetchMock);
 
-    await program.parseAsync(
-      ["node", "aweskill", "store", "install", "sciskill:open-source/research/lifesciences-proteomics"],
-      { from: "node" },
-    );
+      await program.parseAsync(
+        ["node", "aweskill", "store", "install", "sciskill:open-source/research/lifesciences-proteomics"],
+        { from: "node" },
+      );
 
-    await expect(
-      readFile(path.join(getSkillPath(workspace.homeDir, "lifesciences-proteomics"), "SKILL.md"), "utf8"),
-    ).resolves.toContain("Proteomics");
-    const lockText = await readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8");
-    expect(lockText).toContain('"sourceType": "sciskill"');
-    expect(lockText).toContain('"source": "sciskill:open-source/research/lifesciences-proteomics"');
-    expect(lines.join("\n")).toContain("Installed lifesciences-proteomics");
-  });
+      await expect(
+        readFile(path.join(getSkillPath(workspace.homeDir, "lifesciences-proteomics"), "SKILL.md"), "utf8"),
+      ).resolves.toContain("Proteomics");
+      const lockText = await readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8");
+      expect(lockText).toContain('"sourceType": "sciskill"');
+      expect(lockText).toContain('"source": "sciskill:open-source/research/lifesciences-proteomics"');
+      expect(lines.join("\n")).toContain("Installed lifesciences-proteomics");
+    },
+  );
 
-  it("wraps flat sciskill archives so the installed skill name and subpath come from the skill id", async () => {
-    const workspace = await createTempWorkspace();
-    const lines: string[] = [];
-    const program = createProgram({
-      cwd: workspace.projectDir,
-      homeDir: workspace.homeDir,
-      write: (message) => lines.push(message),
-      error: () => undefined,
-    });
-    const archiveRoot = path.join(workspace.rootDir, "flat-sciskill");
-    const archivePath = path.join(workspace.rootDir, "flat-sciskill.zip");
-    await writeSkill(archiveRoot, "Scientific Writing");
-    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+  it.skipIf(process.platform === "win32")(
+    "wraps flat sciskill archives so the installed skill name and subpath come from the skill id",
+    async () => {
+      const workspace = await createTempWorkspace();
+      const lines: string[] = [];
+      const program = createProgram({
+        cwd: workspace.projectDir,
+        homeDir: workspace.homeDir,
+        write: (message) => lines.push(message),
+        error: () => undefined,
+      });
+      const archiveRoot = path.join(workspace.rootDir, "flat-sciskill");
+      const archivePath = path.join(workspace.rootDir, "flat-sciskill.zip");
+      await writeSkill(archiveRoot, "Scientific Writing");
+      execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
 
-    const archiveBuffer = await readFile(archivePath);
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      arrayBuffer: async () =>
-        archiveBuffer.buffer.slice(archiveBuffer.byteOffset, archiveBuffer.byteOffset + archiveBuffer.byteLength),
-    }));
-    vi.stubGlobal("fetch", fetchMock);
+      const archiveBuffer = await readFile(archivePath);
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () =>
+          archiveBuffer.buffer.slice(archiveBuffer.byteOffset, archiveBuffer.byteOffset + archiveBuffer.byteLength),
+      }));
+      vi.stubGlobal("fetch", fetchMock);
 
-    await program.parseAsync(
-      [
-        "node",
-        "aweskill",
-        "store",
-        "install",
-        "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing",
-      ],
-      { from: "node" },
-    );
+      await program.parseAsync(
+        [
+          "node",
+          "aweskill",
+          "store",
+          "install",
+          "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing",
+        ],
+        { from: "node" },
+      );
 
-    await expect(
-      readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8"),
-    ).resolves.toContain("Scientific Writing");
-    const lockText = await readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8");
-    expect(lockText).toContain(
-      '"source": "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing"',
-    );
-    expect(lockText).toContain('"subpath": "scientific-writing"');
-    expect(lockText).not.toContain('"subpath": "."');
-    expect(lockText).not.toContain('"aweskill-download-');
-    expect(lines.join("\n")).toContain("Installed scientific-writing");
-  });
+      await expect(
+        readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8"),
+      ).resolves.toContain("Scientific Writing");
+      const lockText = await readFile(path.join(workspace.homeDir, ".aweskill", "skills-lock.json"), "utf8");
+      expect(lockText).toContain(
+        '"source": "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing"',
+      );
+      expect(lockText).toContain('"subpath": "scientific-writing"');
+      expect(lockText).not.toContain('"subpath": "."');
+      expect(lockText).not.toContain('"aweskill-download-');
+      expect(lines.join("\n")).toContain("Installed scientific-writing");
+    },
+  );
 
-  it("updates a flat sciskill archive using the wrapped subpath instead of the temp directory root", async () => {
-    const workspace = await createTempWorkspace();
-    const lines: string[] = [];
-    const program = createProgram({
-      cwd: workspace.projectDir,
-      homeDir: workspace.homeDir,
-      write: (message) => lines.push(message),
-      error: () => undefined,
-    });
-    const archiveRoot = path.join(workspace.rootDir, "flat-sciskill");
-    const archivePath = path.join(workspace.rootDir, "flat-sciskill.zip");
-    await writeSkill(archiveRoot, "Scientific Writing v1");
-    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+  it.skipIf(process.platform === "win32")(
+    "updates a flat sciskill archive using the wrapped subpath instead of the temp directory root",
+    async () => {
+      const workspace = await createTempWorkspace();
+      const lines: string[] = [];
+      const program = createProgram({
+        cwd: workspace.projectDir,
+        homeDir: workspace.homeDir,
+        write: (message) => lines.push(message),
+        error: () => undefined,
+      });
+      const archiveRoot = path.join(workspace.rootDir, "flat-sciskill");
+      const archivePath = path.join(workspace.rootDir, "flat-sciskill.zip");
+      await writeSkill(archiveRoot, "Scientific Writing v1");
+      execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
 
-    let archiveBuffer = await readFile(archivePath);
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      arrayBuffer: async () =>
-        archiveBuffer.buffer.slice(archiveBuffer.byteOffset, archiveBuffer.byteOffset + archiveBuffer.byteLength),
-    }));
-    vi.stubGlobal("fetch", fetchMock);
+      let archiveBuffer = await readFile(archivePath);
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () =>
+          archiveBuffer.buffer.slice(archiveBuffer.byteOffset, archiveBuffer.byteOffset + archiveBuffer.byteLength),
+      }));
+      vi.stubGlobal("fetch", fetchMock);
 
-    const sourceId = "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing";
-    await program.parseAsync(["node", "aweskill", "store", "install", sourceId], { from: "node" });
+      const sourceId = "sciskill:open-source/Boom5426/Nature-Paper-Skills/skills/core/scientific-writing";
+      await program.parseAsync(["node", "aweskill", "store", "install", sourceId], { from: "node" });
 
-    await writeSkill(archiveRoot, "Scientific Writing v2");
-    execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
-    archiveBuffer = await readFile(archivePath);
+      await writeSkill(archiveRoot, "Scientific Writing v2");
+      execFileSync("zip", ["-qr", archivePath, "."], { cwd: archiveRoot });
+      archiveBuffer = await readFile(archivePath);
 
-    lines.length = 0;
-    await program.parseAsync(["node", "aweskill", "store", "update", "scientific-writing", "--override"], {
-      from: "node",
-    });
+      lines.length = 0;
+      await program.parseAsync(["node", "aweskill", "store", "update", "scientific-writing", "--override"], {
+        from: "node",
+      });
 
-    await expect(
-      readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8"),
-    ).resolves.toContain("Scientific Writing v2");
-    const lock = await readSkillLock(workspace.homeDir);
-    expect(lock.skills["scientific-writing"]?.subpath).toBe("scientific-writing");
-    expect(lines.join("\n")).toContain("Updated scientific-writing");
-  });
+      await expect(
+        readFile(path.join(getSkillPath(workspace.homeDir, "scientific-writing"), "SKILL.md"), "utf8"),
+      ).resolves.toContain("Scientific Writing v2");
+      const lock = await readSkillLock(workspace.homeDir);
+      expect(lock.skills["scientific-writing"]?.subpath).toBe("scientific-writing");
+      expect(lines.join("\n")).toContain("Updated scientific-writing");
+    },
+  );
 
   it("prints sciskill as a supported install source in help text", () => {
     const program = createProgram({

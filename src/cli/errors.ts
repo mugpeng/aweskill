@@ -50,11 +50,11 @@ export function formatCliErrorMessage(message: string, commandArgs: string[] = [
       return `unknown command '${unknownCommandMatch[1]}'. Run "aweskill -h" for help.`;
     }
     const bundleFileMatch = normalizedMessage.match(
-      /ENOENT: no such file or directory, open '([^']+\/(bundles|resources\/bundle_templates)\/([^/'"]+)\.ya?ml)'/i,
+      /ENOENT: no such file or directory, open '([^']+[/\\](bundles|resources[/\\]bundle_templates)[/\\]([^/\\'"]+)\.ya?ml)'/i,
     );
     if (bundleFileMatch) {
       const bundleName = bundleFileMatch[3]!;
-      if (bundleFileMatch[2] === "resources/bundle_templates") {
+      if (bundleFileMatch[2]?.includes("bundle_templates")) {
         return `Bundle template not found: ${bundleName}. Run "aweskill bundle template list" to see available bundle templates.`;
       }
       return `Bundle not found: ${bundleName}. Run "aweskill bundle list" to see available bundles.`;

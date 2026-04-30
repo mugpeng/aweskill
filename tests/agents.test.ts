@@ -20,15 +20,16 @@ describe("agents", () => {
   });
 
   it("resolves well known agent directories", () => {
-    expect(resolveAgentSkillsDir("claude-code", "global", "/tmp/home")).toContain(".claude/skills");
-    expect(resolveAgentSkillsDir("gemini-cli", "global", "/tmp/home")).toContain(".gemini/skills");
+    const sep = path.sep;
+    expect(resolveAgentSkillsDir("claude-code", "global", "/tmp/home")).toContain(`.claude${sep}skills`);
+    expect(resolveAgentSkillsDir("gemini-cli", "global", "/tmp/home")).toContain(`.gemini${sep}skills`);
     expect(getAgentDefinition("cursor").defaultProjectionMode).toBe("symlink");
     expect(getAgentDefinition("opencode").rootDir("/tmp/home")).toContain(".opencode");
-    expect(resolveAgentSkillsDir("augment", "global", "/tmp/home")).toContain(".augment/skills");
-    expect(resolveAgentSkillsDir("github-copilot", "global", "/tmp/home")).toContain(".copilot/skills");
-    expect(resolveAgentSkillsDir("deepagents", "global", "/tmp/home")).toContain(".deepagents/agent/skills");
-    expect(resolveAgentSkillsDir("replit", "project", "/tmp/project")).toContain(".agent/skills");
-    expect(resolveAgentSkillsDir("windsurf", "global", "/tmp/home")).toContain(".codeium/windsurf/skills");
+    expect(resolveAgentSkillsDir("augment", "global", "/tmp/home")).toContain(`.augment${sep}skills`);
+    expect(resolveAgentSkillsDir("github-copilot", "global", "/tmp/home")).toContain(`.copilot${sep}skills`);
+    expect(resolveAgentSkillsDir("deepagents", "global", "/tmp/home")).toContain(`.deepagents${sep}agent${sep}skills`);
+    expect(resolveAgentSkillsDir("replit", "project", "/tmp/project")).toContain(`.agent${sep}skills`);
+    expect(resolveAgentSkillsDir("windsurf", "global", "/tmp/home")).toContain(`.codeium${sep}windsurf${sep}skills`);
   });
 
   it("detects installed agents from root directories", async () => {
