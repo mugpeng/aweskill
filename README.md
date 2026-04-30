@@ -366,6 +366,8 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 All `doctor` commands default to dry-run. Add `--apply` to make real changes.
 
+For `aweskill doctor fix-skills`, see [docs/fix-skills-categories.md](docs/fix-skills-categories.md) for every actionable fix and informational check, each with before/after examples.
+
 ## Command Surface
 
 Core commands: `store init`, `store where`, `store import`, `bundle create`, `agent add`, `doctor clean`
@@ -405,6 +407,7 @@ Top-level convenience commands are available for high-frequency search and track
 | `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | Dry-run by default; add `--apply` to repair broken entries and relink duplicate / matched ones, and `--apply --remove-suspicious` to also remove suspicious ones; when `--agent` is omitted, print the detected agent set for that scope first |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | Find suspicious non-store entries, grouped by `skills` and `bundles`, and optionally remove them |
 | `aweskill doctor dedup [--apply] [--delete]` | Find duplicate skills and optionally move or delete them |
+| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | Inspect malformed `SKILL.md` frontmatter; report actionable fixes by default, and include informational checks only with `--include-info`; `--apply` rewrites actionable fixes only |
 
 </details>
 

@@ -217,8 +217,8 @@ function addFindCommand(parent: Command, context: RuntimeContext, title: string)
     .option("-p, --provider <provider>", "limit search to one provider (skills-sh, sciskill, or local)")
     .option("--local", "search the local central store only", false)
     .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
-    .option("--domain <domain>", "pass an exact sciskill domain filter; see README for allowed values")
-    .option("--stage <stage>", "pass an exact sciskill stage filter; see README for allowed values")
+    .option("--domain <domain>", "sciskill domain filter, e.g. \"Life Sciences\", \"Chemistry\", \"Engineering\"")
+    .option("--stage <stage>", "sciskill stage filter, e.g. \"Study Design\", \"Data Analysis\", \"Writing\"")
     .action(async (query, options) => {
       const provider = (options.local ? "local" : options.provider) as "skills-sh" | "sciskill" | "local" | undefined;
       if (provider && provider !== "skills-sh" && provider !== "sciskill" && provider !== "local") {
@@ -596,15 +596,21 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     });
   doctor
     .command("fix-skills")
-    .description("Inspect and optionally normalize malformed SKILL.md frontmatter; dry-run by default")
+    .description(
+      "Inspect and optionally normalize malformed SKILL.md frontmatter; dry-run by default.\n"
+      + "Actionable fixes (reported by default): missing-closing-delimiter, invalid-yaml, added-frontmatter, normalized-name, normalized-description.\n"
+      + "Informational checks (only with --include-info, never rewritten): normalized-required-permissions, preserved-unknown-fields, removed-empty-fields.",
+    )
     .option("--skill <skill>", "repeat or use comma list; limit fixes to exact skill names", collectAgents)
     .option("--apply", "rewrite malformed skill docs instead of reporting only", false)
+    .option("--include-info", "include informational checks that are reported but never rewritten", false)
     .option("--verbose", "show all skill docs needing fixes instead of a short preview", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill doctor fix-skills ", async () =>
         runFixSkills(context, {
           skills: options.skill ?? [],
           apply: options.apply,
+          includeInfo: options.includeInfo,
           verbose: options.verbose,
         }),
       );

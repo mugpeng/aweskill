@@ -366,6 +366,8 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 所有 `doctor` 命令默认为 dry run，加上 `--apply` 才会真正修改。
 
+对于 `aweskill doctor fix-skills`，可参考 [docs/fix-skills-categories.md](docs/fix-skills-categories.md)：里面列出了所有真修复项和附带信息项，并给出修复前后的示例。
+
 ## 命令面
 
 核心命令：`store init`、`store where`、`store import`、`bundle create`、`agent add`、`doctor clean`
@@ -405,6 +407,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 默认 dry run；加上 `--apply` 修复 broken 并重连 duplicate / matched，`--apply --remove-suspicious` 额外删除 suspicious；省略 `--agent` 时，先输出当前 scope 检测到的 agent 集合 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
 | `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
+| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | 检查 `SKILL.md` frontmatter 异常；默认只报告真修复项，只有加 `--include-info` 才附带信息项；`--apply` 只会改写真修复项 |
 
 </details>
 

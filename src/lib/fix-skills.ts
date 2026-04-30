@@ -7,6 +7,11 @@ import { listSkills } from "./skills.js";
 
 const KNOWN_FIELD_ORDER = ["name", "description", "required_permissions"] as const;
 const DEFAULT_PREVIEW_COUNT = 5;
+const INFORMATIONAL_FIX_KINDS = [
+  "normalized-required-permissions",
+  "preserved-unknown-fields",
+  "removed-empty-fields",
+] as const;
 
 export type SkillDocFixKind =
   | "missing-closing-delimiter"
@@ -25,6 +30,11 @@ export interface SkillDocFixResult {
   fixes: SkillDocFixKind[];
   originalContent: string;
   nextContent: string;
+}
+
+export interface ScanSkillDocFixOptions {
+  includeInfo?: boolean;
+  skills?: string[];
 }
 
 interface ExtractedSkillDoc {
@@ -207,6 +217,14 @@ function uniqueStrings(values: string[]): string[] {
   return result;
 }
 
+function hasInformationalFix(kind: SkillDocFixKind): boolean {
+  return INFORMATIONAL_FIX_KINDS.includes(kind as typeof INFORMATIONAL_FIX_KINDS[number]);
+}
+
+export function hasActionableSkillDocFix(result: Pick<SkillDocFixResult, "fixes">): boolean {
+  return result.fixes.some((kind) => !hasInformationalFix(kind));
+}
+
 function normalizeName(raw: unknown, fallbackName: string): { value: string; changed: boolean } {
   if (typeof raw === "string" && raw.trim()) {
     return { value: raw.trim(), changed: false };
@@ -237,8 +255,11 @@ function normalizeRequiredPermissions(raw: unknown): { value?: string[]; changed
   }
 
   if (Array.isArray(raw)) {
-    const normalized = uniqueStrings(raw.map((item) => String(item).trim()).filter(Boolean));
-    return { value: normalized.length > 0 ? normalized : undefined, changed: true };
+    const asStrings = raw.map((item) => String(item).trim()).filter(Boolean);
+    const normalized = uniqueStrings(asStrings);
+    const changed = raw.length !== normalized.length
+      || raw.some((item, index) => typeof item !== "string" || item !== normalized[index]);
+    return { value: normalized.length > 0 ? normalized : undefined, changed };
   }
 
   if (typeof raw === "string") {
@@ -410,7 +431,7 @@ function formatResultLines(results: SkillDocFixResult[], verbose?: boolean): str
   return lines;
 }
 
-export async function scanSkillDocFixes(homeDir: string, options: { skills?: string[] } = {}): Promise<SkillDocFixResult[]> {
+export async function scanSkillDocFixes(homeDir: string, options: ScanSkillDocFixOptions = {}): Promise<SkillDocFixResult[]> {
   const skills = await listSkills(homeDir);
   const selectedSkills = options.skills && options.skills.length > 0
     ? new Set(options.skills)
@@ -438,6 +459,9 @@ export async function scanSkillDocFixes(homeDir: string, options: { skills?: str
     if (!normalized) {
       continue;
     }
+    if (!options.includeInfo && !hasActionableSkillDocFix(normalized)) {
+      continue;
+    }
 
     normalized.skillFile = skillFile;
     normalized.relativePath = path.relative(homeDir, skillFile).split(path.sep).join("/");
@@ -449,15 +473,22 @@ export async function scanSkillDocFixes(homeDir: string, options: { skills?: str
 
 export async function applySkillDocFixes(results: SkillDocFixResult[]): Promise<void> {
   for (const result of results) {
+    if (!hasActionableSkillDocFix(result)) {
+      continue;
+    }
     await writeFile(result.skillFile, result.nextContent, "utf8");
   }
 }
 
-export function formatSkillDocFixReport(results: SkillDocFixResult[], options: { apply?: boolean; verbose?: boolean } = {}): string {
+export function formatSkillDocFixReport(
+  results: SkillDocFixResult[],
+  options: { apply?: boolean; rewrittenCount?: number; verbose?: boolean } = {},
+): string {
   const lines = formatResultLines(results, options.verbose);
   lines.push("");
   if (options.apply) {
-    lines.push(`Rewrote ${results.length} skill doc${results.length === 1 ? "" : "s"}.`);
+    const rewrittenCount = options.rewrittenCount ?? results.filter((result) => hasActionableSkillDocFix(result)).length;
+    lines.push(`Rewrote ${rewrittenCount} skill doc${rewrittenCount === 1 ? "" : "s"}.`);
   } else {
     lines.push("Dry run only. Use --apply to rewrite skill docs.");
   }

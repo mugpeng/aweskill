@@ -2593,6 +2593,166 @@ describe("commands", () => {
     await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
   });
 
+  it("doctor fix-skills ignores removed-empty-fields unless --include-info is set", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "alpha");
+    await mkdir(skillDir, { recursive: true });
+    const original = [
+      "---",
+      "name: alpha",
+      "description: Alpha body.",
+      "metadata:",
+      "  owner: team",
+      "empty_value: ''",
+      "---",
+      "",
+      "# Alpha",
+      "",
+      "Alpha body.",
+      "",
+    ].join("\n");
+    await writeFile(path.join(skillDir, "SKILL.md"), original, "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("No skill docs needed fixes.");
+    await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
+  });
+
+  it("doctor fix-skills ignores informational-only findings by default", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "alpha");
+    await mkdir(skillDir, { recursive: true });
+    const original = [
+      "---",
+      "name: alpha",
+      "description: Alpha body.",
+      "metadata:",
+      "  owner: team",
+      "---",
+      "",
+      "# Alpha",
+      "",
+      "Alpha body.",
+      "",
+    ].join("\n");
+    await writeFile(path.join(skillDir, "SKILL.md"), original, "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("No skill docs needed fixes.");
+    await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
+  });
+
+  it("doctor fix-skills --include-info reports informational findings without treating them as fixes", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "alpha");
+    await mkdir(skillDir, { recursive: true });
+    const original = [
+      "---",
+      "name: alpha",
+      "description: Alpha body.",
+      "metadata:",
+      "  owner: team",
+      "empty_value: ''",
+      "---",
+      "",
+      "# Alpha",
+      "",
+      "Alpha body.",
+      "",
+    ].join("\n");
+    await writeFile(path.join(skillDir, "SKILL.md"), original, "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills", "--include-info"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Skill docs needing fixes: 1");
+    expect(lines.join("\n")).toContain("preserved-unknown-fields");
+    expect(lines.join("\n")).toContain("removed-empty-fields");
+    expect(lines.join("\n")).toContain("Dry run only. Use --apply to rewrite skill docs.");
+    await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
+  });
+
+  it("doctor fix-skills --apply never rewrites informational-only findings", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "alpha");
+    await mkdir(skillDir, { recursive: true });
+    const original = [
+      "---",
+      "name: alpha",
+      "description: Alpha body.",
+      "metadata:",
+      "  owner: team",
+      "empty_value: ''",
+      "---",
+      "",
+      "# Alpha",
+      "",
+      "Alpha body.",
+      "",
+    ].join("\n");
+    await writeFile(path.join(skillDir, "SKILL.md"), original, "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills", "--apply", "--include-info"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Skill docs needing fixes: 1");
+    expect(lines.join("\n")).toContain("preserved-unknown-fields");
+    expect(lines.join("\n")).toContain("removed-empty-fields");
+    expect(lines.join("\n")).toContain("Rewrote 0 skill docs.");
+    await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
+  });
+
+  it("doctor fix-skills help explains actionable and informational categories", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await main(["node", "aweskill", "doctor", "fix-skills", "--help"]);
+
+    const output = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
+    expect(stderr).not.toHaveBeenCalled();
+    expect(output).toContain("Actionable fixes (reported by default):");
+    expect(output).toContain("missing-closing-delimiter, invalid-yaml,");
+    expect(output).toContain("added-frontmatter, normalized-name, normalized-description.");
+    expect(output).toContain("Informational checks (only with --include-info, never rewritten):");
+    expect(output).toContain("normalized-required-permissions, preserved-unknown-fields, removed-empty-fields.");
+  });
+
   it("doctor fix-skills --apply rewrites malformed skill docs into normalized frontmatter", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
