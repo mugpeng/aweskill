@@ -410,6 +410,33 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 `aweskill find` 会优先输出 `aweskill store install` 能直接使用的 `source`。如果 provider 返回的是 `smithery.ai` 这类仅供发现的 source，结果仍会显示，但 `aweskill` 会明确标注它不支持直接安装，并提示你去对应的 `skills.sh` 页面查看上游安装说明。本地搜索结果不会输出安装命令，而是输出 skill 路径和 `aweskill store show <skill>` 提示。默认同时搜索两个远程 provider 时，`--limit` 按 provider 分别生效，再做合并去重。
 
+使用 `--domain` 或 `--stage` 时，传入值必须与对应的 `sciskill` 枚举完全一致，包括空格和大小写。
+
+### `--domain` 可用值
+
+| 值 | 含义 |
+| --- | --- |
+| `Agricultural Sciences` | 农业科学 |
+| `Chemical Sciences` | 化学科学 |
+| `Computational Sciences` | 计算科学 |
+| `General Research` | 通用研究 |
+| `Life Sciences` | 生命科学 |
+| `Mathematical and Statistical Sciences` | 数理统计 |
+| `Medical and Health Sciences` | 医学健康 |
+| `Physical Sciences` | 物理科学 |
+
+### `--stage` 可用值
+
+| 值 | 含义 |
+| --- | --- |
+| `Study Design` | 研究设计 |
+| `Data / Sample Acquisition` | 数据/样本采集 |
+| `Data Processing` | 数据处理 |
+| `Data Analysis and Modeling` | 分析建模 |
+| `Validation and Interpretation` | 验证与解释 |
+| `Visualization and Presentation` | 可视化展示 |
+| `Writing and Publication` | 写作发表 |
+
 ## 内置 Skill
 
 `aweskill` 内置了两个 meta-skill，用来教 AI agent 直接运行 aweskill 命令。

@@ -17,6 +17,7 @@ import { runDisable } from "./commands/disable.js";
 import { runDownload } from "./commands/download.js";
 import { runEnable } from "./commands/enable.js";
 import { runFind } from "./commands/find.js";
+import { runFixSkills } from "./commands/fix-skills.js";
 import { runInit } from "./commands/init.js";
 import { runListBundles, runListSkills, runListTemplateBundles } from "./commands/list.js";
 import { runRecover } from "./commands/recover.js";
@@ -216,8 +217,8 @@ function addFindCommand(parent: Command, context: RuntimeContext, title: string)
     .option("-p, --provider <provider>", "limit search to one provider (skills-sh, sciskill, or local)")
     .option("--local", "search the local central store only", false)
     .option("-l, --limit <number>", "limit the number of results", (value) => Number.parseInt(value, 10), 10)
-    .option("--domain <domain>", "pass an exact domain filter to sciskill")
-    .option("--stage <stage>", "pass an exact stage filter to sciskill")
+    .option("--domain <domain>", "pass an exact sciskill domain filter; see README for allowed values")
+    .option("--stage <stage>", "pass an exact sciskill stage filter; see README for allowed values")
     .action(async (query, options) => {
       const provider = (options.local ? "local" : options.provider) as "skills-sh" | "sciskill" | "local" | undefined;
       if (provider && provider !== "skills-sh" && provider !== "sciskill" && provider !== "local") {
@@ -514,7 +515,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("show")
     .argument("<skill>")
     .description("Show a central-store skill summary or its SKILL.md contents")
-    .option("--summary", "print the skill summary (default)", false)
+    .option("--summary", "print the skill summary (default)")
     .option("--raw", "print the full SKILL.md markdown", false)
     .option("--path", "print only the SKILL.md path", false)
     .action(async (skillName, options) => {
@@ -590,6 +591,21 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
         runRmdup(context, {
           apply: options.apply,
           delete: options.delete,
+        }),
+      );
+    });
+  doctor
+    .command("fix-skills")
+    .description("Inspect and optionally normalize malformed SKILL.md frontmatter; dry-run by default")
+    .option("--skill <skill>", "repeat or use comma list; limit fixes to exact skill names", collectAgents)
+    .option("--apply", "rewrite malformed skill docs instead of reporting only", false)
+    .option("--verbose", "show all skill docs needing fixes instead of a short preview", false)
+    .action(async (options) => {
+      await runFramedCommand(" aweskill doctor fix-skills ", async () =>
+        runFixSkills(context, {
+          skills: options.skill ?? [],
+          apply: options.apply,
+          verbose: options.verbose,
         }),
       );
     });

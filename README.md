@@ -410,6 +410,33 @@ Top-level convenience commands are available for high-frequency search and track
 
 `aweskill find` prefers to print `source` values that `aweskill store install` can use directly. When a provider returns a discover-only source such as `smithery.ai`, the result still appears, but `aweskill` marks it as unsupported for direct install and tells you to visit the matching `skills.sh` page so you can inspect the upstream installation instructions there. Local search results do not print install commands; they print the skill path and an `aweskill store show <skill>` hint instead. When searching both remote providers at once, `--limit` applies per provider before merge and dedupe.
 
+When using `--domain` or `--stage`, the value must exactly match the corresponding `sciskill` enum, including spaces and capitalization.
+
+### `--domain` Values
+
+| Value | Meaning |
+| --- | --- |
+| `Agricultural Sciences` | Agricultural sciences |
+| `Chemical Sciences` | Chemical sciences |
+| `Computational Sciences` | Computational sciences |
+| `General Research` | General research |
+| `Life Sciences` | Life sciences |
+| `Mathematical and Statistical Sciences` | Mathematical and statistical sciences |
+| `Medical and Health Sciences` | Medical and health sciences |
+| `Physical Sciences` | Physical sciences |
+
+### `--stage` Values
+
+| Value | Meaning |
+| --- | --- |
+| `Study Design` | Study design |
+| `Data / Sample Acquisition` | Data / sample acquisition |
+| `Data Processing` | Data processing |
+| `Data Analysis and Modeling` | Data analysis and modeling |
+| `Validation and Interpretation` | Validation and interpretation |
+| `Visualization and Presentation` | Visualization and presentation |
+| `Writing and Publication` | Writing and publication |
+
 ## Built-in Skills
 
 `aweskill` ships two meta-skills that teach AI agents how to run aweskill commands directly.

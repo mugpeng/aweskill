@@ -1949,6 +1949,22 @@ describe("commands", () => {
     expect(installCommand?.helpInformation()).toContain("git branch or tag to install from (GitHub sources only)");
   });
 
+  it("does not show a boolean default for store show summary help", () => {
+    const program = createProgram({
+      cwd: "/tmp/project",
+      homeDir: "/tmp/home",
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    const storeCommand = program.commands.find((command) => command.name() === "store");
+    const showCommand = storeCommand?.commands.find((command) => command.name() === "show");
+    const helpText = showCommand?.helpInformation();
+    const summaryLine = helpText?.split("\n").find((line) => line.includes("--summary"));
+
+    expect(summaryLine).toMatch(/^\s+--summary\s+print the skill summary \(default\)$/);
+  });
+
   it("surfaces sciskill download HTTP failures with provider-specific context", async () => {
     const workspace = await createTempWorkspace();
     const program = createProgram({
@@ -2532,6 +2548,171 @@ describe("commands", () => {
     await expect(access(path.join(workspace.homeDir, ".aweskill", "skills", "._global"))).rejects.toThrow();
     await expect(access(path.join(workspace.homeDir, ".aweskill", "bundles", "._global"))).rejects.toThrow();
     await expect(access(getSkillPath(workspace.homeDir, "broken-skill"))).rejects.toThrow();
+  });
+
+  it("doctor fix-skills reports planned fixes without rewriting files by default", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "feishu-drive-1.0.0");
+    await mkdir(skillDir, { recursive: true });
+    const original = [
+      "---",
+      "name:",
+      "  nested: nope",
+      "description:",
+      "  - wrong",
+      "required_permissions: drive:file:upload",
+      "extra_empty: []",
+      "custom_field: keep me",
+      "# Quick Start",
+      "",
+      "Use this skill carefully.",
+      "",
+    ].join("\n");
+    await writeFile(path.join(skillDir, "SKILL.md"), original, "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Skill docs needing fixes: 1");
+    expect(lines.join("\n")).toContain("feishu-drive-1.0.0");
+    expect(lines.join("\n")).toContain("missing-closing-delimiter");
+    expect(lines.join("\n")).toContain("normalized-name");
+    expect(lines.join("\n")).toContain("normalized-description");
+    expect(lines.join("\n")).toContain("normalized-required-permissions");
+    expect(lines.join("\n")).toContain("preserved-unknown-fields");
+    expect(lines.join("\n")).toContain("removed-empty-fields");
+    expect(lines.join("\n")).toContain("Dry run only. Use --apply to rewrite skill docs.");
+    await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
+  });
+
+  it("doctor fix-skills --apply rewrites malformed skill docs into normalized frontmatter", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "feishu-drive-1.0.0");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(path.join(skillDir, "SKILL.md"), [
+      "---",
+      "name: 7",
+      "description:",
+      "  nested: nope",
+      "required_permissions:",
+      "  - drive:file:upload",
+      "  - ''",
+      "  - drive:file:upload",
+      "empty_value: ''",
+      "custom_field:",
+      "  enabled: true",
+      "---",
+      "",
+      "# 飞书云空间文件管理",
+      "",
+      "你是飞书云空间文件管理专家。",
+      "",
+    ].join("\n"), "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills", "--apply"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Rewrote 1 skill doc.");
+    await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe([
+      "---",
+      "name: '7'",
+      "description: 你是飞书云空间文件管理专家。",
+      "required_permissions:",
+      "  - drive:file:upload",
+      "custom_field:",
+      "  enabled: true",
+      "---",
+      "",
+      "# 飞书云空间文件管理",
+      "",
+      "你是飞书云空间文件管理专家。",
+      "",
+    ].join("\n"));
+  });
+
+  it("doctor fix-skills supports --skill to limit fixes to exact skill names", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const alphaDir = getSkillPath(workspace.homeDir, "alpha");
+    const betaDir = getSkillPath(workspace.homeDir, "beta");
+    await mkdir(alphaDir, { recursive: true });
+    await mkdir(betaDir, { recursive: true });
+    await writeFile(path.join(alphaDir, "SKILL.md"), [
+      "---",
+      "name: 7",
+      "# Alpha",
+      "",
+      "Alpha body.",
+      "",
+    ].join("\n"), "utf8");
+    await writeFile(path.join(betaDir, "SKILL.md"), [
+      "---",
+      "name: 9",
+      "# Beta",
+      "",
+      "Beta body.",
+      "",
+    ].join("\n"), "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills", "--skill", "alpha"], { from: "node" });
+
+    expect(lines.join("\n")).toContain("Skill docs needing fixes: 1");
+    expect(lines.join("\n")).toContain("  - alpha:");
+    expect(lines.join("\n")).not.toContain("  - beta:");
+    await expect(readFile(path.join(alphaDir, "SKILL.md"), "utf8")).resolves.toContain("name: 7");
+    await expect(readFile(path.join(betaDir, "SKILL.md"), "utf8")).resolves.toContain("name: 9");
+  });
+
+  it("doctor fix-skills errors when --skill targets an unknown skill", async () => {
+    const workspace = await createTempWorkspace();
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "store", "init"]);
+      process.exitCode = 0;
+
+      await main(["node", "aweskill", "doctor", "fix-skills", "--skill", "missing-skill"]);
+      expect(process.exitCode).toBe(1);
+      expect(stderr).toHaveBeenCalledWith(
+        'Error: Unknown skill: missing-skill. Run "aweskill store list" to see available skills.',
+      );
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
   });
 
   it("doctor dedup --apply moves duplicates into dup_skills", async () => {
