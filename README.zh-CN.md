@@ -4,7 +4,7 @@
   <p><strong>以 CLI 为核心的 Skill 包管理器，AI agent 也能自己调用和维护。</strong></p>
   <p>在 Codex、Claude Code、Cursor、Gemini CLI、Qwen Code、Windsurf 等工具之间安装、更新、打包并投影 skills。</p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.2.9-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.3.0-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
@@ -38,24 +38,10 @@
 如果你正在 Codex、Claude Code、Cursor、Gemini CLI 或其他编码 agent 里工作，可以直接告诉它：
 
 ```text
-请用 npm 全局安装 aweskill，初始化 aweskill store，然后显示 store 所在位置。
+读取 https://github.com/mugpeng/aweskill/blob/main/README.ai.md 并按照说明为当前 agent 安装 aweskill。
 ```
 
-agent 应该执行：
-
-```bash
-npm install -g aweskill
-aweskill store init
-aweskill store where --verbose
-```
-
-然后把内置管理 skills 投影给这个 agent：
-
-```bash
-aweskill agent add skill aweskill,aweskill-doctor --global --agent codex
-```
-
-把 `codex` 换成你正在使用的 agent id，也可以运行 `aweskill agent supported` 查看支持列表。
+agent 会自动完成 CLI 安装、store 初始化和内置 skills 投影。重启 agent 后即可通过自然语言使用 aweskill。
 
 ### 从 npm 安装（推荐）
 
@@ -69,7 +55,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.2.9
+npm install -g aweskill@0.3.0
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)

@@ -7,11 +7,19 @@ description: "Use when managing aweskill store, bundle, and agent workflows that
 
 Use `aweskill` CLI directly. Do not add wrapper scripts unless the CLI is missing a needed capability.
 
-If `aweskill` is not installed, install it first:
+## First-Time Setup
 
-```bash
-npm install -g aweskill
-```
+If `aweskill` is not installed or the store is not initialized, run the full bootstrap:
+
+1. Install the CLI: `npm install -g aweskill`
+2. Initialize the central store: `aweskill store init`
+3. Confirm the store location: `aweskill store where --verbose`
+4. Project built-in skills to the current agent: `aweskill agent add skill aweskill,aweskill-doctor --global --agent <current-agent-id>`
+5. Verify: `aweskill agent list --global --agent <current-agent-id>` — both skills should show as `linked`
+6. Tell the user to restart the agent so the new skills become available
+
+If `aweskill` is already installed but the store is not initialized, start from step 2.
+If the store is initialized but skills are not projected, start from step 4.
 
 ## Core Boundary
 

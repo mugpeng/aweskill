@@ -229,6 +229,23 @@ describe("commands", () => {
     await expect(
       readFile(path.join(getSkillPath(workspace.homeDir, "aweskill-doctor"), "SKILL.md"), "utf8"),
     ).resolves.toContain("name: aweskill-doctor");
+    const lock = await readSkillLock(workspace.homeDir);
+    expect(lock.skills.aweskill).toMatchObject({
+      source: "mugpeng/aweskill",
+      sourceType: "github",
+      sourceUrl: "https://github.com/mugpeng/aweskill.git",
+      ref: "main",
+      subpath: "resources/skills/aweskill",
+      computedHash: await computeDirectoryHash(getSkillPath(workspace.homeDir, "aweskill")),
+    });
+    expect(lock.skills["aweskill-doctor"]).toMatchObject({
+      source: "mugpeng/aweskill",
+      sourceType: "github",
+      sourceUrl: "https://github.com/mugpeng/aweskill.git",
+      ref: "main",
+      subpath: "resources/skills/aweskill-doctor",
+      computedHash: await computeDirectoryHash(getSkillPath(workspace.homeDir, "aweskill-doctor")),
+    });
     expect(lines.join("\n")).toContain("Installed built-in skills: aweskill, aweskill-doctor");
 
     await writeFile(path.join(getSkillPath(workspace.homeDir, "aweskill"), "SKILL.md"), "# User Aweskill\n", "utf8");

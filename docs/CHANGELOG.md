@@ -1,5 +1,27 @@
 # change log
 
+## v0.3.0
+
+`v0.3.0` improves the first-time setup experience and makes built-in skills updatable. Since `v0.2.9`, `aweskill store init` now tracks built-in skills with a GitHub source record so they can be refreshed with `aweskill update`. The project also added AI-facing documentation for self-bootstrap installation.
+
+### Built-in skill source tracking
+
+When `aweskill store init` copies the bundled `aweskill` and `aweskill-doctor` skills into the central store, it now writes a lock entry with `source: mugpeng/aweskill`, `sourceType: github`, and the computed directory hash. This means after a fresh install, running `aweskill update` can pull the latest versions of these skills from GitHub — previously they were unmanaged copies with no source record.
+
+### AI-facing documentation
+
+A new `README.ai.md` provides a step-by-step bootstrap protocol for AI coding agents to self-install aweskill. The main README's "Ask an AI agent" section now points to this file instead of listing commands inline, giving agents a single authoritative reference.
+
+The built-in `aweskill` SKILL.md gained a "First-Time Setup" section with a complete bootstrap sequence (install → init → project → verify → restart), with fallback entry points for partial installations.
+
+### Highlights
+
+- `aweskill store init` writes lock entries for built-in skills with GitHub source metadata
+- Built-in skills are now refreshable via `aweskill update` after initial install
+- Added `README.ai.md` — AI-agent-facing bootstrap protocol
+- SKILL.md "First-Time Setup" section with complete bootstrap sequence
+- Simplified "Ask an AI agent" sections in README.md and README.zh-CN.md
+
 ## v0.2.9
 
 `v0.2.9` focuses on engineering infrastructure. Since `v0.2.8`, the project added GitHub Actions CI, introduced Biome for linting and formatting, split the monolithic `index.ts` into focused modules, derived the `AgentId` type from the agent registry to eliminate manual synchronization, and added an automated release workflow for tag-triggered npm publishing and GitHub Release creation.
