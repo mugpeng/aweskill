@@ -102,15 +102,16 @@ npm install -g ./aweskill-<version>.tgz
 
 ### 为什么用 aweskill，它适合谁？
 
-`aweskill` 适合这些开发者和团队：同时使用多个 AI agent，维护可复用的 `SKILL.md`、agent 指令或工作流，并且希望用一个本地唯一事实来源来管理 skills，而不是把同一批目录重复复制到各个工具里。
+`aweskill` 适合这些开发者和团队：同时使用多个 AI agent，维护可复用的 `SKILL.md`、agent 指令或工作流，并且希望用一个本地唯一事实来源来管理 skills，而不是把同一批目录重复复制到各个工具里。它尤其适合这样一种现实场景：问题不只是“怎么分发”，还包括长期使用后出现的 broken projections、重复 skills、suspicious entries、失效链接，以及损坏的 `SKILL.md` frontmatter 该怎么诊断和修复。
 
 - **一个中央仓库**：所有本地 skills 统一放在 `~/.aweskill/skills/`
 - **find / install / update 闭环**：可以从 [skills.sh](https://skills.sh/)、[sciskillhub.org](https://sciskillhub.org/)、GitHub 风格 source 和本地路径发现、安装并追踪更新 skills
 - **多 agent 投影**：同时服务 Codex、Claude Code、Cursor、Gemini CLI、Qwen Code、Windsurf、OpenCode 等工具
+- **面向真实本地混乱状态的 doctor 工作流**：处理 broken projections、重复条目、可疑文件、frontmatter 异常，以及 agent 目录和中央仓库之间的漂移
 - **bundle 组织方式**：按项目、团队、工作流或 agent 组织可复用 skill 集合
 - **托管启用/停用模型**：通过按需投影实现插拔，而不是手动把目录复制到每个工具里
-- **提供可被 agent 调用的管理 skills**：让 AI agent 能根据自然语言请求运行 aweskill 工作流
-- **本地维护与恢复能力**：备份、恢复、查重和修复都在同一个本地 CLI 流程里完成
+- **提供可被 agent 调用的管理与修复 skills**：让 AI agent 能根据自然语言请求运行 `aweskill` 和 `aweskill-doctor` 工作流
+- **本地维护与恢复能力**：备份、恢复、查重、清理、同步修复都在同一个本地 CLI 流程里完成
 
 <details>
 <summary>更多 FAQ</summary>
@@ -133,7 +134,17 @@ npm install -g ./aweskill-<version>.tgz
 
 ### AI agent 能直接调用 aweskill 吗？
 
-可以。`aweskill` 内置了 `aweskill` 和 `aweskill-doctor` 管理 skills；安装或投影这些 skills 后，AI agent 可以根据自然语言请求，通过运行 aweskill 命令来搜索、安装、更新、打包、修复或投影 skills。
+可以。`aweskill` 内置了 `aweskill` 和 `aweskill-doctor` 管理 skills；安装或投影这些 skills 后，AI agent 可以根据自然语言请求，通过运行 aweskill 命令来搜索、安装、更新、打包、修复、去重、清理、同步或投影 skills。
+
+### 当本地 skill 状态变乱时，aweskill 的差异点是什么？
+
+`aweskill` 不只负责 install 和 project，也提供本地状态漂移后的修复路径：
+
+- **`doctor sync`**：检查或修复 broken、duplicate、matched、new、suspicious 等 agent 条目
+- **`doctor clean`**：在受管区域里找出不规范的非 store 文件，避免越积越多
+- **`doctor dedup`**：帮助处理重复 skill，不要求你直接盲删
+- **`doctor fix-skills`**：修复损坏的 `SKILL.md` frontmatter，并可先备份原文件
+- **`agent list` 作为 dry-run 视图**：先看修复状态，再决定是否应用修改
 
 ### aweskill 怎么处理 find、install 和 update？
 
@@ -157,9 +168,9 @@ npm install -g ./aweskill-<version>.tgz
 | 多 agent 按需插拔投影 | ✓ | ✗ | ✓ | ✓ | 通过 `symlink`、junction 或受管 `copy`，把中央仓库里的 skills 投影到各 agent 目录 |
 | bundle 化技能集合 | ✗ | ✗ | ✓ | ✗ | 用 bundle 按项目、团队、工作流或 agent 组织可复用 skill 集合 |
 | 可被 agent 直接调用的管理 skills | ✗ | ✗ | ✗ | ✗ | 内置 `aweskill` 和 `aweskill-doctor` skills，让 AI agents 可根据自然语言请求运行 aweskill 工作流 |
-| 本地维护与恢复能力 | ✗ | ✗ | ✗ | ✗ | CLI 内置 backup、restore、dedup、clean、sync 和 recover 工作流 |
+| 本地维护与恢复能力 | ✗ | ✗ | ✗ | ✗ | CLI 内置 backup、restore、dedup、clean、sync、fix-skills 和 recover 工作流 |
 
-当你的核心问题不只是“装一个 skill”，而是“长期维护一套可复用、可更新、可恢复、可跨 agent 复用的本地 skills 资产”时，`aweskill` 更合适。
+当你的核心问题不只是“装一个 skill”，而是“长期维护一套可复用、可更新、可恢复、可跨 agent 复用，而且出问题后还能诊断和修复的本地 skills 资产”时，`aweskill` 更合适。
 
 ## 快速开始
 

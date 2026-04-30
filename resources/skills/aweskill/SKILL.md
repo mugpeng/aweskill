@@ -21,6 +21,7 @@ Use this skill for:
 
 - `store init`
 - `store where`
+- `store show`
 - `find`
 - `install`
 - `update`
@@ -80,6 +81,7 @@ For complex changes, also decide:
 Prefer these inspection commands:
 
 - `aweskill store where --verbose`
+- `aweskill store show <skill>`
 - `aweskill find <query>`
 - `aweskill store list --verbose`
 - `aweskill store scan --verbose`
@@ -108,8 +110,9 @@ For importing existing skills into the central store:
 For general store management:
 
 1. Run `aweskill store where --verbose` to confirm central-store paths.
-2. Run `aweskill store list --verbose` before removing or reorganizing managed skills.
-3. Use `aweskill store remove <skill>` only after confirming the skill is no longer needed in the central store.
+2. Run `aweskill store show <skill>` when the task is about one managed skill's summary, raw `SKILL.md`, or resolved path.
+3. Run `aweskill store list --verbose` before removing or reorganizing managed skills.
+4. Use `aweskill store remove <skill>` only after confirming the skill is no longer needed in the central store.
 
 ### Source Lifecycle
 
@@ -118,11 +121,13 @@ Use this path when the task is about searching upstream skill sources, installin
 For source-aware skill discovery and tracked updates:
 
 1. Run `aweskill find <query>` to search supported providers.
-2. Prefer `aweskill install <source>` or `aweskill store install <source>` for skills discovered from GitHub-style sources, local paths, or `sciskill:<skill-id>`.
-3. Use `--skill <name>` or `--all` when a source contains multiple skills.
-4. Run `aweskill update --check` before mutating when the task is “see what can be refreshed”.
-5. Run `aweskill update [skill...]` only for skills already tracked in the central store.
-6. Use `--override` only when replacing local central-store edits is intended.
+2. Use `aweskill find <query> --local` or `--provider local` when the task is to inspect the local central store instead of remote providers.
+3. Remember `--domain` and `--stage` are sciskill-only filters. They must exactly match the published enum values, and `--provider skills-sh` rejects them directly.
+4. Prefer `aweskill install <source>` or `aweskill store install <source>` for skills discovered from GitHub-style sources, local paths, or `sciskill:<skill-id>`.
+5. Use `--skill <name>` or `--all` when a source contains multiple skills.
+6. Run `aweskill update --check` before mutating when the task is “see what can be refreshed”.
+7. Run `aweskill update [skill...]` only for skills already tracked in the central store.
+8. Use `--override` only when replacing local central-store edits is intended.
 
 Prefer this decision order:
 

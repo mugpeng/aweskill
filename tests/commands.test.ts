@@ -176,6 +176,32 @@ describe("commands", () => {
     }
   });
 
+  it("prints a concise error for unknown top-level commands without root help", async () => {
+    const workspace = await createTempWorkspace();
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "sd"]);
+      expect(process.exitCode).toBe(1);
+      expect(stderr).toHaveBeenCalledWith("Error: unknown command 'sd'. Run \"aweskill -h\" for help.");
+      expect(stdout).not.toHaveBeenCalledWith(expect.stringContaining("Local skill orchestration CLI for AI agents"));
+      expect(stdout).not.toHaveBeenCalledWith(expect.stringContaining("Commands:"));
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+  });
+
   it("installs built-in aweskill meta-skills during store init without overwriting existing skills", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -3061,6 +3087,39 @@ describe("commands", () => {
       expect(stderr).toHaveBeenCalledWith(
         'Error: Unknown skill: missing-skill. Run "aweskill store list" to see available skills.',
       );
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+  });
+
+  it("doctor fix-skills preserves its targeted positional-argument guidance without command help", async () => {
+    const workspace = await createTempWorkspace();
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "store", "init"]);
+      process.exitCode = 0;
+      stdout.mockClear();
+      stderr.mockClear();
+
+      await main(["node", "aweskill", "doctor", "fix-skills", "asdasd"]);
+      expect(process.exitCode).toBe(1);
+      expect(stderr).toHaveBeenCalledWith(
+        "Error: Unexpected argument: asdasd\n\n`aweskill doctor fix-skills` does not accept positional arguments.\nTo limit the check to one skill, use: aweskill doctor fix-skills --skill asdasd\nFor help, use: aweskill doctor fix-skills -h",
+      );
+      expect(stdout).not.toHaveBeenCalledWith(expect.stringContaining("Inspect and optionally normalize malformed SKILL.md frontmatter"));
+      expect(stdout).not.toHaveBeenCalledWith(expect.stringContaining("Options:"));
     } finally {
       process.chdir(previousCwd);
       if (previousHome === undefined) {

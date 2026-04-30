@@ -21,6 +21,16 @@ aweskill store list --verbose
 
 Use when skill source is upstream and should be tracked for later updates.
 
+## Local Search and Skill Inspection
+
+```bash
+aweskill find review --local
+aweskill store show review-skill
+aweskill store show review-skill --raw
+```
+
+Use when the task is to inspect skills already managed inside the local central store instead of searching remote providers.
+
 ## Source Update Check and Refresh
 
 ```bash

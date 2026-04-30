@@ -110,6 +110,10 @@ function formatCliErrorMessage(message: string, commandArgs: string[] = []): str
       return "Option --agent <agent> argument missing. Use one or more supported agent ids, for example \"codex\" or \"codex,cursor\". Run \"aweskill agent supported\" to see the supported agent list.";
     }
     const normalizedMessage = message.replace(/^error:\s*/i, "");
+    const unknownCommandMatch = normalizedMessage.match(/^unknown command '([^']+)'$/i);
+    if (unknownCommandMatch) {
+      return `unknown command '${unknownCommandMatch[1]}'. Run "aweskill -h" for help.`;
+    }
     const bundleFileMatch = normalizedMessage.match(/ENOENT: no such file or directory, open '([^']+\/(bundles|resources\/bundle_templates)\/([^/'"]+)\.ya?ml)'/i);
     if (bundleFileMatch) {
       const bundleName = bundleFileMatch[3]!;
@@ -162,7 +166,6 @@ function configureCommandTree(command: Command): void {
   command.configureOutput({
     outputError: () => undefined,
   });
-  command.showHelpAfterError();
   command.exitOverride((error) => {
     throw error;
   });
@@ -191,6 +194,23 @@ function isInitializationExempt(args: string[]): boolean {
   }
 
   return args[0] === "find" || (args[0] === "store" && (args[1] === "init" || args[1] === "find"));
+}
+
+function isKnownTopLevelCommand(arg?: string): boolean {
+  if (!arg) {
+    return false;
+  }
+
+  return new Set(["install", "find", "update", "bundle", "agent", "store", "doctor", "help"]).has(arg);
+}
+
+function shouldDeferToCommandParsing(args: string[]): boolean {
+  const [firstArg] = args;
+  if (!firstArg || firstArg.startsWith("-")) {
+    return false;
+  }
+
+  return !isKnownTopLevelCommand(firstArg);
 }
 
 function assertLegacySkillCommandRemoved(args: string[]): void {
@@ -708,7 +728,9 @@ export async function main(argv = process.argv) {
   try {
     const context = createRuntimeContext();
     assertLegacySkillCommandRemoved(commandArgs);
-    await assertStoreInitialized(context.homeDir, commandArgs);
+    if (!shouldDeferToCommandParsing(commandArgs)) {
+      await assertStoreInitialized(context.homeDir, commandArgs);
+    }
     await program.parseAsync(normalizedArgv);
   } catch (error) {
     const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;

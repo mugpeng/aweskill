@@ -4,6 +4,7 @@
 
 - Find aweskill home and core directories -> `aweskill store where --verbose`
 - See what is already in central store -> `aweskill store list --verbose`
+- Inspect one managed local skill -> `aweskill store show <skill>`
 - Discover agent-side skills before import -> `aweskill store scan [--global|--project [dir]] [--agent <id>] --verbose`
 - Import scanned agent skills -> `aweskill store import --scan [--global|--project [dir]] [--agent <id>]`
 - Import external skill folder -> `aweskill store import <path>`
@@ -12,11 +13,13 @@
 ## Source Lifecycle
 
 - Search upstream skill sources -> `aweskill find <query>`
+- Search only the local central store -> `aweskill find <query> --local` or `aweskill find <query> --provider local`
 - Install a discovered skill into the central store -> `aweskill install <source>` or `aweskill store install <source>`
 - Install one skill from a multi-skill source -> `aweskill store install <source> --skill <name>`
 - Install every skill from a multi-skill source -> `aweskill store install <source> --all`
 - Check tracked skills for updates -> `aweskill update --check`
 - Refresh one or more tracked skills -> `aweskill update [skill...]`
+- Use `--domain` or `--stage` filters only with sciskill -> `aweskill find <query> --provider sciskill --domain "<value>" --stage "<value>"`
 
 ## Bundle Work
 

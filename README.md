@@ -102,15 +102,16 @@ npm install -g ./aweskill-<version>.tgz
 
 ### Why aweskill, and who is it for?
 
-`aweskill` is for developers and teams who use more than one AI agent, maintain reusable `SKILL.md` folders or agent instructions, and want one local source of truth instead of copying the same skills into every tool.
+`aweskill` is for developers and teams who use more than one AI agent, maintain reusable `SKILL.md` folders or agent instructions, and want one local source of truth instead of copying the same skills into every tool. It is especially useful when the problem is not only distribution, but also ongoing repair: broken projections, duplicate skills, suspicious entries, stale links, and malformed `SKILL.md` files that accumulate over time.
 
 - **One central store** for all your local skills in `~/.aweskill/skills/`
 - **Search, install, and update loop** across [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), GitHub-style sources, and local paths
 - **Multi-agent projection** across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, OpenCode, and more
+- **Doctor workflows for real local mess** such as broken projections, duplicate entries, suspicious files, malformed frontmatter, and drift between agent directories and the central store
 - **Bundle-based organization** for reusable skill sets by project, team, workflow, or agent
 - **Managed enable/disable model** with plug-and-play projection instead of manually copying folders into each tool
-- **Agent-callable management skills** so AI agents can run aweskill workflows from natural-language requests
-- **Backup, restore, deduplication, and recovery** in one local CLI workflow
+- **Agent-callable management and repair skills** so AI agents can run both `aweskill` and `aweskill-doctor` workflows from natural-language requests
+- **Backup, restore, deduplication, cleanup, sync repair, and recovery** in one local CLI workflow
 
 <details>
 <summary>More FAQ</summary>
@@ -133,7 +134,17 @@ Yes. `aweskill` manages skills on your local machine and does not require a host
 
 ### Can AI agents call aweskill directly?
 
-Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-doctor`; after installing or projecting those skills, an AI agent can follow natural-language requests to search, install, update, bundle, repair, or project skills by running aweskill commands.
+Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-doctor`; after installing or projecting those skills, an AI agent can follow natural-language requests to search, install, update, bundle, repair, deduplicate, clean, sync, or project skills by running aweskill commands.
+
+### What makes aweskill different once the local skill state gets messy?
+
+`aweskill` does not stop at install-and-project. It also gives you a repair path when local state drifts:
+
+- **`doctor sync`** inspects or repairs broken, duplicate, matched, new, and suspicious agent entries
+- **`doctor clean`** finds suspicious non-store files in managed areas before they silently accumulate
+- **`doctor dedup`** helps reconcile duplicate skills without forcing blind deletion
+- **`doctor fix-skills`** repairs malformed `SKILL.md` frontmatter and can back up originals first
+- **`agent list` as a dry-run view** lets you inspect repair state before applying changes
 
 ### How does aweskill handle find, install, and update?
 
@@ -157,9 +168,9 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 | Plug-and-play multi-agent projection | ✓ | ✗ | ✓ | ✓ | Projects selected skills from the central store into agent-specific directories using `symlink`, junction, or managed `copy` |
 | Bundle-based skill sets | ✗ | ✗ | ✓ | ✗ | Uses bundles to group reusable skills by project, team, workflow, or agent |
 | Agent-callable management skills | ✗ | ✗ | ✗ | ✗ | Ships built-in `aweskill` and `aweskill-doctor` skills so AI agents can run aweskill workflows from natural-language requests |
-| Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, and recover workflows in the CLI |
+| Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, fix-skills, and recover workflows in the CLI |
 
-Use `aweskill` when your main problem is not just installing a skill once, but maintaining a reusable local skill inventory across multiple AI agents over time.
+Use `aweskill` when your main problem is not just installing a skill once, but maintaining a reusable local skill inventory across multiple AI agents over time and keeping that local state repairable when it inevitably gets messy.
 
 ## Quick Start
 

@@ -74,3 +74,24 @@ Fix:
 ```bash
 aweskill store import --scan --global --agent codex
 ```
+
+## malformed `SKILL.md` frontmatter
+
+Meaning:
+
+- missing closing `---`
+- invalid YAML in frontmatter
+- file starts with body content and needs minimal frontmatter
+- `name` or `description` is missing or unusable
+
+Check:
+
+```bash
+aweskill doctor fix-skills --include-info --verbose
+```
+
+Fix:
+
+- inspect first with `aweskill doctor fix-skills --include-info --verbose`
+- rewrite with `aweskill doctor fix-skills --apply`
+- add `--backup` when original files should be copied into `backup/fix_skills/` first
