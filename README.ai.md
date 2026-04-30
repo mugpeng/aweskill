@@ -40,7 +40,13 @@ aweskill store where --verbose
 
 ### 4. Identify the current agent
 
-Determine which agent you are running as. Common agent ids:
+Run this command to see which agents are installed on this machine:
+
+```bash
+aweskill agent supported
+```
+
+Look for lines marked with `✓` — these are detected agent roots. Pick the one that matches your runtime. Common agent ids:
 
 - `claude-code` — Claude Code (CLI or IDE extension)
 - `cursor` — Cursor
@@ -50,7 +56,7 @@ Determine which agent you are running as. Common agent ids:
 - `opencode` — OpenCode
 - `qwen-code` — Qwen Code
 
-If you are unsure, run `aweskill agent supported` to see the full list, or ask the user.
+If you cannot determine your agent id from the output, ask the user.
 
 ### 5. Project built-in skills to this agent
 
