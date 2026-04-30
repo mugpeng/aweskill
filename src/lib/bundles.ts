@@ -49,9 +49,27 @@ export async function readBundle(homeDir: string, bundleName: string): Promise<B
 }
 
 export async function readBundleFromDirectory(bundlesDir: string, bundleName: string): Promise<BundleDefinition> {
-  const filePath = bundleFilePathInDirectory(bundlesDir, bundleName);
+  const filePath = await resolveBundleFilePath(bundlesDir, bundleName);
   const content = await readFile(filePath, "utf8");
   return normalizeBundle(parse(content), bundleName);
+}
+
+async function resolveBundleFilePath(bundlesDir: string, bundleName: string): Promise<string> {
+  const direct = path.join(bundlesDir, `${bundleName}.yaml`);
+  if (await pathExists(direct)) {
+    return direct;
+  }
+
+  const sanitized = sanitizeName(bundleName);
+  const entries = await readdir(bundlesDir, { withFileTypes: true });
+  const match = entries.find(
+    (entry) => entry.isFile() && entry.name.endsWith(".yaml") && sanitizeName(entry.name.replace(/\.yaml$/, "")) === sanitized,
+  );
+  if (match) {
+    return path.join(bundlesDir, match.name);
+  }
+
+  return bundleFilePathInDirectory(bundlesDir, bundleName);
 }
 
 export async function writeBundle(homeDir: string, bundle: BundleDefinition): Promise<BundleDefinition> {
