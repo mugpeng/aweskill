@@ -63,7 +63,8 @@ async function resolveBundleFilePath(bundlesDir: string, bundleName: string): Pr
   const sanitized = sanitizeName(bundleName);
   const entries = await readdir(bundlesDir, { withFileTypes: true });
   const match = entries.find(
-    (entry) => entry.isFile() && entry.name.endsWith(".yaml") && sanitizeName(entry.name.replace(/\.yaml$/, "")) === sanitized,
+    (entry) =>
+      entry.isFile() && entry.name.endsWith(".yaml") && sanitizeName(entry.name.replace(/\.yaml$/, "")) === sanitized,
   );
   if (match) {
     return path.join(bundlesDir, match.name);
