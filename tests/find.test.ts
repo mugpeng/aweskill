@@ -128,7 +128,7 @@ describe("find command", () => {
     expect(lines.join("\n")).toContain("Found 2 skills");
   });
 
-  it("warns when sciskill-only filters are used against skills-sh", async () => {
+  it("rejects sciskill-only filters when used against skills-sh", async () => {
     const workspace = await createTempWorkspace();
     const { context, lines } = createRuntime(workspace.homeDir, workspace.projectDir);
     vi.stubGlobal("fetch", vi.fn(async () => ({
@@ -136,9 +136,31 @@ describe("find command", () => {
       json: async () => ({ skills: [{ id: "owner/repo", name: "protein-search", installs: 10, source: "owner/repo" }] }),
     })));
 
-    await runFind(context, "protein", { provider: "skills-sh", domain: "Life Sciences" });
+    await expect(runFind(context, "protein", { provider: "skills-sh", domain: "Life Sciences" }))
+      .rejects.toThrow("--domain and --stage are only supported with the sciskill provider.");
+    expect(lines).toEqual([]);
+  });
 
-    expect(lines[0]).toBe("Warning: --domain and --stage only apply to sciskill.");
+  it("rejects an invalid sciskill domain before making network requests", async () => {
+    const workspace = await createTempWorkspace();
+    const { context } = createRuntime(workspace.homeDir, workspace.projectDir);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(runFind(context, "protein", { provider: "sciskill", domain: "Biology" }))
+      .rejects.toThrow('Invalid --domain value: "Biology"');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid sciskill stage before making network requests", async () => {
+    const workspace = await createTempWorkspace();
+    const { context } = createRuntime(workspace.homeDir, workspace.projectDir);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(runFind(context, "protein", { provider: "sciskill", stage: "Writing" }))
+      .rejects.toThrow('Invalid --stage value: "Writing"');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("keeps unsupported skills.sh sources visible and tells users to visit the skills.sh page", async () => {

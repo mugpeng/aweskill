@@ -1,8 +1,9 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
 
+import { getAweskillPaths } from "./path.js";
 import { listSkills } from "./skills.js";
 
 const KNOWN_FIELD_ORDER = ["name", "description", "required_permissions"] as const;
@@ -471,10 +472,20 @@ export async function scanSkillDocFixes(homeDir: string, options: ScanSkillDocFi
   return results.sort((left, right) => left.skillName.localeCompare(right.skillName));
 }
 
-export async function applySkillDocFixes(results: SkillDocFixResult[]): Promise<void> {
+export async function applySkillDocFixes(
+  homeDir: string,
+  results: SkillDocFixResult[],
+  options: { backup?: boolean } = {},
+): Promise<void> {
+  const backupDir = getAweskillPaths(homeDir).fixSkillsBackupDir;
   for (const result of results) {
     if (!hasActionableSkillDocFix(result)) {
       continue;
+    }
+    if (options.backup) {
+      const backupPath = path.join(backupDir, result.relativePath);
+      await mkdir(path.dirname(backupPath), { recursive: true });
+      await cp(result.skillFile, backupPath, { force: false });
     }
     await writeFile(result.skillFile, result.nextContent, "utf8");
   }

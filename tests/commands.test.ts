@@ -224,10 +224,10 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
-    const entries = await readdir(backupDir);
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatch(/^skills-.*\.tar\.gz$/);
-    expect(lines.join("\n")).toContain(path.join(backupDir, entries[0]!));
+    const archives = (await readdir(backupDir)).filter((entry) => entry.endsWith(".tar.gz"));
+    expect(archives).toHaveLength(1);
+    expect(archives[0]).toMatch(/^skills-.*\.tar\.gz$/);
+    expect(lines.join("\n")).toContain(path.join(backupDir, archives[0]!));
   });
 
   it("shows the aweskill store root with store where", async () => {
@@ -272,7 +272,7 @@ describe("commands", () => {
     expect(output).toContain(`aweskill store: ${path.join(workspace.homeDir, ".aweskill")}`);
     expect(output).toContain(`  - skills: 4 entries -> ${path.join(workspace.homeDir, ".aweskill", "skills")}`);
     expect(output).toContain(`  - dup_skills: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "dup_skills")}`);
-    expect(output).toContain(`  - backup: 0 entries -> ${path.join(workspace.homeDir, ".aweskill", "backup")}`);
+    expect(output).toContain(`  - backup: 2 entries -> ${path.join(workspace.homeDir, ".aweskill", "backup")}`);
     expect(output).toContain(`  - bundles: 1 entry -> ${path.join(workspace.homeDir, ".aweskill", "bundles")}`);
   });
 
@@ -457,7 +457,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
-    const [archive] = await readdir(backupDir);
+    const [archive] = (await readdir(backupDir)).filter((entry) => entry.endsWith(".tar.gz"));
     await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
     await writeFile(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), "name: research\nskills:\n  - changed\n", "utf8");
 
@@ -485,7 +485,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
-    const [archive] = await readdir(backupDir);
+    const [archive] = (await readdir(backupDir)).filter((entry) => entry.endsWith(".tar.gz"));
 
     await writeFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "# Changed\n", "utf8");
     await writeSkill(getSkillPath(workspace.homeDir, "new-current-skill"), "Current Only");
@@ -495,7 +495,7 @@ describe("commands", () => {
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "restore-me"), "SKILL.md"), "utf8")).resolves.toContain("Original");
     await expect(access(path.join(getSkillPath(workspace.homeDir, "new-current-skill"), "SKILL.md"))).rejects.toThrow();
 
-    const updatedArchives = await readdir(backupDir);
+    const updatedArchives = (await readdir(backupDir)).filter((entry) => entry.endsWith(".tar.gz"));
     expect(updatedArchives.length).toBeGreaterThanOrEqual(2);
     expect(lines.join("\n")).toContain("Restored 3 skills");
     expect(lines.join("\n")).toContain("Backed up current skills and bundles to");
@@ -518,7 +518,7 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "backup"], { from: "node" });
 
     const backupDir = path.join(workspace.homeDir, ".aweskill", "backup");
-    const [archive] = await readdir(backupDir);
+    const [archive] = (await readdir(backupDir)).filter((entry) => entry.endsWith(".tar.gz"));
 
     await rm(path.join(workspace.homeDir, ".aweskill", "bundles", "research.yaml"), { force: true });
     await writeSkill(getSkillPath(workspace.homeDir, "current-only"), "Current Only");
@@ -820,28 +820,50 @@ describe("commands", () => {
 
   it("prints friendly missing-argument hints across commands", async () => {
     const workspace = await createTempWorkspace();
-    const program = createProgram({
-      cwd: workspace.projectDir,
-      homeDir: workspace.homeDir,
-      write: () => undefined,
-      error: () => undefined,
-    });
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousHome = process.env.AWESKILL_HOME;
+    process.env.AWESKILL_HOME = workspace.homeDir;
 
-    await expect(program.parseAsync(["node", "aweskill", "agent", "remove"], { from: "node" })).rejects.toThrow(
-      'Missing required argument <type>. Use "bundle" or "skill".',
-    );
-    await expect(program.parseAsync(["node", "aweskill", "store", "restore"], { from: "node" })).rejects.toThrow(
-      'Missing required argument <archive>. Use a backup archive path, for example "skills-2026-04-12T19-20-00Z.tar.gz".',
-    );
-    await expect(program.parseAsync(["node", "aweskill", "bundle", "add", "research"], { from: "node" })).rejects.toThrow(
-      "Missing required argument <skill>. Use a skill name.",
-    );
-    await expect(program.parseAsync(["node", "aweskill", "agent", "add", "skill"], { from: "node" })).rejects.toThrow(
-      'Missing required argument <name>. Use a bundle or skill name, for example "my-bundle", "biopython", or "all".',
-    );
-    await expect(program.parseAsync(["node", "aweskill", "agent", "list", "--agent"], { from: "node" })).rejects.toThrow(
-      'Option --agent <agent> argument missing. Use one or more supported agent ids, for example "codex" or "codex,cursor". Run "aweskill agent supported" to see the supported agent list.',
-    );
+    try {
+      await main(["node", "aweskill", "store", "init"]);
+      stderr.mockClear();
+      process.exitCode = 0;
+
+      await main(["node", "aweskill", "agent", "remove"]);
+      expect(stderr).toHaveBeenLastCalledWith('Error: Missing required argument <type>. Use "bundle" or "skill".');
+
+      stderr.mockClear();
+      process.exitCode = 0;
+      await main(["node", "aweskill", "store", "restore"]);
+      expect(stderr).toHaveBeenLastCalledWith(
+        'Error: Missing required argument <archive>. Use a backup archive path, for example "skills-2026-04-12T19-20-00Z.tar.gz".',
+      );
+
+      stderr.mockClear();
+      process.exitCode = 0;
+      await main(["node", "aweskill", "bundle", "add", "research"]);
+      expect(stderr).toHaveBeenLastCalledWith("Error: Missing required argument <skill>. Use a skill name.");
+
+      stderr.mockClear();
+      process.exitCode = 0;
+      await main(["node", "aweskill", "agent", "add", "skill"]);
+      expect(stderr).toHaveBeenLastCalledWith(
+        'Error: Missing required argument <name>. Use a bundle or skill name, for example "my-bundle", "biopython", or "all".',
+      );
+
+      stderr.mockClear();
+      process.exitCode = 0;
+      await main(["node", "aweskill", "agent", "list", "--agent"]);
+      expect(stderr).toHaveBeenLastCalledWith(
+        'Error: Option --agent <agent> argument missing. Use one or more supported agent ids, for example "codex" or "codex,cursor". Run "aweskill agent supported" to see the supported agent list.',
+      );
+    } finally {
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
   });
 
   it("lists supported agents", async () => {
@@ -2808,6 +2830,92 @@ describe("commands", () => {
     expect(output).toContain("See docs/fix-skills-categories.md for full details and before/after examples.");
   });
 
+  it("doctor help shows the short fix-skills summary instead of detailed categories", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await main(["node", "aweskill", "doctor", "-h"]);
+
+    const output = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
+    expect(stderr).not.toHaveBeenCalled();
+    expect(output).toContain("fix-skills");
+    expect(output).toContain("Inspect and optionally normalize malformed SKILL.md");
+    expect(output).toContain("frontmatter");
+    expect(output).not.toContain("Actionable fixes (reported by default):");
+    expect(output).not.toContain("missing-closing-delimiter: add the missing closing --- before body content.");
+  });
+
+  it("doctor fix-skills suggests --skill when given one unexpected positional argument", async () => {
+    const workspace = await createTempWorkspace();
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "store", "init"]);
+      stderr.mockClear();
+      process.exitCode = 0;
+
+      await main(["node", "aweskill", "doctor", "fix-skills", "performance"]);
+
+      expect(stderr).toHaveBeenCalledWith(
+        [
+          "Error: Unexpected argument: performance",
+          "",
+          "`aweskill doctor fix-skills` does not accept positional arguments.",
+          "To limit the check to one skill, use: aweskill doctor fix-skills --skill performance",
+          "For help, use: aweskill doctor fix-skills -h",
+        ].join("\n"),
+      );
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+  });
+
+  it("doctor fix-skills suggests -h when given help-like positional arguments", async () => {
+    const workspace = await createTempWorkspace();
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const previousCwd = process.cwd();
+    const previousHome = process.env.AWESKILL_HOME;
+
+    process.env.AWESKILL_HOME = workspace.homeDir;
+    process.chdir(workspace.projectDir);
+
+    try {
+      await main(["node", "aweskill", "store", "init"]);
+      stderr.mockClear();
+      process.exitCode = 0;
+
+      await main(["node", "aweskill", "doctor", "fix-skills", "h"]);
+
+      expect(stderr).toHaveBeenCalledWith(
+        [
+          "Error: Unexpected argument: h",
+          "",
+          "`aweskill doctor fix-skills` does not accept positional arguments.",
+          "For help, use: aweskill doctor fix-skills -h",
+        ].join("\n"),
+      );
+      expect(process.exitCode).toBe(1);
+    } finally {
+      process.chdir(previousCwd);
+      if (previousHome === undefined) {
+        delete process.env.AWESKILL_HOME;
+      } else {
+        process.env.AWESKILL_HOME = previousHome;
+      }
+    }
+  });
+
   it("doctor fix-skills --apply rewrites malformed skill docs into normalized frontmatter", async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
@@ -2859,6 +2967,39 @@ describe("commands", () => {
       "你是飞书云空间文件管理专家。",
       "",
     ].join("\n"));
+  });
+
+  it("doctor fix-skills --apply --backup copies original docs into backup/fix_skills before rewriting", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    const skillDir = getSkillPath(workspace.homeDir, "feishu-drive-1.0.0");
+    const skillFile = path.join(skillDir, "SKILL.md");
+    const original = [
+      "---",
+      "name: 7",
+      "description:",
+      "  nested: nope",
+      "---",
+      "",
+      "# 飞书云空间文件管理",
+      "",
+      "你是飞书云空间文件管理专家。",
+      "",
+    ].join("\n");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(skillFile, original, "utf8");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "fix-skills", "--apply", "--backup"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "backup", "fix_skills", ".aweskill", "skills", "feishu-drive-1.0.0", "SKILL.md"), "utf8")).resolves.toBe(original);
+    await expect(readFile(skillFile, "utf8")).resolves.not.toBe(original);
   });
 
   it("doctor fix-skills supports --skill to limit fixes to exact skill names", async () => {
@@ -2946,6 +3087,42 @@ describe("commands", () => {
 
     await expect(readFile(path.join(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "SKILL.md"), "utf8")).resolves.toContain("Versioned");
     await expect(readFile(path.join(workspace.homeDir, ".aweskill", "dup_skills", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
+    await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();
+  });
+
+  it("doctor dedup --apply --backup copies duplicates into backup/dedup before moving them", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "dedup", "--apply", "--backup"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "backup", "dedup", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "dup_skills", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
+  });
+
+  it("doctor dedup --apply --delete --backup copies duplicates into backup/dedup before deleting them", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer"), "Base");
+    await writeSkill(getSkillPath(workspace.homeDir, "architecture-designer-0.1.0"), "Versioned");
+
+    await program.parseAsync(["node", "aweskill", "doctor", "dedup", "--apply", "--delete", "--backup"], { from: "node" });
+
+    await expect(readFile(path.join(workspace.homeDir, ".aweskill", "backup", "dedup", "architecture-designer", "SKILL.md"), "utf8")).resolves.toContain("Base");
     await expect(access(path.join(getSkillPath(workspace.homeDir, "architecture-designer"), "SKILL.md"))).rejects.toThrow();
   });
 

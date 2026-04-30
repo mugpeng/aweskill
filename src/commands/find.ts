@@ -9,6 +9,25 @@ import { listSkills } from "../lib/skills.js";
 
 const SKILLS_SH_API_BASE = process.env.SKILLS_API_URL || "https://skills.sh";
 const SCISKILL_API_BASE = process.env.SCISKILL_API_URL || "https://sciskillhub.org";
+const SCISKILL_DOMAINS = [
+  "Agricultural Sciences",
+  "Chemical Sciences",
+  "Computational Sciences",
+  "General Research",
+  "Life Sciences",
+  "Mathematical and Statistical Sciences",
+  "Medical and Health Sciences",
+  "Physical Sciences",
+] as const;
+const SCISKILL_STAGES = [
+  "Study Design",
+  "Data / Sample Acquisition",
+  "Data Processing",
+  "Data Analysis and Modeling",
+  "Validation and Interpretation",
+  "Visualization and Presentation",
+  "Writing and Publication",
+] as const;
 
 type FindProvider = "skills-sh" | "sciskill" | "local";
 
@@ -49,6 +68,24 @@ export interface FindOptions {
   domain?: string;
   stage?: string;
   timeoutMs?: number;
+}
+
+function formatAllowedValues(values: readonly string[]): string {
+  return values.map((value) => `"${value}"`).join(", ");
+}
+
+function validateFindOptions(options: FindOptions): void {
+  if (options.provider === "skills-sh" && (options.domain || options.stage)) {
+    throw new Error("--domain and --stage are only supported with the sciskill provider.");
+  }
+
+  if (options.domain && !SCISKILL_DOMAINS.includes(options.domain as typeof SCISKILL_DOMAINS[number])) {
+    throw new Error(`Invalid --domain value: "${options.domain}". Allowed values: ${formatAllowedValues(SCISKILL_DOMAINS)}.`);
+  }
+
+  if (options.stage && !SCISKILL_STAGES.includes(options.stage as typeof SCISKILL_STAGES[number])) {
+    throw new Error(`Invalid --stage value: "${options.stage}". Allowed values: ${formatAllowedValues(SCISKILL_STAGES)}.`);
+  }
 }
 
 function getFindTimeoutMs(options: FindOptions): number {
@@ -304,6 +341,8 @@ export async function runFind(context: RuntimeContext, query: string, options: F
     throw new Error("Limit must be a positive integer.");
   }
 
+  validateFindOptions(options);
+
   const requestedProviders: FindProvider[] = options.provider ? [options.provider] : ["skills-sh", "sciskill"];
   const resultsByProvider = new Map<FindProvider, FindResult[]>();
   const errors: string[] = [];
@@ -325,10 +364,6 @@ export async function runFind(context: RuntimeContext, query: string, options: F
 
   if (errors.length === requestedProviders.length) {
     throw new Error(errors.join("\n"));
-  }
-
-  if (options.provider === "skills-sh" && (options.domain || options.stage)) {
-    context.write("Warning: --domain and --stage only apply to sciskill.");
   }
 
   for (const error of errors) {

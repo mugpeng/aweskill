@@ -236,7 +236,9 @@ aweskill agent add bundle frontend --global --agent codex
 
 - 中央仓库：`~/.aweskill/skills/`
 - 重复项暂存区：`~/.aweskill/dup_skills/`
-- 备份目录：`~/.aweskill/backup/`
+- 备份根目录：`~/.aweskill/backup/`
+- dedup 备份目录：`~/.aweskill/backup/dedup/`
+- fix-skills 备份目录：`~/.aweskill/backup/fix_skills/`
 - Bundle 文件：`~/.aweskill/bundles/*.yaml`
 - 内置 skill：`resources/skills/aweskill/`、`resources/skills/aweskill-doctor/`
 
@@ -354,6 +356,12 @@ aweskill doctor clean
 # 把中央仓库里的重复 skill 移到 dup_skills
 aweskill doctor dedup --apply
 
+# 在移动到 dup_skills 前先备份重复 skill
+aweskill doctor dedup --apply --backup
+
+# 在改写前先备份异常的 SKILL.md
+aweskill doctor fix-skills --apply --backup
+
 # 先看某个 agent 下有哪些可修项
 aweskill doctor sync --global --agent codex
 
@@ -411,8 +419,8 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 | `aweskill agent recover` | 把托管 symlink 恢复为完整目录 |
 | `aweskill doctor sync [--apply] [--remove-suspicious] [--global\|--project [dir]] [--agent <agent>] [--verbose]` | 默认 dry run；加上 `--apply` 修复 broken 并重连 duplicate / matched，`--apply --remove-suspicious` 额外删除 suspicious；省略 `--agent` 时，先输出当前 scope 检测到的 agent 集合 |
 | `aweskill doctor clean [--apply] [--skills-only] [--bundles-only] [--verbose]` | 按 `skills` / `bundles` 分组查找不规范的 store 条目，并可选清理 |
-| `aweskill doctor dedup [--apply] [--delete]` | 查找重复 skill，并可选移动或删除 |
-| `aweskill doctor fix-skills [--apply] [--include-info] [--skill <skill>] [--verbose]` | 检查 `SKILL.md` frontmatter 异常；真修复项包括补结束分隔线、重建无效 YAML、补 frontmatter、规范 name 和 description；`--include-info` 会附带不改写的信息项，`--apply` 只会改写真修复项 |
+| `aweskill doctor dedup [--apply] [--backup] [--delete]` | 查找重复 skill，并可选移动或删除；`--backup` 会先复制到 `~/.aweskill/backup/dedup/` |
+| `aweskill doctor fix-skills [--apply] [--backup] [--include-info] [--skill <skill>] [--verbose]` | 检查 `SKILL.md` frontmatter 异常；真修复项包括补结束分隔线、重建无效 YAML、补 frontmatter、规范 name 和 description；`--backup` 会在改写前先复制原文件到 `~/.aweskill/backup/fix_skills/`，`--include-info` 会附带不改写的信息项，`--apply` 只会改写真修复项 |
 
 </details>
 

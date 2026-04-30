@@ -3,7 +3,7 @@ import type { RuntimeContext } from "../types.js";
 
 export async function runRmdup(
   context: RuntimeContext,
-  options: { apply?: boolean; delete?: boolean },
+  options: { apply?: boolean; backup?: boolean; delete?: boolean },
 ) {
   if (options.delete && !options.apply) {
     throw new Error("--delete requires --apply");
@@ -28,7 +28,10 @@ export async function runRmdup(
   let moved: string[] = [];
   let deleted: string[] = [];
   if (options.apply) {
-    const result = await removeDuplicateSkills(context.homeDir, duplicates, { delete: options.delete });
+    const result = await removeDuplicateSkills(context.homeDir, duplicates, {
+      backup: options.backup,
+      delete: options.delete,
+    });
     moved = result.moved;
     deleted = result.deleted;
     lines.push("");
@@ -36,6 +39,9 @@ export async function runRmdup(
       lines.push(`Deleted ${deleted.length} duplicate skills`);
     } else {
       lines.push(`Moved ${moved.length} duplicate skills to ${context.homeDir}/.aweskill/dup_skills`);
+    }
+    if (options.backup) {
+      lines.push(`Backed up duplicate skills to ${context.homeDir}/.aweskill/backup/dedup`);
     }
   } else {
     lines.push("");

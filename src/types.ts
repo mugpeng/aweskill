@@ -60,6 +60,8 @@ export interface AweskillPaths {
   skillsDir: string;
   dupSkillsDir: string;
   backupDir: string;
+  dedupBackupDir: string;
+  fixSkillsBackupDir: string;
   bundlesDir: string;
 }
 

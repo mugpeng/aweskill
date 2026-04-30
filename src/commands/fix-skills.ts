@@ -8,7 +8,7 @@ import type { RuntimeContext } from "../types.js";
 
 export async function runFixSkills(
   context: RuntimeContext,
-  options: { apply?: boolean; includeInfo?: boolean; verbose?: boolean; skills?: string[] } = {},
+  options: { apply?: boolean; backup?: boolean; includeInfo?: boolean; verbose?: boolean; skills?: string[] } = {},
 ) {
   const results = await scanSkillDocFixes(context.homeDir, {
     includeInfo: options.includeInfo,
@@ -25,7 +25,7 @@ export async function runFixSkills(
   }
 
   const rewritable = results.filter((result) => hasActionableSkillDocFix(result));
-  await applySkillDocFixes(rewritable);
+  await applySkillDocFixes(context.homeDir, rewritable, { backup: options.backup });
   context.write(formatSkillDocFixReport(results, {
     apply: true,
     rewrittenCount: rewritable.length,

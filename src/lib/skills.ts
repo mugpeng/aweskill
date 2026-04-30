@@ -13,6 +13,8 @@ export async function ensureHomeLayout(homeDir: string): Promise<void> {
   await mkdir(paths.skillsDir, { recursive: true });
   await mkdir(paths.dupSkillsDir, { recursive: true });
   await mkdir(paths.backupDir, { recursive: true });
+  await mkdir(paths.dedupBackupDir, { recursive: true });
+  await mkdir(paths.fixSkillsBackupDir, { recursive: true });
   await mkdir(paths.bundlesDir, { recursive: true });
 }
 

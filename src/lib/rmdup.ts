@@ -1,4 +1,4 @@
-import { mkdir, readdir, rename, rm } from "node:fs/promises";
+import { cp, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { SkillEntry } from "../types.js";
@@ -137,10 +137,13 @@ export async function findDuplicateSkills(homeDir: string): Promise<DuplicateGro
 export async function removeDuplicateSkills(
   homeDir: string,
   duplicates: DuplicateGroup[],
-  options: { delete?: boolean } = {},
+  options: { backup?: boolean; delete?: boolean } = {},
 ): Promise<{ moved: string[]; deleted: string[] }> {
   const paths = getAweskillPaths(homeDir);
   await mkdir(paths.dupSkillsDir, { recursive: true });
+  if (options.backup) {
+    await mkdir(paths.dedupBackupDir, { recursive: true });
+  }
 
   const moved: string[] = [];
   const deleted: string[] = [];
@@ -148,11 +151,19 @@ export async function removeDuplicateSkills(
   for (const group of duplicates) {
     for (const skill of group.removed) {
       if (options.delete) {
+        if (options.backup) {
+          const backupPath = await nextAvailableDirPath(paths.dedupBackupDir, skill.name);
+          await cp(skill.path, backupPath, { recursive: true, force: false });
+        }
         await rm(skill.path, { recursive: true, force: true });
         deleted.push(skill.name);
         continue;
       }
 
+      if (options.backup) {
+        const backupPath = await nextAvailableDirPath(paths.dedupBackupDir, skill.name);
+        await cp(skill.path, backupPath, { recursive: true, force: false });
+      }
       const targetPath = await nextAvailableDupPath(paths.dupSkillsDir, skill.name);
       await rename(skill.path, targetPath);
       moved.push(`${skill.name} -> ${targetPath}`);
@@ -163,14 +174,18 @@ export async function removeDuplicateSkills(
 }
 
 async function nextAvailableDupPath(dupSkillsDir: string, skillName: string): Promise<string> {
-  const entries = new Set(await readdir(dupSkillsDir).catch(() => []));
+  return nextAvailableDirPath(dupSkillsDir, skillName);
+}
+
+async function nextAvailableDirPath(baseDir: string, skillName: string): Promise<string> {
+  const entries = new Set(await readdir(baseDir).catch(() => []));
   if (!entries.has(skillName)) {
-    return path.join(dupSkillsDir, skillName);
+    return path.join(baseDir, skillName);
   }
 
   let index = 1;
   while (entries.has(`${skillName}-${index}`)) {
     index += 1;
   }
-  return path.join(dupSkillsDir, `${skillName}-${index}`);
+  return path.join(baseDir, `${skillName}-${index}`);
 }

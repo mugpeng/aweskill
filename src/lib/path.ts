@@ -41,6 +41,8 @@ export function getAweskillPaths(homeDir: string): AweskillPaths {
     skillsDir: path.join(rootDir, "skills"),
     dupSkillsDir: path.join(rootDir, "dup_skills"),
     backupDir: path.join(rootDir, "backup"),
+    dedupBackupDir: path.join(rootDir, "backup", "dedup"),
+    fixSkillsBackupDir: path.join(rootDir, "backup", "fix_skills"),
     bundlesDir: path.join(rootDir, "bundles"),
   };
 }

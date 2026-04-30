@@ -66,7 +66,43 @@ function getActivationType(value: string): ActivationType {
   throw new Error(`Unsupported activation type: ${value}`);
 }
 
-function formatCliErrorMessage(message: string): string {
+function formatTooManyArgumentsMessage(message: string, commandArgs: string[]): string | undefined {
+  const match = message.match(/too many arguments(?: for '([^']+)')?\. Expected \d+ arguments? but got (\d+)\./i);
+  if (!match) {
+    return undefined;
+  }
+
+  const commandName = match[1];
+  const commandIndex = commandName ? commandArgs.lastIndexOf(commandName) : -1;
+  const fullCommand = commandIndex >= 0 ? `aweskill ${commandArgs.slice(0, commandIndex + 1).join(" ")}` : "This command";
+  const extraArgs = (commandIndex >= 0 ? commandArgs.slice(commandIndex + 1) : commandArgs).filter((arg) => !arg.startsWith("-"));
+  const label = extraArgs.length <= 1 ? "argument" : "arguments";
+  const lines = [
+    `Unexpected ${label}: ${extraArgs.length > 0 ? extraArgs.join(", ") : "input"}`,
+    "",
+    `\`${fullCommand}\` does not accept positional arguments.`,
+  ];
+
+  const helpLikeArgs = new Set(["h", "help"]);
+  if (extraArgs.length === 1 && helpLikeArgs.has(extraArgs[0]!.toLowerCase())) {
+    lines.push(`For help, use: ${fullCommand} -h`);
+    return lines.join("\n");
+  }
+
+  if (commandName === "fix-skills" && extraArgs.length === 1) {
+    lines.push(`To limit the check to one skill, use: ${fullCommand} --skill ${extraArgs[0]}`);
+  }
+
+  lines.push(`For help, use: ${fullCommand} -h`);
+  return lines.join("\n");
+}
+
+function formatCliErrorMessage(message: string, commandArgs: string[] = []): string {
+  const excessMessage = formatTooManyArgumentsMessage(message, commandArgs);
+  if (excessMessage) {
+    return excessMessage;
+  }
+
   const match = message.match(/missing required argument '([^']+)'/i);
   if (!match) {
     const optionMatch = message.match(/option '([^']+)' argument missing/i);
@@ -123,9 +159,11 @@ async function writeSupportedAgents(context: RuntimeContext): Promise<void> {
 }
 
 function configureCommandTree(command: Command): void {
+  command.configureOutput({
+    outputError: () => undefined,
+  });
   command.showHelpAfterError();
   command.exitOverride((error) => {
-    error.message = formatCliErrorMessage(error.message);
     throw error;
   });
 
@@ -586,17 +624,20 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     .command("dedup")
     .description("Find or remove duplicate central-store skills with numeric/version suffixes")
     .option("--apply", "move duplicate skills into dup_skills (or delete them with --delete)", false)
+    .option("--backup", "copy duplicate skills into backup/dedup before moving or deleting them", false)
     .option("--delete", "when used with --apply, permanently delete duplicates instead of moving them", false)
     .action(async (options) => {
       await runFramedCommand(" aweskill doctor dedup ", async () =>
         runRmdup(context, {
           apply: options.apply,
+          backup: options.backup,
           delete: options.delete,
         }),
       );
     });
   doctor
     .command("fix-skills")
+    .summary("Inspect and optionally normalize malformed SKILL.md frontmatter")
     .description(
       "Inspect and optionally normalize malformed SKILL.md frontmatter; dry-run by default.\n"
       + "Actionable fixes (reported by default):\n"
@@ -613,6 +654,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
     )
     .option("--skill <skill>", "repeat or use comma list; limit fixes to exact skill names", collectAgents)
     .option("--apply", "rewrite malformed skill docs instead of reporting only", false)
+    .option("--backup", "copy original SKILL.md files into backup/fix_skills before rewriting them", false)
     .option("--include-info", "include informational checks that are reported but never rewritten", false)
     .option("--verbose", "show all skill docs needing fixes instead of a short preview", false)
     .action(async (options) => {
@@ -620,6 +662,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
         runFixSkills(context, {
           skills: options.skill ?? [],
           apply: options.apply,
+          backup: options.backup,
           includeInfo: options.includeInfo,
           verbose: options.verbose,
         }),
@@ -660,10 +703,10 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
 
 export async function main(argv = process.argv) {
   const program = createProgram();
+  const normalizedArgv = normalizeVersionAlias(argv);
+  const commandArgs = normalizedArgv.slice(2);
   try {
-    const normalizedArgv = normalizeVersionAlias(argv);
     const context = createRuntimeContext();
-    const commandArgs = normalizedArgv.slice(2);
     assertLegacySkillCommandRemoved(commandArgs);
     await assertStoreInitialized(context.homeDir, commandArgs);
     await program.parseAsync(normalizedArgv);
@@ -678,7 +721,7 @@ export async function main(argv = process.argv) {
       return;
     }
 
-    console.error(`Error: ${formatCliErrorMessage(message)}`);
+    console.error(`Error: ${formatCliErrorMessage(message, commandArgs)}`);
     process.exitCode = 1;
   }
 }
