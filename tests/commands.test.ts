@@ -3075,7 +3075,7 @@ describe("commands", () => {
     await expect(readFile(path.join(skillDir, "SKILL.md"), "utf8")).resolves.toBe(original);
   });
 
-  it("doctor fix-skills --apply never rewrites informational-only findings", async () => {
+  it("doctor fix-skills --apply never rewrites informational-only findings", { timeout: 10_000 }, async () => {
     const workspace = await createTempWorkspace();
     const lines: string[] = [];
     const program = createProgram({

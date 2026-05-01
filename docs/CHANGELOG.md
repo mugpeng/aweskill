@@ -1,5 +1,23 @@
 # change log
 
+## Unreleased
+
+### `aweskill self-update`
+
+Added `aweskill self-update` command to update the CLI tool itself. Supports two update sources:
+
+- `aweskill self-update` — update from npm registry (stable)
+- `aweskill self-update --dev` — update from GitHub dev branch (build from source)
+- `aweskill self-update --check` — check for updates without installing
+
+The npm mode fetches the latest version from the registry and runs `npm install -g aweskill`. The dev mode clones the `dev` branch, builds from source, and installs globally. Both modes prompt for confirmation before proceeding.
+
+### Highlights
+
+- Added `aweskill self-update` command with `--dev` and `--check` flags
+- npm stable and GitHub dev branch update sources
+- Confirmation prompt before applying updates
+
 ## v0.3.0
 
 `v0.3.0` improves the first-time setup experience and makes built-in skills updatable. Since `v0.2.9`, `aweskill store init` now tracks built-in skills with a GitHub source record so they can be refreshed with `aweskill update`. The project also added AI-facing documentation for self-bootstrap installation.

@@ -231,6 +231,12 @@ aweskill install sciskill:open-source/research/lifesciences-proteomics
 # Check tracked installs for source updates
 aweskill update --check
 
+# Update aweskill itself (npm stable)
+aweskill self-update
+
+# Update aweskill from GitHub dev branch
+aweskill self-update --dev
+
 # Scan existing agent skill directories
 aweskill store scan
 
@@ -441,6 +447,7 @@ Top-level convenience commands are available for high-frequency search and track
 
 | Command | Description |
 | --- | --- |
+| `aweskill self-update [--dev] [--check]` | Update the aweskill CLI itself; default updates from npm, `--dev` builds from GitHub dev branch, `--check` shows versions without updating |
 | `aweskill store init [--scan] [--verbose]` | Create the `~/.aweskill` layout |
 | `aweskill store where [--verbose]` | Show the `~/.aweskill` location and summarize core store directories |
 | `aweskill store backup [archive] [--skills-only]` | Archive the central store; by default includes both skills and bundles |

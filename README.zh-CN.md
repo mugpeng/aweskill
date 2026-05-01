@@ -231,6 +231,12 @@ aweskill install sciskill:open-source/research/lifesciences-proteomics
 # 检查 tracked install 是否有来源更新
 aweskill update --check
 
+# 更新 aweskill 自身（npm 稳定版）
+aweskill self-update
+
+# 从 GitHub dev 分支更新 aweskill
+aweskill self-update --dev
+
 # 扫描已有 agent 的 skill 目录
 aweskill store scan
 
@@ -441,6 +447,7 @@ aweskill doctor sync --global --agent codex --apply --remove-suspicious
 
 | 命令 | 说明 |
 | --- | --- |
+| `aweskill self-update [--dev] [--check]` | 更新 aweskill CLI 本身；默认从 npm 更新，`--dev` 从 GitHub dev 分支构建，`--check` 仅显示版本不更新 |
 | `aweskill store init [--scan] [--verbose]` | 初始化 `~/.aweskill` 布局 |
 | `aweskill store where [--verbose]` | 显示 `~/.aweskill` 位置，并汇总核心 store 目录 |
 | `aweskill store backup [archive] [--skills-only]` | 归档中央仓库；默认同时包含 skills 和 bundles |

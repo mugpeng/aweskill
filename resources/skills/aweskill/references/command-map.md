@@ -10,6 +10,13 @@
 - Import external skill folder -> `aweskill store import <path>`
 - Remove one central-store skill -> `aweskill store remove <skill>`
 
+## Self-Update
+
+- Check for CLI updates -> `aweskill self-update --check`
+- Update aweskill from npm -> `aweskill self-update`
+- Update aweskill from GitHub dev branch -> `aweskill self-update --dev`
+- Check dev branch latest commit -> `aweskill self-update --dev --check`
+
 ## Source Lifecycle
 
 - Search upstream skill sources -> `aweskill find <query>`

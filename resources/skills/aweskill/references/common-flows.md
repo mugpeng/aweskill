@@ -11,6 +11,15 @@ aweskill store import --scan
 
 Use when central store is not initialized and agent skill directories already exist.
 
+## Self-Update
+
+```bash
+aweskill self-update --check
+aweskill self-update
+```
+
+Use `--dev` to update from GitHub dev branch instead of npm.
+
 ## Source Discovery and Install
 
 ```bash

@@ -25,6 +25,7 @@ import { runRmdup } from "../commands/rmdup.js";
 import { runScan } from "../commands/scan.js";
 import { runShow } from "../commands/show.js";
 import { runSync } from "../commands/sync.js";
+import { runSelfUpdate } from "../commands/self-update.js";
 import { runUpdate } from "../commands/update.js";
 import { runStoreWhere } from "../commands/where.js";
 import { AWESKILL_VERSION } from "../lib/version.js";
@@ -148,6 +149,22 @@ function addUpdateCommand(parent: Command, context: RuntimeContext, title: strin
     });
 }
 
+function addSelfUpdateCommand(parent: Command, context: RuntimeContext, title: string): void {
+  parent
+    .command("self-update")
+    .description("Update the aweskill CLI itself")
+    .option("--dev", "update from GitHub dev branch instead of npm", false)
+    .option("--check", "check for updates without modifying", false)
+    .action(async (options) => {
+      await runFramedCommand(title, async () =>
+        runSelfUpdate(context, {
+          dev: options.dev,
+          check: options.check,
+        }),
+      );
+    });
+}
+
 export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   const context = createRuntimeContext(overrides);
   const program = new Command();
@@ -161,6 +178,7 @@ export function createProgram(overrides: Partial<RuntimeContext> = {}) {
   addInstallCommand(program, context, " aweskill install ");
   addFindCommand(program, context, " aweskill find ");
   addUpdateCommand(program, context, " aweskill update ");
+  addSelfUpdateCommand(program, context, " aweskill self-update ");
 
   const bundle = program.command("bundle").description("Manage skill bundles");
   bundle

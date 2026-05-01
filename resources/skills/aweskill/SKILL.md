@@ -33,6 +33,7 @@ Use this skill for:
 - `find`
 - `install`
 - `update`
+- `self-update`
 - `store scan`
 - `store import`
 - `store list`
@@ -58,12 +59,14 @@ Classify the task before choosing commands:
 
 - `Store Work`: initialize the central store, inspect it, scan agent roots, import local skills, list contents, or remove managed skills.
 - `Source Lifecycle`: search upstream providers, install from GitHub-style sources or local paths, inspect tracked update availability, or refresh tracked skills.
+- `Self-Update`: update the aweskill CLI itself from npm or GitHub dev branch.
 - `Bundle Work`: create bundles, edit membership, inspect bundles, or import bundle templates.
 - `Projection Work`: project skills or bundles into agent roots, remove projections, inspect agent state, or recover copied agent roots.
 
 Use these routing hints:
 
 - User mentions `find`, `search`, `discover`, `skills.sh`, `sciskill`, GitHub source, install from source, or update from source -> `Source Lifecycle`
+- User mentions `self-update`, `update aweskill`, `upgrade aweskill`, or `update CLI` -> `Self-Update`
 - User mentions `bundle` or `template` -> `Bundle Work`
 - User mentions `agent`, `codex`, `cursor`, `claude-code`, `gemini-cli`, `--global`, `--project`, add/remove skill projections, or recover agent roots -> `Projection Work`
 - User mentions `scan`, `import`, local skill folders, central store contents, or removing managed skills from the store -> `Store Work`
@@ -143,6 +146,18 @@ Prefer this decision order:
 2. `install` when the source is known and the skill should enter the central store.
 3. `update --check` when the user wants visibility before change.
 4. `update` when the skill is already tracked and should be refreshed.
+
+### Self-Update
+
+Use this path when the task is about updating the aweskill CLI tool itself.
+
+For updating aweskill:
+
+1. Run `aweskill self-update --check` to see current vs latest npm version.
+2. Run `aweskill self-update` to update from npm registry (stable).
+3. Run `aweskill self-update --dev --check` to see the latest dev branch commit.
+4. Run `aweskill self-update --dev` to build and install from GitHub dev branch.
+5. Both modes prompt for confirmation before applying the update.
 
 ### Bundle Work
 
