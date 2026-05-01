@@ -33,6 +33,7 @@ Current top-level convenience commands:
 - `aweskill find`
 - `aweskill install`
 - `aweskill update`
+- `aweskill self-update`
 
 Store-only commands stay under `store`, including:
 
@@ -44,6 +45,8 @@ Store-only commands stay under `store`, including:
 - `store restore`
 - `store list`
 - `store remove`
+
+`self-update` is the only top-level maintenance command outside the core `bundle` / `agent` / `store` / `doctor` areas. It exists to update the `aweskill` CLI itself, not the managed skill store.
 
 New concepts should be rare. Prefer making existing areas clearer before adding more CLI surface.
 

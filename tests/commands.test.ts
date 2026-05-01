@@ -1195,6 +1195,35 @@ describe("commands", () => {
     );
   });
 
+  it("does not create agent skill directories during preflight when a later target fails validation", async () => {
+    const workspace = await createTempWorkspace();
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: () => undefined,
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+    await writeSkill(getSkillPath(workspace.homeDir, "biopython"));
+
+    const adalSkillsDir = resolveAgentSkillsDir("adal", "global", workspace.homeDir);
+    const conflictedTarget = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "biopython");
+    await mkdir(conflictedTarget, { recursive: true });
+    await writeFile(path.join(conflictedTarget, "SKILL.md"), "# Foreign Skill\n", "utf8");
+
+    await expect(
+      program.parseAsync(
+        ["node", "aweskill", "agent", "add", "skill", "biopython", "--global", "--agent", "adal,codex"],
+        { from: "node" },
+      ),
+    ).rejects.toThrow(
+      `Target path already exists as a directory: ${conflictedTarget}. Re-run with --force to replace it with an aweskill-managed projection.`,
+    );
+
+    await expect(access(adalSkillsDir)).rejects.toThrow();
+  });
+
   it("prints friendly cli errors instead of a stack trace", async () => {
     const workspace = await createTempWorkspace();
     const previousCwd = process.cwd();

@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
 import { getProjectionMode, resolveAgentSkillsDir, resolveAgentsForMutation } from "../lib/agents.js";
@@ -81,7 +80,6 @@ export async function runEnable(
   // Preflight: check all targets are safe before touching any
   for (const agentId of agents) {
     const skillsDir = resolveAgentSkillsDir(agentId, options.scope, baseDir);
-    await mkdir(skillsDir, { recursive: true });
     for (const skillName of skillNames) {
       const sourcePath = getSkillPath(context.homeDir, skillName);
       const targetPath = path.join(skillsDir, skillName);
