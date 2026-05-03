@@ -31,7 +31,7 @@ describe("self-update", () => {
   describe("npm mode", () => {
     it("shows up-to-date message when versions match", async () => {
       const { context, lines } = createRuntime("/tmp/home", "/tmp/cwd");
-      vi.mocked(selfUpdateModule.getNpmLatestVersion).mockResolvedValue("0.3.0");
+      vi.mocked(selfUpdateModule.getNpmLatestVersion).mockResolvedValue("0.3.1");
 
       await runSelfUpdate(context, {});
 
