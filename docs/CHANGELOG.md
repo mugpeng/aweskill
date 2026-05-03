@@ -1,6 +1,12 @@
 # change log
 
-## Unreleased
+## v0.3.1
+
+`v0.3.1` adds the official website for aweskill. Since `v0.3.0`, the project now has a public site at [aweskill.webioinfo.top](https://aweskill.webioinfo.top) with install guides, agent compatibility overview, and bilingual support (English and Chinese). The website also includes the contribution guidelines in `aweskill-web/docs/contribution.md`.
+
+### Official website
+
+The [aweskill-web](https://github.com/mugpeng/aweskill/tree/main/aweskill-web) project was added as the official website for the CLI tool. It is built with Astro and Tailwind CSS, supporting both English and Chinese content. The site badge was added to both `README.md` and `README.zh-CN.md`.
 
 ### `aweskill self-update`
 
@@ -14,6 +20,8 @@ The npm mode fetches the latest version from the registry and runs `npm install 
 
 ### Highlights
 
+- Added official website at [aweskill.webioinfo.top](https://aweskill.webioinfo.top)
+- Website built with Astro + Tailwind CSS, bilingual support
 - Added `aweskill self-update` command with `--dev` and `--check` flags
 - npm stable and GitHub dev branch update sources
 - Confirmation prompt before applying updates
