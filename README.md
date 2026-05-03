@@ -8,6 +8,7 @@
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
+    <a href="https://aweskill.webioinfo.top/"><img src="https://img.shields.io/badge/website-aweskill.webioinfo.top-7C3AED?style=flat-square" alt="Website"></a>
   </p>
   <p>
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
@@ -28,6 +29,8 @@
 It helps developers find, install, update, bundle, deduplicate, back up, and reuse skills across multiple AI coding tools.
 
 Instead of copying the same `SKILL.md` folders into every tool by hand, `aweskill` keeps one central source of truth in `~/.aweskill/skills/` and projects selected skills into each agent's expected directory using `symlink`, junction, or managed `copy`.
+
+> **Website:** [aweskill.webioinfo.top](https://aweskill.webioinfo.top/) — project homepage with install guides and agent compatibility overview.
 
 ## Install
 

@@ -8,6 +8,7 @@
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="./README.md"><img src="https://img.shields.io/badge/README-English-64748B?style=flat-square" alt="English README"></a>
+    <a href="https://aweskill.webioinfo.top/"><img src="https://img.shields.io/badge/website-aweskill.webioinfo.top-7C3AED?style=flat-square" alt="Website"></a>
   </p>
   <p>
     <img src="https://img.shields.io/badge/status-beta-c96a3d?style=flat-square" alt="Status">
@@ -28,6 +29,8 @@
 它可以帮助开发者查找、安装、更新、打包、查重、备份并复用 skills。
 
 你不需要再把同一套 `SKILL.md` 文件夹手动复制到每个工具里。`aweskill` 会把 `~/.aweskill/skills/` 作为唯一中央仓库，再通过 `symlink`、junction 或受管 `copy`，把选中的 skill 投影到每个 agent 需要的目录。
+
+> **项目网站：**[aweskill.webioinfo.top](https://aweskill.webioinfo.top/) — 包含安装指南和 Agent 兼容性概览。
 
 ## 安装
 
