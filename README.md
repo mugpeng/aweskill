@@ -148,16 +148,19 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 
 ## Comparison
 
-| Capability | `cc-switch` | `sciskill` | `skillfish` | `skills` | How aweskill does it |
-|---|---|---|---|---|---|
-| One central local skill store | ✗ | ✗ | ✗ | ✗ | Keeps all managed skills in `~/.aweskill/skills/` as the source of truth |
-| Search across major skill registries | ✗ | ✓ | ✓ | ✓ | Searches [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), or the local central store with `aweskill find` |
-| Install from registries, GitHub-style sources, and local paths | ✗ | ✗ | ✓ | ✓ | Imports from GitHub-style sources, local paths, and `sciskill:<skill-id>` into the central store |
-| Tracked updates from recorded sources | ✗ | ✗ | ✓ | ✓ | Records source metadata, then refreshes with `aweskill update` while protecting local central-store edits |
-| Plug-and-play multi-agent projection | ✓ | ✗ | ✓ | ✓ | Projects selected skills from the central store into agent-specific directories using `symlink`, junction, or managed `copy` |
-| Bundle-based skill sets | ✗ | ✗ | ✓ | ✗ | Uses bundles to group reusable skills by project, team, workflow, or agent |
-| Agent-callable management skills | ✗ | ✗ | ✗ | ✗ | Ships built-in `aweskill` and `aweskill-doctor` skills so AI agents can run aweskill workflows from natural-language requests |
-| Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, fix-skills, and recover workflows in the CLI |
+| Capability | [`cc-switch`](https://github.com/farion1231/cc-switch) | [`sciskill`](https://github.com/sciskillhub/sciskill) | [`Skills Manager`](https://github.com/jiweiyeah/Skills-Manager) | [`skillfish`](https://github.com/knoxgraeme/skillfish) | [`vercel-labs/skills`](https://github.com/vercel-labs/skills) | [`skills-manage`](https://github.com/iamzhihuix/skills-manage) | How aweskill does it |
+|---|---|---|---|---|---|---|---|
+| One central local skill store | ✗ | ✗ | ✓ | ✗ | ✗ | ✓ | Keeps all managed skills in `~/.aweskill/skills/` as the source of truth |
+| Registry or catalog discovery | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ | Searches [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), or the local central store with `aweskill find` |
+| GitHub-style repo import/install | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | Imports from GitHub-style sources and `sciskill:<skill-id>` into the central store |
+| Local-path import/install | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | Imports from local paths into the central store |
+| Tracked updates from recorded sources | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | Records source metadata, then refreshes with `aweskill update` while protecting local central-store edits |
+| Plug-and-play multi-agent projection | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | Projects selected skills from the central store into agent-specific directories using `symlink`, junction, or managed `copy` |
+| Bundle, manifest, or collection grouping | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | Uses bundles to group reusable skills by project, team, workflow, or agent |
+| Agent-callable management skills | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Ships built-in `aweskill` and `aweskill-doctor` skills so AI agents can run aweskill workflows from natural-language requests |
+| Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, fix-skills, and recover workflows in the CLI |
+
+`sciskill` here refers to the public registry-metadata repository under `sciskillhub`, not a local skill-manager CLI.
 
 Use `aweskill` when your main problem is not just installing a skill once, but maintaining a reusable local skill inventory across multiple AI agents over time and keeping that local state repairable when it inevitably gets messy.
 
@@ -610,10 +613,12 @@ Works with 47 agents including:
 
 ## Related Tools
 
+- [sciskill](https://github.com/sciskillhub/sciskill): a public registry-metadata repository that tracks GitHub skills with valid `SKILL.md` files and publishes a collected index for discovery.
 - [Skills Manager](https://github.com/jiweiyeah/Skills-Manager): a desktop application for managing skills across multiple AI coding assistants, with synchronization and GUI-driven organization.
 - [skillfish](https://github.com/knoxgraeme/skillfish): a CLI-first skill manager focused on installing, updating, and syncing skills across agents.
 - [vercel-labs/skills](https://github.com/vercel-labs/skills): a widely adopted open agent-skills CLI and ecosystem entry point built around reusable `SKILL.md` packages.
 - [cc-switch](https://github.com/farion1231/cc-switch): a desktop all-in-one manager for Claude Code, Codex, Gemini CLI, OpenCode, and related local AI tooling.
+- [skills-manage](https://github.com/iamzhihuix/skills-manage): a Tauri desktop app for managing AI coding agent skills from one place, with a central library, marketplace browsing, GitHub import, collections, and per-platform installs.
 
 ## Development
 

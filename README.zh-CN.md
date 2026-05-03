@@ -148,16 +148,19 @@ npm install -g ./aweskill-<version>.tgz
 
 ## 对比
 
-| 能力维度 | `cc-switch` | `sciskill` | `skillfish` | `skills` | aweskill 如何实现 |
-|---|---|---|---|---|---|
-| 单一中央本地 skill 仓库 | ✗ | ✗ | ✗ | ✗ | 把所有托管 skills 放在 `~/.aweskill/skills/`，作为唯一事实来源 |
-| 跨主流 skill registry 搜索 | ✗ | ✓ | ✓ | ✓ | 用 `aweskill find` 搜索 [skills.sh](https://skills.sh/)、[sciskillhub.org](https://sciskillhub.org/) 或本地中央仓库 |
-| 从 registry、GitHub 风格 source、本地路径安装 | ✗ | ✗ | ✓ | ✓ | 从 GitHub 风格 source、本地路径和 `sciskill:<skill-id>` 导入到中央仓库 |
-| 按记录来源追踪更新 | ✗ | ✗ | ✓ | ✓ | 记录 source 元数据，再用 `aweskill update` 刷新，同时保护中央仓库里的本地修改 |
-| 多 agent 按需插拔投影 | ✓ | ✗ | ✓ | ✓ | 通过 `symlink`、junction 或受管 `copy`，把中央仓库里的 skills 投影到各 agent 目录 |
-| bundle 化技能集合 | ✗ | ✗ | ✓ | ✗ | 用 bundle 按项目、团队、工作流或 agent 组织可复用 skill 集合 |
-| 可被 agent 直接调用的管理 skills | ✗ | ✗ | ✗ | ✗ | 内置 `aweskill` 和 `aweskill-doctor` skills，让 AI agents 可根据自然语言请求运行 aweskill 工作流 |
-| 本地维护与恢复能力 | ✗ | ✗ | ✗ | ✗ | CLI 内置 backup、restore、dedup、clean、sync、fix-skills 和 recover 工作流 |
+| 能力维度 | [`cc-switch`](https://github.com/farion1231/cc-switch) | [`sciskill`](https://github.com/sciskillhub/sciskill) | [`Skills Manager`](https://github.com/jiweiyeah/Skills-Manager) | [`skillfish`](https://github.com/knoxgraeme/skillfish) | [`vercel-labs/skills`](https://github.com/vercel-labs/skills) | [`skills-manage`](https://github.com/iamzhihuix/skills-manage) | aweskill 如何实现 |
+|---|---|---|---|---|---|---|---|
+| 单一中央本地 skill 仓库 | ✗ | ✗ | ✓ | ✗ | ✗ | ✓ | 把所有托管 skills 放在 `~/.aweskill/skills/`，作为唯一事实来源 |
+| registry / catalog 发现能力 | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ | 用 `aweskill find` 搜索 [skills.sh](https://skills.sh/)、[sciskillhub.org](https://sciskillhub.org/) 或本地中央仓库 |
+| GitHub 风格仓库导入/安装 | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | 从 GitHub 风格 source 和 `sciskill:<skill-id>` 导入到中央仓库 |
+| 本地路径导入/安装 | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | 从本地路径导入到中央仓库 |
+| 按记录来源追踪更新 | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | 记录 source 元数据，再用 `aweskill update` 刷新，同时保护中央仓库里的本地修改 |
+| 多 agent 按需插拔投影 | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | 通过 `symlink`、junction 或受管 `copy`，把中央仓库里的 skills 投影到各 agent 目录 |
+| bundle / manifest / collection 分组 | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | 用 bundle 按项目、团队、工作流或 agent 组织可复用 skill 集合 |
+| 可被 agent 直接调用的管理 skills | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | 内置 `aweskill` 和 `aweskill-doctor` skills，让 AI agents 可根据自然语言请求运行 aweskill 工作流 |
+| 本地维护与恢复能力 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | CLI 内置 backup、restore、dedup、clean、sync、fix-skills 和 recover 工作流 |
+
+这里的 `sciskill` 指的是 `sciskillhub` 下的公开 registry 元数据仓库，不是本地 skill 管理 CLI。
 
 当你的核心问题不只是“装一个 skill”，而是“长期维护一套可复用、可更新、可恢复、可跨 agent 复用，而且出问题后还能诊断和修复的本地 skills 资产”时，`aweskill` 更合适。
 
@@ -551,10 +554,12 @@ skill 目录结构与设计原则见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 如果你在关注更广的 skills 生态，下面这些项目都值得使用和研究：
 
+- [sciskill](https://github.com/sciskillhub/sciskill)：公开的 registry 元数据仓库，用来收集带合法 `SKILL.md` 的 GitHub skills，并发布可供发现的索引。
 - [Skills Manager](https://github.com/jiweiyeah/Skills-Manager)：桌面化的多 AI 编码助手技能管理器，适合可视化组织、同步和分享 skill。
 - [skillfish](https://github.com/knoxgraeme/skillfish)：偏 CLI 的 skill 管理工具，强调安装、更新和跨 agent 同步。
 - [vercel-labs/skills](https://github.com/vercel-labs/skills)：开放的 agent skills CLI 和生态入口，对 `SKILL.md` 包约定影响很大。
 - [cc-switch](https://github.com/farion1231/cc-switch)：面向 Claude Code、Codex、Gemini CLI、OpenCode 等工具的一站式桌面管理器。
+- [skills-manage](https://github.com/iamzhihuix/skills-manage)：Tauri 桌面技能管理器，提供中央技能库、marketplace 浏览、GitHub 导入、collections 和按平台安装能力。
 
 ## 支持的 Agent
 
