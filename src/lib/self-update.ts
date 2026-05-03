@@ -25,10 +25,9 @@ export interface GitHubDevCommit {
 }
 
 export async function getGitHubDevCommit(): Promise<GitHubDevCommit> {
-  const response = await fetch(
-    "https://api.github.com/repos/mugpeng/aweskill/commits?sha=dev&per_page=1",
-    { headers: { Accept: "application/vnd.github+json" } },
-  );
+  const response = await fetch("https://api.github.com/repos/mugpeng/aweskill/commits?sha=dev&per_page=1", {
+    headers: { Accept: "application/vnd.github+json" },
+  });
 
   if (!response.ok) {
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);

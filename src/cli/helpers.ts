@@ -99,7 +99,11 @@ export function isInitializationExempt(args: string[]): boolean {
     return true;
   }
 
-  return args[0] === "find" || args[0] === "self-update" || (args[0] === "store" && (args[1] === "init" || args[1] === "find"));
+  return (
+    args[0] === "find" ||
+    args[0] === "self-update" ||
+    (args[0] === "store" && (args[1] === "init" || args[1] === "find"))
+  );
 }
 
 export function isKnownTopLevelCommand(arg?: string): boolean {
