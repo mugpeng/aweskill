@@ -46,6 +46,15 @@ Read https://github.com/mugpeng/aweskill/blob/main/README.ai.md and follow it to
 
 The agent will install the CLI, initialize the store, and project the built-in skills. After restarting the agent, it can use aweskill directly from natural-language requests.
 
+<details>
+<summary>Example agent-assisted install screenshot</summary>
+
+![Example: a coding agent following README.ai.md to install aweskill and project the built-in skills.](docs/article_media/0504/aweskill-agent-install-demo.png)
+
+_Example: a coding agent following `README.ai.md` to install aweskill, initialize the central store, and project the built-in skills._
+
+</details>
+
 ### Install from npm (recommended)
 
 Requires [Node.js](https://nodejs.org/) 20 or later.

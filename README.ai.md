@@ -11,6 +11,13 @@ After completing this protocol:
 3. The built-in skills `aweskill` and `aweskill-doctor` are projected into the current agent's skill directory
 4. After the user restarts this agent, it can use aweskill commands from natural-language requests
 
+## Language Behavior
+
+- Reply in the user's language when possible.
+- If the user asks in Chinese, continue in Chinese.
+- If the user asks in English, continue in English.
+- If the user explicitly asks for another language, follow that request.
+
 ## Prerequisites
 
 - Node.js >= 20 (`node --version`)
@@ -78,7 +85,17 @@ Expected output should show `aweskill` and `aweskill-doctor` as `linked`.
 
 After projection, the agent needs to be restarted to pick up the new skills. Tell the user:
 
-> aweskill is installed. Please restart this agent to activate the aweskill and aweskill-doctor skills. After restart, you can ask me to manage skills, install from sources, create bundles, and more.
+> aweskill is installed. Please restart this agent to activate the aweskill and aweskill-doctor skills. After restart, you can ask me things like:
+>
+> - "Find a useful Python data-analysis skill and install it into aweskill."
+> - "What can I do with aweskill?"
+
+If the user is speaking Chinese, use this version instead:
+
+> aweskill 已安装。请重启当前 agent，以激活 aweskill 和 aweskill-doctor 这两个 skills。重启后，你可以继续问我，例如：
+>
+> - “帮我找一个好用的 Python 数据分析 skill，并安装到 aweskill。”
+> - “我能用 aweskill 做什么？”
 
 ## Safety Rules
 

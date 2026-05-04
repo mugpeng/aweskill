@@ -16,7 +16,12 @@ If `aweskill` is not installed or the store is not initialized, run the full boo
 3. Confirm the store location: `aweskill store where --verbose`
 4. Project built-in skills to the current agent: `aweskill agent add skill aweskill,aweskill-doctor --global --agent <current-agent-id>`
 5. Verify: `aweskill agent list --global --agent <current-agent-id>` — both skills should show as `linked`
-6. Tell the user to restart the agent so the new skills become available
+6. Tell the user to restart the agent so the new skills become available. Use this message:
+
+   > aweskill is installed. Please restart this agent to activate the aweskill and aweskill-doctor skills. After restart, you can ask me things like:
+   >
+   > - "Find a useful Python data-analysis skill and install it into aweskill."
+   > - "What can I do with aweskill?"
 
 If `aweskill` is already installed but the store is not initialized, start from step 2.
 If the store is initialized but skills are not projected, start from step 4.

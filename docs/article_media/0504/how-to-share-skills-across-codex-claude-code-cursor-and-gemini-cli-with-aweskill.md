@@ -142,6 +142,18 @@ aweskill agent add bundle daily-coding --global --agent cursor
 
 Central store restored. Bundle re-projected. Back to work.
 
+## Install aweskill by asking your agent
+
+One of the cleanest parts of the workflow is that you do not need to perform the bootstrap manually. You can hand the protocol to your coding agent directly:
+
+```text
+Read https://github.com/mugpeng/aweskill/blob/main/README.ai.md and follow it to install aweskill.
+```
+
+![Example of an AI coding agent following README.ai.md to install aweskill and activate the built-in management skills.](aweskill-agent-install-demo.png)
+
+In one pass, the agent can install the CLI, initialize the central store, detect the current runtime, project `aweskill` and `aweskill-doctor`, and then tell you to restart so the new skills become active.
+
 ## Getting Started
 
 Install:
