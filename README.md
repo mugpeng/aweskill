@@ -4,10 +4,14 @@
   <p><strong>A CLI-first skill package manager that AI agents can operate themselves.</strong></p>
   <p>Install, update, bundle, and project skills across Codex, Claude Code, Cursor, Gemini CLI, Qwen Code, Windsurf, and more.</p>
   <p>
+    <strong>English</strong> ·
+    <a href="./README.zh-CN.md">简体中文</a> ·
+    <a href="https://aweskill.webioinfo.top/">Website</a>
+  </p>
+  <p>
     <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.3.1-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
-    <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-64748B?style=flat-square" alt="Chinese README"></a>
     <a href="https://aweskill.webioinfo.top/"><img src="https://img.shields.io/badge/website-aweskill.webioinfo.top-7C3AED?style=flat-square" alt="Website"></a>
   </p>
   <p>
@@ -625,6 +629,7 @@ Works with 47 agents including:
 - [sciskill](https://github.com/sciskillhub/sciskill): a public registry-metadata repository that tracks GitHub skills with valid `SKILL.md` files and publishes a collected index for discovery.
 - [Skills Manager](https://github.com/jiweiyeah/Skills-Manager): a desktop application for managing skills across multiple AI coding assistants, with synchronization and GUI-driven organization.
 - [skillfish](https://github.com/knoxgraeme/skillfish): a CLI-first skill manager focused on installing, updating, and syncing skills across agents.
+- [Vibe-Skills](https://github.com/foryourhealth111-pixel/Vibe-Skills): an all-in-one AI skills package and harness that orchestrates expert Skills, verification, and persistent context for general-purpose agents.
 - [vercel-labs/skills](https://github.com/vercel-labs/skills): a widely adopted open agent-skills CLI and ecosystem entry point built around reusable `SKILL.md` packages.
 - [cc-switch](https://github.com/farion1231/cc-switch): a desktop all-in-one manager for Claude Code, Codex, Gemini CLI, OpenCode, and related local AI tooling.
 - [skills-manage](https://github.com/iamzhihuix/skills-manage): a Tauri desktop app for managing AI coding agent skills from one place, with a central library, marketplace browsing, GitHub import, collections, and per-platform installs.
