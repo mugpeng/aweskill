@@ -1,0 +1,21 @@
+name: baoyu-skills
+skills:
+  - baoyu-article-illustrator
+  - baoyu-comic
+  - baoyu-compress-image
+  - baoyu-cover-image
+  - baoyu-danger-gemini-web
+  - baoyu-danger-x-to-markdown
+  - baoyu-diagram
+  - baoyu-format-markdown
+  - baoyu-image-cards
+  - baoyu-imagine
+  - baoyu-infographic
+  - baoyu-markdown-to-html
+  - baoyu-post-to-wechat
+  - baoyu-post-to-weibo
+  - baoyu-post-to-x
+  - baoyu-slide-deck
+  - baoyu-translate
+  - baoyu-url-to-markdown
+  - baoyu-youtube-transcript
