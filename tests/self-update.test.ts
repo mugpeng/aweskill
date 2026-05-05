@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import packageJson from "../package.json" with { type: "json" };
 import { createRuntime } from "./helpers.ts";
 
 vi.mock("../src/lib/self-update.js", () => ({
@@ -31,7 +32,7 @@ describe("self-update", () => {
   describe("npm mode", () => {
     it("shows up-to-date message when versions match", async () => {
       const { context, lines } = createRuntime("/tmp/home", "/tmp/cwd");
-      vi.mocked(selfUpdateModule.getNpmLatestVersion).mockResolvedValue("0.3.1");
+      vi.mocked(selfUpdateModule.getNpmLatestVersion).mockResolvedValue(packageJson.version);
 
       await runSelfUpdate(context, {});
 

@@ -9,7 +9,7 @@
     <a href="https://aweskill.webioinfo.top/">官网</a>
   </p>
   <p>
-    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.3.1-7C3AED?style=flat-square" alt="Version"></a>
+    <a href="https://github.com/mugpeng/aweskill/releases"><img src="https://img.shields.io/badge/version-0.3.2-7C3AED?style=flat-square" alt="Version"></a>
     <a href="https://github.com/mugpeng/aweskill"><img src="https://img.shields.io/badge/node-%E2%89%A520-0EA5E9?style=flat-square" alt="Node"></a>
     <a href="https://github.com/mugpeng/aweskill/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL--2.0-22C55E?style=flat-square" alt="License"></a>
     <a href="https://aweskill.webioinfo.top/"><img src="https://img.shields.io/badge/website-aweskill.webioinfo.top-7C3AED?style=flat-square" alt="Website"></a>
@@ -62,7 +62,7 @@ aweskill --help
 固定到某一版本：
 
 ```bash
-npm install -g aweskill@0.3.1
+npm install -g aweskill@0.3.2
 ```
 
 包主页：[npmjs.com/package/aweskill](https://www.npmjs.com/package/aweskill)

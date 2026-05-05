@@ -1,5 +1,29 @@
 # change log
 
+## v0.3.2
+
+`v0.3.2` expands the agent-operated aweskill story and adds reusable bundle templates. Since `v0.3.1`, the project documentation now includes agent-assisted install media, two bilingual long-form articles, improved README language switching and Chinese copy, plus new bundled Skill sets for publishing workflows.
+
+### Agent-assisted install and article media
+
+Added article media under `docs/article_media/0504/` and `docs/article_media/0505/`, including the agent-assisted install screenshot and bilingual Markdown articles. The first article explains the multi-agent Skill sharing problem that aweskill solves; the second focuses on letting AI coding agents operate aweskill through `README.ai.md`, `aweskill`, and `aweskill-doctor`.
+
+### README and AI bootstrap copy
+
+Both READMEs were refreshed around the current product positioning, with clearer language links, improved Chinese wording, website references, the agent-assisted install screenshot, and updated specific-release install snippets. `README.ai.md` was tightened so the bootstrap protocol stays focused on installing aweskill for the current agent rather than broad projection.
+
+### Bundle templates and built-in skill guidance
+
+Added reusable bundle templates for Baoyu publishing workflows in `resources/bundle_templates/`, and updated the built-in `aweskill` Skill guidance to reflect the current install and projection model.
+
+### Highlights
+
+- Added bilingual article media for the aweskill multi-agent sharing and agent-operated workflows.
+- Added the agent-assisted install screenshot used by README and article content.
+- Refined README language links, Chinese wording, website references, and pinned install examples.
+- Added Baoyu publishing bundle templates.
+- Updated built-in `aweskill` Skill guidance for current bootstrap and projection behavior.
+
 ## v0.3.1
 
 `v0.3.1` adds the official website for aweskill. Since `v0.3.0`, the project now has a public site at [aweskill.webioinfo.top](https://aweskill.webioinfo.top) with install guides, agent compatibility overview, and bilingual support (English and Chinese). The website also includes the contribution guidelines in `aweskill-web/docs/contribution.md`.
