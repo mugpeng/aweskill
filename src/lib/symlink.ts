@@ -1,7 +1,7 @@
 import { cp, lstat, mkdir, readdir, readFile, readlink, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { isSameOrDescendantPath } from "./path.js";
+import { isPathSafe } from "./path.js";
 
 const COPY_MARKER = ".aweskill-projection.json";
 
@@ -82,7 +82,7 @@ export async function inspectProjectionTarget(
   if (existing.isSymbolicLink()) {
     const currentTarget = await readlink(targetPath);
     const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
-    if (centralRoot && isSameOrDescendantPath(centralRoot, resolvedCurrent)) {
+    if (centralRoot && isPathSafe(centralRoot, resolvedCurrent)) {
       return {
         kind: "managed_symlink",
         sourcePath: resolvedCurrent,
@@ -283,7 +283,7 @@ export async function listManagedSkillNames(
         try {
           const currentTarget = await readlink(targetPath);
           const resolvedCurrent = path.resolve(path.dirname(targetPath), currentTarget);
-          if (isSameOrDescendantPath(centralSkillsDir, resolvedCurrent)) {
+          if (isPathSafe(centralSkillsDir, resolvedCurrent)) {
             result.set(entry.name, "symlink");
           }
         } catch {

@@ -5,7 +5,7 @@ import type { ScanCandidate, Scope } from "../types.js";
 import type { AgentId } from "./agents.js";
 import { isAgentId, listSupportedAgentIds, resolveAgentSkillsDir, supportsScope } from "./agents.js";
 import { pathExists } from "./fs.js";
-import { sanitizeName } from "./path.js";
+import { sanitizeName, uniqueSorted } from "./path.js";
 
 async function hasSkillReadme(skillDir: string): Promise<boolean> {
   try {
@@ -74,10 +74,6 @@ async function scanDirectory(
   } catch {
     return [];
   }
-}
-
-function uniqueSorted<T extends string>(items: T[]): T[] {
-  return [...new Set(items)].sort((left, right) => left.localeCompare(right));
 }
 
 export function resolveRequestedAgents(requestedAgents: string[], scope: Scope): AgentId[] {
