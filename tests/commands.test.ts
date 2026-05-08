@@ -1322,13 +1322,13 @@ describe("commands", () => {
     );
     const duplicateDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill");
     const newDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "new-skill");
-    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".hidden");
     await mkdir(duplicateDir, { recursive: true });
     await mkdir(newDir, { recursive: true });
     await mkdir(suspiciousDir, { recursive: true });
     await writeFile(path.join(duplicateDir, "SKILL.md"), "# Duplicate Skill\n", "utf8");
     await writeFile(path.join(newDir, "SKILL.md"), "# New Skill\n", "utf8");
-    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# System\n", "utf8");
+    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# Hidden\n", "utf8");
     await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
 
     expect(lines.join("\n")).toContain("Global skills for codex:");
@@ -1341,7 +1341,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain(`    ✓ linked-skill`);
     expect(lines.join("\n")).toContain(`    ! duplicate-skill`);
     expect(lines.join("\n")).toContain(`    + new-skill`);
-    expect(lines.join("\n")).toContain(`    ? .system`);
+    expect(lines.join("\n")).toContain(`    ? .hidden`);
   });
 
   it("categorizes duplicate-family matches as matched in agent list", async () => {
@@ -1485,11 +1485,11 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "duplicate-skill"), "Central Duplicate");
     const duplicateDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill");
-    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".hidden");
     await mkdir(duplicateDir, { recursive: true });
     await mkdir(suspiciousDir, { recursive: true });
     await writeFile(path.join(duplicateDir, "SKILL.md"), "# Agent Duplicate\n", "utf8");
-    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# System\n", "utf8");
+    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# Hidden\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "codex"], { from: "node" });
 
@@ -1590,16 +1590,39 @@ describe("commands", () => {
 
     const skillsDir = resolveAgentSkillsDir("trae", "global", workspace.homeDir);
     const missingSkillMdDir = path.join(skillsDir, "claude-code-plugins");
-    const dotDir = path.join(skillsDir, ".system");
+    const dotDir = path.join(skillsDir, ".hidden");
     await mkdir(missingSkillMdDir, { recursive: true });
     await mkdir(dotDir, { recursive: true });
-    await writeFile(path.join(dotDir, "SKILL.md"), "# system\n", "utf8");
+    await writeFile(path.join(dotDir, "SKILL.md"), "# hidden\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "agent", "list", "--agent", "trae"], { from: "node" });
 
     expect(lines.join("\n")).toContain("  suspicious: 2");
     expect(lines.join("\n")).toContain(`    ? claude-code-plugins ${missingSkillMdDir}`);
-    expect(lines.join("\n")).toContain(`    ? .system ${dotDir}`);
+    expect(lines.join("\n")).toContain(`    ? .hidden ${dotDir}`);
+  });
+
+  it("does not report .system as suspicious", async () => {
+    const workspace = await createTempWorkspace();
+    const lines: string[] = [];
+    const program = createProgram({
+      cwd: workspace.projectDir,
+      homeDir: workspace.homeDir,
+      write: (message) => lines.push(message),
+      error: () => undefined,
+    });
+
+    await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
+
+    const skillsDir = resolveAgentSkillsDir("codex", "global", workspace.homeDir);
+    const systemDir = path.join(skillsDir, ".system");
+    await mkdir(path.join(systemDir, "imagegen"), { recursive: true });
+    await writeFile(path.join(systemDir, "imagegen", "SKILL.md"), "# Imagegen\n", "utf8");
+
+    await program.parseAsync(["node", "aweskill", "agent", "list", "--global", "--agent", "codex"], { from: "node" });
+
+    expect(lines.join("\n")).not.toContain(".system");
+    expect(lines.join("\n")).not.toContain("suspicious");
   });
 
   it("scan lists discovered entries from agent directories", async () => {
@@ -3583,7 +3606,7 @@ describe("commands", () => {
     const duplicateDir4 = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill-4");
     const duplicateDir5 = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill-5");
     const duplicateDir6 = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill-6");
-    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".hidden");
     await mkdir(duplicateDir, { recursive: true });
     await mkdir(duplicateDir2, { recursive: true });
     await mkdir(duplicateDir3, { recursive: true });
@@ -3597,7 +3620,7 @@ describe("commands", () => {
     await writeFile(path.join(duplicateDir4, "SKILL.md"), "# Agent Duplicate 4\n", "utf8");
     await writeFile(path.join(duplicateDir5, "SKILL.md"), "# Agent Duplicate 5\n", "utf8");
     await writeFile(path.join(duplicateDir6, "SKILL.md"), "# Agent Duplicate 6\n", "utf8");
-    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# System\n", "utf8");
+    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# Hidden\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
     expect(lines.join("\n")).toContain("Global skills for codex:");
@@ -3606,7 +3629,7 @@ describe("commands", () => {
     expect(lines.join("\n")).toContain("  matched: 5");
     expect(lines.join("\n")).toContain("  suspicious: 1");
     expect(lines.join("\n")).toContain("    ! duplicate-skill");
-    expect(lines.join("\n")).toContain("    ? .system");
+    expect(lines.join("\n")).toContain("    ? .hidden");
     expect((await lstat(duplicateDir)).isDirectory()).toBe(true);
 
     lines.length = 0;
@@ -3664,9 +3687,9 @@ describe("commands", () => {
       error: () => undefined,
     });
 
-    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".hidden");
     await mkdir(suspiciousDir, { recursive: true });
-    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# System\n", "utf8");
+    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# Hidden\n", "utf8");
 
     await expect(
       program.parseAsync(
@@ -3696,11 +3719,11 @@ describe("commands", () => {
     await program.parseAsync(["node", "aweskill", "store", "init"], { from: "node" });
     await writeSkill(getSkillPath(workspace.homeDir, "duplicate-skill"), "Central Duplicate");
     const duplicateDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), "duplicate-skill");
-    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".system");
+    const suspiciousDir = path.join(resolveAgentSkillsDir("codex", "global", workspace.homeDir), ".hidden");
     await mkdir(duplicateDir, { recursive: true });
     await mkdir(suspiciousDir, { recursive: true });
     await writeFile(path.join(duplicateDir, "SKILL.md"), "# Agent Duplicate\n", "utf8");
-    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# System\n", "utf8");
+    await writeFile(path.join(suspiciousDir, "SKILL.md"), "# Hidden\n", "utf8");
 
     await program.parseAsync(["node", "aweskill", "doctor", "sync", "--global", "--agent", "codex"], { from: "node" });
 

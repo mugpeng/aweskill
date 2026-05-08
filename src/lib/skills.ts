@@ -35,7 +35,7 @@ export async function listSkillEntriesInDirectory(skillsDir: string): Promise<Sk
   const entries = await readdir(skillsDir, { withFileTypes: true });
   const skills = await Promise.all(
     entries
-      .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
+      .filter((entry) => (entry.isDirectory() || entry.isSymbolicLink()) && entry.name !== ".system")
       .map(async (entry) => {
         const skillPath = path.join(skillsDir, entry.name);
         return {
