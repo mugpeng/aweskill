@@ -18,12 +18,13 @@
   "scripts": {
     "build": "tsup --config config/tsup.config.ts",
     "dev": "tsx src/index.ts",
-    "lint": "biome check src/ tests/",
+    "lint": "biome check src/ tests/ && npm run typecheck",
     "lint:fix": "biome check --fix src/ tests/",
     "format": "biome format --write src/ tests/",
     "prepare": "npm run build",
     "prepack": "npm run build",
-    "test": "vitest run --config config/vitest.config.ts"
+    "test": "vitest run --config config/vitest.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "engines": {
     "node": ">=20"

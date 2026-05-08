@@ -200,15 +200,16 @@ If you changed low-level behavior, prefer focused tests near the affected module
 
 ### Linting
 
-The project uses [Biome](https://biomejs.dev/) for linting and formatting.
+The project uses [Biome](https://biomejs.dev/) for linting and formatting, and TypeScript for type checking.
 
 ```bash
-npm run lint       # check for issues
+npm run lint       # check formatting, lint, and type issues
 npm run lint:fix   # auto-fix safe issues
+npm run typecheck  # run TypeScript type checking only
 npm run format     # format all files
 ```
 
-The CI pipeline runs `npm run lint` before tests. Formatting and lint issues will block merges.
+The CI pipeline runs `npm run lint` before tests. Formatting, lint, and type issues will block merges.
 
 ## Releasing
 

@@ -137,7 +137,7 @@ function formatInstalls(count?: number): string {
 }
 
 function formatMetaLine(result: FindResult): string {
-  const parts = [result.provider];
+  const parts: string[] = [result.provider];
   if (result.installs && result.installs > 0) {
     parts.push(formatInstalls(result.installs));
   }

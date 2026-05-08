@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { addSkillToBundle, createBundle, listBundles, readBundle, removeSkillFromBundle } from "../src/lib/bundles.js";
 import { ensureHomeLayout } from "../src/lib/skills.js";
-import { createTempWorkspace, writeSkill } from "./helpers.ts";
+import { createTempWorkspace, writeSkill } from "./helpers.js";
 
 describe("storage modules", () => {
   it("creates and mutates bundles", async () => {

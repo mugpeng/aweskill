@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import packageJson from "../package.json" with { type: "json" };
-import { createRuntime } from "./helpers.ts";
+import { createRuntime } from "./helpers.js";
 
 vi.mock("../src/lib/self-update.js", () => ({
   getNpmLatestVersion: vi.fn(),

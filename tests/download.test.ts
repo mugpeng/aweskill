@@ -59,7 +59,12 @@ describe("download helpers", () => {
         homeDir: workspace.homeDir,
         name: "caveman",
         incomingHash: currentHash,
-        incomingSource: { source: "owner/repo", sourceType: "github", sourceUrl: "https://github.com/owner/repo.git", computedHash: currentHash },
+        incomingSource: {
+          source: "owner/repo",
+          sourceType: "github",
+          sourceUrl: "https://github.com/owner/repo.git",
+          computedHash: currentHash,
+        },
       }),
     ).toEqual({ reason: "identical" });
 
@@ -68,7 +73,12 @@ describe("download helpers", () => {
         homeDir: workspace.homeDir,
         name: "caveman",
         incomingHash,
-        incomingSource: { source: "owner/repo", sourceType: "github", sourceUrl: "https://github.com/owner/repo.git", computedHash: incomingHash },
+        incomingSource: {
+          source: "owner/repo",
+          sourceType: "github",
+          sourceUrl: "https://github.com/owner/repo.git",
+          computedHash: incomingHash,
+        },
       }),
     ).toEqual({ reason: "unmanaged" });
 
@@ -103,9 +113,6 @@ describe("download helpers", () => {
     await writeSkill(path.join(workspace.projectDir, "skills", "caveman"), "Caveman");
 
     const skill = await findDownloadableSkillForLockEntry(workspace.projectDir, "caveman", {
-      source: "owner/repo",
-      sourceType: "github",
-      sourceUrl: "https://github.com/owner/repo.git",
       subpath: "skills/caveman",
     });
 
@@ -117,13 +124,9 @@ describe("download helpers", () => {
     await writeSkill(path.join(workspace.projectDir, "skills", "caveman"), "First");
     await writeSkill(path.join(workspace.projectDir, ".codex", "skills", "caveman"), "Second");
 
-    await expect(
-      findDownloadableSkillForLockEntry(workspace.projectDir, "caveman", {
-        source: "owner/repo",
-        sourceType: "github",
-        sourceUrl: "https://github.com/owner/repo.git",
-      }),
-    ).rejects.toBeInstanceOf(DuplicateSkillNameError);
+    await expect(findDownloadableSkillForLockEntry(workspace.projectDir, "caveman", {})).rejects.toBeInstanceOf(
+      DuplicateSkillNameError,
+    );
   });
 
   it("formats duplicate skill-name conflicts into user-facing lines with source URLs", () => {

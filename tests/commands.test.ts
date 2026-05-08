@@ -11,7 +11,7 @@ import { readSkillLock, writeSkillLock } from "../src/lib/lock.js";
 import { getSkillPath } from "../src/lib/skills.js";
 import { getTemplateBundlesDir } from "../src/lib/templates.js";
 import { AWESKILL_VERSION } from "../src/lib/version.js";
-import { createTempWorkspace, writeSkill } from "./helpers.ts";
+import { createTempWorkspace, writeSkill } from "./helpers.js";
 
 describe("commands", () => {
   afterEach(() => {

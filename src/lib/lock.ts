@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { pathExists } from "./fs.js";
@@ -43,7 +44,7 @@ export async function readSkillLock(homeDir: string): Promise<SkillLockFile> {
   try {
     const parsed = JSON.parse(await readFile(lockPath, "utf8")) as SkillLockFile;
     if (parsed.version !== LOCK_VERSION || !parsed.skills) {
-      return emptyLock();
+      throw new Error("Unsupported lock file shape");
     }
     return parsed;
   } catch {
@@ -59,9 +60,14 @@ export async function writeSkillLock(homeDir: string, lock: SkillLockFile): Prom
   }
   const lockPath = getSkillLockPath(homeDir);
   await mkdir(path.dirname(lockPath), { recursive: true });
-  const tmp = `${lockPath}.tmp.${process.pid}`;
-  await writeFile(tmp, `${JSON.stringify({ version: LOCK_VERSION, skills: sortedSkills }, null, 2)}\n`, "utf8");
-  await rename(tmp, lockPath);
+  const tmp = `${lockPath}.tmp.${process.pid}.${randomUUID()}`;
+  try {
+    await writeFile(tmp, `${JSON.stringify({ version: LOCK_VERSION, skills: sortedSkills }, null, 2)}\n`, "utf8");
+    await rename(tmp, lockPath);
+  } catch (error) {
+    await unlink(tmp).catch(() => {});
+    throw error;
+  }
 }
 
 export async function upsertSkillLockEntry(
