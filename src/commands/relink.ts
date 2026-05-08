@@ -4,7 +4,7 @@ import { getAweskillPaths } from "../lib/path.js";
 import { getSkillPath, listSkillEntriesInDirectory, listSkills } from "../lib/skills.js";
 import { createSkillSymlink, listManagedSkillNames } from "../lib/symlink.js";
 import type { RuntimeContext, Scope } from "../types.js";
-import { classifyCheckedSkill } from "./agent-inspection.js";
+import { buildCentralCanonicalSkills, classifyCheckedSkill } from "./agent-inspection.js";
 
 const DEFAULT_PREVIEW_COUNT = 5;
 
@@ -55,7 +55,7 @@ export async function runRelink(
     projectDir,
   });
   const centralSkillEntries = await listSkills(context.homeDir);
-  const centralSkills = new Set(centralSkillEntries.map((skill) => skill.name));
+  const centralSkills = buildCentralCanonicalSkills(centralSkillEntries);
   const centralSkillsDir = getAweskillPaths(context.homeDir).skillsDir;
   const baseDir = options.scope === "global" ? context.homeDir : projectDir!;
 

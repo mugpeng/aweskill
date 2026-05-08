@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { pathExists } from "./fs.js";
@@ -47,6 +47,7 @@ export async function readSkillLock(homeDir: string): Promise<SkillLockFile> {
     }
     return parsed;
   } catch {
+    console.error(`Warning: corrupt ${lockPath}, starting with empty lock`);
     return emptyLock();
   }
 }
@@ -58,7 +59,9 @@ export async function writeSkillLock(homeDir: string, lock: SkillLockFile): Prom
   }
   const lockPath = getSkillLockPath(homeDir);
   await mkdir(path.dirname(lockPath), { recursive: true });
-  await writeFile(lockPath, `${JSON.stringify({ version: LOCK_VERSION, skills: sortedSkills }, null, 2)}\n`, "utf8");
+  const tmp = `${lockPath}.tmp.${process.pid}`;
+  await writeFile(tmp, `${JSON.stringify({ version: LOCK_VERSION, skills: sortedSkills }, null, 2)}\n`, "utf8");
+  await rename(tmp, lockPath);
 }
 
 export async function upsertSkillLockEntry(

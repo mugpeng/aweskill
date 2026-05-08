@@ -43,8 +43,7 @@ describe("import helpers", () => {
       override: false,
     });
 
-    expect(result.kind).toBe("single");
-    expect(result.alreadyExisted).toBe(true);
+    expect(result).toMatchObject({ kind: "single", alreadyExisted: true });
     await expect(readFile(path.join(destinationDir, "SKILL.md"), "utf8")).resolves.toContain("Original");
     await expect(readFile(path.join(destinationDir, "scripts", "keep.sh"), "utf8")).resolves.toContain("keep");
     await expect(readFile(path.join(destinationDir, "scripts", "new.sh"), "utf8")).rejects.toThrow();

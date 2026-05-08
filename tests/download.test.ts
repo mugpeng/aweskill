@@ -59,7 +59,7 @@ describe("download helpers", () => {
         homeDir: workspace.homeDir,
         name: "caveman",
         incomingHash: currentHash,
-        incomingSource: { source: "owner/repo", sourceType: "github", sourceUrl: "https://github.com/owner/repo.git" },
+        incomingSource: { source: "owner/repo", sourceType: "github", sourceUrl: "https://github.com/owner/repo.git", computedHash: currentHash },
       }),
     ).toEqual({ reason: "identical" });
 
@@ -68,7 +68,7 @@ describe("download helpers", () => {
         homeDir: workspace.homeDir,
         name: "caveman",
         incomingHash,
-        incomingSource: { source: "owner/repo", sourceType: "github", sourceUrl: "https://github.com/owner/repo.git" },
+        incomingSource: { source: "owner/repo", sourceType: "github", sourceUrl: "https://github.com/owner/repo.git", computedHash: incomingHash },
       }),
     ).toEqual({ reason: "unmanaged" });
 
