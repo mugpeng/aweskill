@@ -54,6 +54,8 @@ aweskill agent list --global --agent <id> --verbose
 ```bash
 # 1. Inspect
 aweskill doctor clean --verbose
+aweskill doctor clean --skills-only --verbose    # scan only skills/
+aweskill doctor clean --bundles-only --verbose   # scan only bundles/
 
 # 2. Apply cleanup
 aweskill doctor clean --apply
@@ -72,13 +74,16 @@ Multiple central-store skills collapse to one duplicate family, or multiple agen
 # 1. Inspect
 aweskill doctor dedup
 
-# 2. Apply dedup (keeps canonical, removes duplicates)
+# 2. Apply dedup (keeps canonical, moves duplicates to dup_skills/)
 aweskill doctor dedup --apply
 
-# 3. If permanent removal is explicitly required
+# 3. Backup before dedup (copies to backup/dedup first)
+aweskill doctor dedup --apply --backup
+
+# 4. If permanent removal is explicitly required
 aweskill doctor dedup --apply --delete
 
-# 4. For agent-side duplicates
+# 5. For agent-side duplicates
 aweskill doctor sync --global --agent <id> --apply
 ```
 
@@ -90,30 +95,19 @@ aweskill doctor sync --global --agent <id> --apply
 # 1. Inspect with details
 aweskill doctor fix-skills --include-info --verbose
 
-# 2. Normalize frontmatter
+# 2. Limit to specific skills
+aweskill doctor fix-skills --skill <name1>,<name2> --verbose
+
+# 3. Normalize frontmatter
 aweskill doctor fix-skills --apply
 
-# 3. If original files should be preserved first
+# 4. If original files should be preserved first
 aweskill doctor fix-skills --apply --backup
 ```
 
 ### Installed CLI Behaves Differently from Repo Code
 
-The user reports that the installed `aweskill` doesn't match what they expect from the repository.
-
-```bash
-# 1. Check which binary is active
-which aweskill
-
-# 2. Check installed version vs npm latest
-aweskill self-update --check
-
-# 3. If dev branch is needed
-aweskill self-update --dev --check
-aweskill self-update --dev
-```
-
-If the issue persists, inspect the installed `dist/index.js` or global package target to confirm which code is actually running.
+Escalate to `$aweskill` — this is a Self-Update issue, not a doctor issue. The `$aweskill` skill handles CLI version mismatches via `aweskill self-update`.
 
 ## Quick Reference
 
@@ -122,15 +116,15 @@ If the issue persists, inspect the installed `dist/index.js` or global package t
 - `aweskill store list --verbose` — central store contents
 - `aweskill bundle list --verbose` — bundle overview
 - `aweskill agent list [--scope] [--agent] --verbose` — projection state
-- `aweskill doctor clean --verbose` — suspicious store entries
+- `aweskill doctor clean --verbose` — suspicious store entries (`--skills-only` / `--bundles-only` to narrow scope)
 - `aweskill doctor dedup` — duplicate families
-- `aweskill doctor fix-skills --include-info --verbose` — frontmatter issues
+- `aweskill doctor fix-skills --include-info --verbose` — frontmatter issues (`--skill <name>` to limit scope)
 - `aweskill doctor sync [--scope] [--agent] --verbose` — sync dry-run
 
 ### Mutation Commands (require --apply)
 
 - `aweskill doctor clean --apply` — remove suspicious store entries
-- `aweskill doctor dedup --apply` — resolve duplicates (add `--delete` for permanent removal)
+- `aweskill doctor dedup --apply` — resolve duplicates (add `--backup` to preserve first, `--delete` for permanent removal)
 - `aweskill doctor fix-skills --apply` — normalize frontmatter (add `--backup` to preserve originals)
 - `aweskill doctor sync --apply` — repair projections (add `--remove-suspicious` to remove unmanaged entries)
 

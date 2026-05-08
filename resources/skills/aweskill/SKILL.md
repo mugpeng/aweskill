@@ -59,21 +59,29 @@ Use when the task is about searching upstream sources, installing tracked skills
 ```bash
 # Search upstream providers
 aweskill find <query>
-
-# Search the local central store only
-aweskill find <query> --local
+aweskill find <query> --local              # search local store only
+aweskill find <query> -p <provider>        # limit to one provider (skills-sh, sciskill, local)
+aweskill find <query> -l <number>          # limit results (default 10)
+aweskill find <query> --domain <domain>    # sciskill domain filter
+aweskill find <query> --stage <stage>      # sciskill stage filter
 
 # Install from GitHub, local path, or sciskill ID
 aweskill install <source>
-
-# Install one skill from a multi-skill source
-aweskill install <source> --skill <name>
+aweskill install <source> --skill <name>   # install one skill from a multi-skill source
+aweskill install <source> --list           # list downloadable skills without installing
+aweskill install <source> --all            # install all skills from the source
+aweskill install <source> --ref <ref>      # git branch or tag (GitHub sources only)
+aweskill install <source> --as <name>      # install under a different name
+aweskill install <source> --override       # overwrite existing skills
 
 # Check tracked skills for updates
 aweskill update --check
 
 # Refresh tracked skills
 aweskill update [skill...]
+aweskill update --dry-run                  # show actions without modifying
+aweskill update --source <source>          # only update skills from a source
+aweskill update --override                 # discard local changes and overwrite
 ```
 
 Decision order:
@@ -96,20 +104,29 @@ aweskill store show <skill>
 
 # Import a standalone skill or skills root
 aweskill store import <path>
+aweskill store import <path> --keep-source     # keep source path in place
+aweskill store import <path> --link-source     # replace source with aweskill-managed projection
+aweskill store import <path> --track-source    # record import path for future updates
+aweskill store import <path> --override        # overwrite existing files
 
-# Import scanned agent roots
-aweskill store import --scan
+# Scan agent skill directories and optionally import
+aweskill store scan --verbose
+aweskill store scan --import                   # scan and import discovered skills
+aweskill store scan --import --keep-source     # scan, import, keep originals
 
 # Remove a skill from the central store
 aweskill store remove <skill>
-```
 
-Use `--link-source` only when source should become an aweskill-managed projection.
-Use `--keep-source` when original source must stay untouched.
+# Backup and restore
+aweskill store backup [archive]
+aweskill store backup --skills-only            # exclude bundles
+aweskill store restore <archive>
+aweskill store restore <archive> --override    # replace existing skills
+```
 
 ### Self-Update
 
-Use when the task is about updating the aweskill CLI tool itself.
+Use when the task is about updating the aweskill CLI tool itself, or when the installed CLI behaves differently from the repo code.
 
 ```bash
 # Check current vs latest npm version
@@ -124,6 +141,13 @@ aweskill self-update --dev --check
 # Build and install from GitHub dev branch
 aweskill self-update --dev
 ```
+
+If the user reports that the installed `aweskill` doesn't match what they expect from the repository:
+
+1. Check which binary is active: `which aweskill`
+2. Check installed version vs npm latest: `aweskill self-update --check`
+3. If dev branch is needed: `aweskill self-update --dev --check && aweskill self-update --dev`
+4. If the issue persists, inspect the installed `dist/index.js` or global package target to confirm which code is actually running.
 
 ### Bundle Work
 
@@ -143,6 +167,9 @@ aweskill bundle remove <bundle> <skills>
 # Inspect a bundle
 aweskill bundle show <name>
 
+# Delete a bundle
+aweskill bundle delete <name>
+
 # Import a built-in bundle template
 aweskill bundle template import <name>
 ```
@@ -161,9 +188,11 @@ aweskill agent list [--global|--project [dir]] [--agent <id>] --verbose
 # Project a skill or bundle
 aweskill agent add skill <name> --global --agent <id>
 aweskill agent add bundle <name> --project [dir] --agent <id>
+aweskill agent add skill <name> --global --agent <id> --force  # replace duplicates/foreign targets
 
 # Remove a managed projection
 aweskill agent remove skill <name> --global --agent <id>
+aweskill agent remove skill <name> --global --agent <id> --force  # also remove duplicates/foreign targets
 
 # Recover one agent root into copied directories
 aweskill agent recover --global --agent <id>
@@ -179,11 +208,19 @@ For scope-sensitive or multi-agent projection:
 
 ## Escalation to Doctor
 
-Hand off to `$aweskill-doctor` when:
+Hand off to `$aweskill-doctor` when the symptom matches one of these categories:
 
-- `aweskill agent list` shows `broken`, `duplicate`, `matched`, `new`, or `suspicious`
-- The user asks to repair, clean, deduplicate, or sync aweskill state
-- Projection state does not match the central store and the task is diagnosis-first
+| Symptom | Doctor workflow |
+|---|---|
+| `agent list` shows `broken` | Projection is Broken |
+| `agent list` shows `duplicate` or `matched` | Duplicate Skills Exist |
+| `agent list` shows `suspicious` or `new` | Store Has Suspicious Files |
+| `store list` or `doctor clean` reports suspicious entries | Store Has Suspicious Files |
+| `doctor fix-skills` reports malformed frontmatter | SKILL.md Frontmatter is Malformed |
+| User says "skill not showing up" | Agent Cannot See a Skill |
+| User asks to "repair", "clean", "deduplicate", or "sync" | Run inspection first, then follow the matching symptom workflow |
+
+Do NOT escalate for CLI version mismatches or self-update issues — handle those in the Self-Update workflow above.
 
 ## References
 
