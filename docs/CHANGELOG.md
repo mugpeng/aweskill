@@ -1,5 +1,32 @@
 # change log
 
+## v0.3.3
+
+`v0.3.3` hardens the core lock and type infrastructure, adds competitive research, and revises the project's engineering guidelines. Since `v0.3.2`, lock file writes are now atomic, a TypeScript typecheck step guards CI, the scanner filters out `.system` directories, and path safety helpers are centralized. The engineering principles have been renamed to "Engineering Taste" and expanded. The README comparison table was reorganized and competitive research on SkillClaw, SkillNexus, and Vibe-Skills was added.
+
+### Atomic lock writes and type safety
+
+Lock file writes now go through a temp-file-then-rename path to prevent corruption from interrupted writes. A `typecheck` npm script and CI step were added. The `isPathSafe` helper replaces scattered path validation logic across the codebase.
+
+### Engineering Taste
+
+The "Code Style" section in `docs/CONTRIBUTING.md`, `CLAUDE.md`, and `AGENTS.md` was renamed to "Engineering Taste" and expanded to cover simplicity, clarity, decoupling, honesty, focus, durability, and first-principles thinking.
+
+### Competitive research and README updates
+
+Added research documents on SkillClaw, SkillNexus, and Vibe-Skills under `docs/todo/`. The README comparison table was reorganized — the cc-switch column was removed and related projects were split into "Similar Skill Managers" and "Other Useful AI Tools". Both `aweskill` and `aweskill-doctor` SKILL.md files were significantly revised for clearer workflows and routing.
+
+### Highlights
+
+- Atomic lock file writes via temp-file-then-rename
+- Added TypeScript typecheck to CI (`npm run typecheck`)
+- Centralized path safety with `isPathSafe`
+- Scanner excludes `.system` skill directories
+- Renamed and expanded engineering principles to "Engineering Taste"
+- Reorganized README comparison table and related projects
+- Added competitive research on SkillClaw, SkillNexus, Vibe-Skills
+- Revised `aweskill` and `aweskill-doctor` SKILL.md documentation
+
 ## v0.3.2
 
 `v0.3.2` expands the agent-operated aweskill story and adds reusable bundle templates. Since `v0.3.1`, the project documentation now includes agent-assisted install media, two bilingual long-form articles, improved README language switching and Chinese copy, plus new bundled Skill sets for publishing workflows.
