@@ -2,7 +2,6 @@ node_modules/
 dist/
 *.tgz
 .DS_Store
-docs/todo
 /archive
 /logo
 /docs/superpowers
@@ -14,3 +13,4 @@ skills-lock.json
 /docs/article_media/0505/let-your-ai-agent-manage-aweskill-for-you-zh-CN-review
 .peng-crosspost-workflow/
 .cursor
+/docs/todo/archive

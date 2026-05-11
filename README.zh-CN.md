@@ -556,15 +556,22 @@ Skill 目录结构与设计原则见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 相关工具
 
+### 同类 Skill 管理器
+
 如果你在关注更广的 Skills 生态，下面这些项目都值得使用和研究：
 
 - [sciskill](https://github.com/sciskillhub/sciskill)：公开的 registry 元数据仓库，用来收集带合法 `SKILL.md` 的 GitHub Skills，并发布可供发现的索引。
 - [Skills Manager](https://github.com/jiweiyeah/Skills-Manager)：桌面化的多 AI 编码助手技能管理器，适合可视化组织、同步和分享 Skills。
 - [skillfish](https://github.com/knoxgraeme/skillfish)：偏 CLI 的 Skill 管理工具，强调安装、更新和跨 Agent 同步。
-- [Vibe-Skills](https://github.com/foryourhealth111-pixel/Vibe-Skills)：一体化的 AI Skills 套件与工作流 harness，强调为通用 Agent 编排专家 Skills、验证流程和持久化上下文。
 - [vercel-labs/skills](https://github.com/vercel-labs/skills)：开放的 Agent Skills CLI 和生态入口，对 `SKILL.md` 包约定影响很大。
-- [cc-switch](https://github.com/farion1231/cc-switch)：面向 Claude Code、Codex、Gemini CLI、OpenCode 等工具的一站式桌面管理器。
 - [skills-manage](https://github.com/iamzhihuix/skills-manage)：Tauri 桌面技能管理器，提供中央技能库、marketplace 浏览、GitHub 导入、collections 和按平台安装能力。
+
+### 其他有用的 AI Skill 工具
+
+- [cc-switch](https://github.com/farion1231/cc-switch)：面向 Claude Code、Codex、Gemini CLI、OpenCode 等工具的一站式桌面管理器。
+- [SkillClaw](https://github.com/AMAP-ML/SkillClaw)：面向 Agentic Skill Evolution 的系统，通过本地代理采集真实会话，支持本地或对象存储同步，并可用可选服务演化共享 Skill 库。
+- [SkillNexus](https://github.com/skyseraph/SkillNexus)：覆盖生成、测试、评估、演化和排名的全生命周期 AI Skill Studio。
+- [Vibe-Skills](https://github.com/foryourhealth111-pixel/Vibe-Skills)：一体化的 AI Skills 套件与工作流 harness，强调为通用 Agent 编排专家 Skills、验证流程和持久化上下文。
 
 ## 支持的 Agent
 

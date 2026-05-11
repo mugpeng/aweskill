@@ -161,17 +161,17 @@ Yes. `aweskill` ships built-in management skills for `aweskill` and `aweskill-do
 
 ## Comparison
 
-| Capability | [`cc-switch`](https://github.com/farion1231/cc-switch) | [`sciskill`](https://github.com/sciskillhub/sciskill) | [`Skills Manager`](https://github.com/jiweiyeah/Skills-Manager) | [`skillfish`](https://github.com/knoxgraeme/skillfish) | [`vercel-labs/skills`](https://github.com/vercel-labs/skills) | [`skills-manage`](https://github.com/iamzhihuix/skills-manage) | How aweskill does it |
-|---|---|---|---|---|---|---|---|
-| One central local skill store | ✗ | ✗ | ✓ | ✗ | ✗ | ✓ | Keeps all managed skills in `~/.aweskill/skills/` as the source of truth |
-| Registry or catalog discovery | ✗ | ✓ | ✗ | ✓ | ✓ | ✓ | Searches [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), or the local central store with `aweskill find` |
-| GitHub-style repo import/install | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | Imports from GitHub-style sources and `sciskill:<skill-id>` into the central store |
-| Local-path import/install | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | Imports from local paths into the central store |
-| Tracked updates from recorded sources | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | Records source metadata, then refreshes with `aweskill update` while protecting local central-store edits |
-| Plug-and-play multi-agent projection | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | Projects selected skills from the central store into agent-specific directories using `symlink`, junction, or managed `copy` |
-| Bundle, manifest, or collection grouping | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | Uses bundles to group reusable skills by project, team, workflow, or agent |
-| Agent-callable management skills | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Ships built-in `aweskill` and `aweskill-doctor` skills so AI agents can run aweskill workflows from natural-language requests |
-| Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, fix-skills, and recover workflows in the CLI |
+| Capability | [`sciskill`](https://github.com/sciskillhub/sciskill) | [`Skills Manager`](https://github.com/jiweiyeah/Skills-Manager) | [`skillfish`](https://github.com/knoxgraeme/skillfish) | [`vercel-labs/skills`](https://github.com/vercel-labs/skills) | [`skills-manage`](https://github.com/iamzhihuix/skills-manage) | How aweskill does it |
+|---|---|---|---|---|---|---|
+| One central local skill store | ✗ | ✓ | ✗ | ✗ | ✓ | Keeps all managed skills in `~/.aweskill/skills/` as the source of truth |
+| Registry or catalog discovery | ✓ | ✗ | ✓ | ✓ | ✓ | Searches [skills.sh](https://skills.sh/), [sciskillhub.org](https://sciskillhub.org/), or the local central store with `aweskill find` |
+| GitHub-style repo import/install | ✗ | ✗ | ✓ | ✓ | ✓ | Imports from GitHub-style sources and `sciskill:<skill-id>` into the central store |
+| Local-path import/install | ✗ | ✗ | ✗ | ✓ | ✗ | Imports from local paths into the central store |
+| Tracked updates from recorded sources | ✗ | ✗ | ✓ | ✓ | ✗ | Records source metadata, then refreshes with `aweskill update` while protecting local central-store edits |
+| Plug-and-play multi-agent projection | ✗ | ✓ | ✓ | ✓ | ✓ | Projects selected skills from the central store into agent-specific directories using `symlink`, junction, or managed `copy` |
+| Bundle, manifest, or collection grouping | ✗ | ✗ | ✓ | ✗ | ✓ | Uses bundles to group reusable skills by project, team, workflow, or agent |
+| Agent-callable management skills | ✗ | ✗ | ✗ | ✗ | ✗ | Ships built-in `aweskill` and `aweskill-doctor` skills so AI agents can run aweskill workflows from natural-language requests |
+| Local maintenance and recovery | ✗ | ✗ | ✗ | ✗ | ✗ | Includes backup, restore, deduplication, clean, sync, fix-skills, and recover workflows in the CLI |
 
 `sciskill` here refers to the public registry-metadata repository under `sciskillhub`, not a local skill-manager CLI.
 
@@ -626,13 +626,20 @@ Works with 47 agents including:
 
 ## Related Tools
 
+### Similar Skill Managers
+
 - [sciskill](https://github.com/sciskillhub/sciskill): a public registry-metadata repository that tracks GitHub skills with valid `SKILL.md` files and publishes a collected index for discovery.
 - [Skills Manager](https://github.com/jiweiyeah/Skills-Manager): a desktop application for managing skills across multiple AI coding assistants, with synchronization and GUI-driven organization.
 - [skillfish](https://github.com/knoxgraeme/skillfish): a CLI-first skill manager focused on installing, updating, and syncing skills across agents.
-- [Vibe-Skills](https://github.com/foryourhealth111-pixel/Vibe-Skills): an all-in-one AI skills package and harness that orchestrates expert Skills, verification, and persistent context for general-purpose agents.
 - [vercel-labs/skills](https://github.com/vercel-labs/skills): a widely adopted open agent-skills CLI and ecosystem entry point built around reusable `SKILL.md` packages.
-- [cc-switch](https://github.com/farion1231/cc-switch): a desktop all-in-one manager for Claude Code, Codex, Gemini CLI, OpenCode, and related local AI tooling.
 - [skills-manage](https://github.com/iamzhihuix/skills-manage): a Tauri desktop app for managing AI coding agent skills from one place, with a central library, marketplace browsing, GitHub import, collections, and per-platform installs.
+
+### Other Useful AI Skill Tools
+
+- [cc-switch](https://github.com/farion1231/cc-switch): a desktop all-in-one manager for Claude Code, Codex, Gemini CLI, OpenCode, and related local AI tooling.
+- [SkillClaw](https://github.com/AMAP-ML/SkillClaw): an agentic skill evolution system that captures real sessions through a local proxy, syncs skills through local or object storage, and can evolve shared skill libraries with an optional server.
+- [SkillNexus](https://github.com/skyseraph/SkillNexus): a full-lifecycle AI skill studio for generating, testing, evaluating, evolving, and ranking skills.
+- [Vibe-Skills](https://github.com/foryourhealth111-pixel/Vibe-Skills): an all-in-one AI skills package and harness that orchestrates expert Skills, verification, and persistent context for general-purpose agents.
 
 ## Development
 
