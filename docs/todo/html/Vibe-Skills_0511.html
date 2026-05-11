@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vibe-Skills 对 aweskill 的具体启发 - 0511</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1d2521;
+        --muted: #66736d;
+        --paper: #f6f1e7;
+        --panel: #fffdf7;
+        --panel-2: #fdf8ee;
+        --line: #d9cfbd;
+        --line-strong: #a99679;
+        --green: #1e7a56;
+        --green-soft: #dbeade;
+        --blue: #285f7a;
+        --blue-soft: #dceaf0;
+        --amber: #a97020;
+        --amber-soft: #f3e4c4;
+        --red: #9b3f33;
+        --red-soft: #f0dbd6;
+        --violet: #6952a8;
+        --violet-soft: #e7e0f5;
+        --shadow: 0 18px 50px rgba(43, 33, 18, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, rgba(29, 37, 33, 0.04) 1px, transparent 1px),
+          linear-gradient(rgba(29, 37, 33, 0.035) 1px, transparent 1px),
+          var(--paper);
+        background-size: 34px 34px;
+        color: var(--ink);
+        font-family:
+          ui-serif, "Iowan Old Style", "Palatino Linotype", "Noto Serif SC",
+          "Source Han Serif SC", "Songti SC", Georgia, serif;
+        line-height: 1.72;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      code,
+      pre,
+      .mono {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+          monospace;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        padding: 58px 0 32px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 940px;
+        margin-bottom: 18px;
+        font-size: clamp(34px, 6vw, 72px);
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 880px;
+        margin-bottom: 0;
+        color: #34413b;
+        font-size: 20px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+        gap: 18px;
+        padding: 26px 0 22px;
+      }
+
+      .panel {
+        background: rgba(255, 253, 247, 0.92);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .thesis {
+        padding: 26px;
+      }
+
+      .thesis h2,
+      .toc h2,
+      .section h2 {
+        margin-bottom: 12px;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+
+      .contrast {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .contrast-item {
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+      }
+
+      .contrast-item strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--green);
+        font-size: 14px;
+      }
+
+      .quote {
+        margin: 0;
+        padding: 18px;
+        border-left: 5px solid var(--green);
+        background: var(--green-soft);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .toc {
+        position: sticky;
+        top: 16px;
+        align-self: start;
+        padding: 20px;
+      }
+
+      .toc ol {
+        display: grid;
+        gap: 9px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: toc;
+      }
+
+      .toc li {
+        counter-increment: toc;
+      }
+
+      .toc a {
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 40px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        background: #fbf6eb;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .toc a::before {
+        content: counter(toc);
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 800;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 24px;
+        padding: 6px 0 64px;
+      }
+
+      .content {
+        display: grid;
+        gap: 18px;
+      }
+
+      .section {
+        padding: 24px;
+      }
+
+      .section > p:last-child {
+        margin-bottom: 0;
+      }
+
+      .tag {
+        display: inline-block;
+        margin-bottom: 12px;
+        padding: 4px 9px;
+        border: 1px solid var(--line-strong);
+        color: var(--muted);
+        background: #fbf6eb;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .card {
+        min-height: 138px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+      }
+
+      .card h3 {
+        margin-bottom: 8px;
+        font-size: 18px;
+      }
+
+      .card p {
+        margin-bottom: 0;
+        color: #37453f;
+        font-size: 15px;
+      }
+
+      .priority {
+        display: grid;
+        grid-template-columns: 104px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: rgba(255, 253, 247, 0.94);
+        box-shadow: 0 12px 34px rgba(43, 33, 18, 0.07);
+      }
+
+      .marker {
+        padding: 18px 14px;
+        border-right: 1px solid var(--line);
+        background: #eee4d2;
+      }
+
+      .marker span {
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .marker strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 42px;
+        line-height: 1;
+      }
+
+      .priority-body {
+        padding: 20px;
+      }
+
+      .priority-body h2 {
+        margin-bottom: 8px;
+        font-size: 24px;
+      }
+
+      .checklist {
+        display: grid;
+        gap: 10px;
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .checklist li {
+        position: relative;
+        padding: 12px 12px 12px 38px;
+        border: 1px solid var(--line);
+        background: #fbf7ed;
+      }
+
+      .checklist li::before {
+        content: "";
+        position: absolute;
+        top: 17px;
+        left: 14px;
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--green);
+        background: var(--green-soft);
+      }
+
+      .note {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        background: var(--blue-soft);
+        color: #223941;
+      }
+
+      .warning {
+        background: var(--red-soft);
+      }
+
+      pre {
+        overflow-x: auto;
+        margin: 14px 0 0;
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: #161d1a;
+        color: #f7f1e5;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      code {
+        font-size: 0.94em;
+      }
+
+      p code,
+      li code {
+        padding: 2px 5px;
+        background: #eee6d6;
+        border: 1px solid #ddd1bd;
+      }
+
+      .side {
+        display: grid;
+        gap: 14px;
+        align-self: start;
+        position: sticky;
+        top: 16px;
+      }
+
+      .sidebox {
+        padding: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 253, 247, 0.92);
+        box-shadow: 0 12px 30px rgba(43, 33, 18, 0.07);
+      }
+
+      .sidebox h3 {
+        margin-bottom: 10px;
+        font-size: 18px;
+      }
+
+      .sidebox ul {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding-left: 18px;
+        color: #36443e;
+        font-size: 14px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .pill {
+        padding: 5px 9px;
+        border: 1px solid var(--line);
+        background: #fbf6eb;
+        color: #3a4742;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .mvp {
+        border-color: #bba377;
+        background: linear-gradient(180deg, #fffdf7, #f5ead1);
+      }
+
+      .mvp .marker {
+        background: var(--amber-soft);
+      }
+
+      .footer {
+        padding: 24px 0 42px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media (max-width: 920px) {
+        .hero-grid,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .toc,
+        .side {
+          position: static;
+        }
+
+        .contrast,
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          width: min(100% - 20px, 1180px);
+        }
+
+        .hero {
+          padding-top: 34px;
+        }
+
+        .priority {
+          grid-template-columns: 1fr;
+        }
+
+        .marker {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .section,
+        .priority-body,
+        .thesis {
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="shell">
+        <p class="eyebrow mono">Vibe-Skills inspired aweskill roadmap · 0511</p>
+        <h1>不要只分发 Skills，要分发可调用的工作流入口</h1>
+        <p class="lead">
+          Vibe-Skills 真正值得学习的不是重型 runtime，而是它把“很多技能”包装成一个用户能记住、能调用、能验证的工作方式。aweskill 应该把这个卖点落到 profile、workflow entry、quickstart 和 readiness check 上。
+        </p>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero-grid">
+        <article class="panel thesis">
+          <h2>核心判断</h2>
+          <blockquote class="quote">
+            aweskill 不应该变成 Vibe-Skills；aweskill 应该成为 Vibe-Skills 这类 super skill / workflow skill 的最佳本地管理层。
+          </blockquote>
+          <div class="contrast">
+            <div class="contrast-item">
+              <strong>当前心智</strong>
+              <p>安装、更新、分组、投影、修复 Skills。</p>
+            </div>
+            <div class="contrast-item">
+              <strong>目标心智</strong>
+              <p>把散落 Skills 变成可安装、可复用、可检查的本地工作流系统。</p>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel toc">
+          <h2>阅读路径</h2>
+          <ol>
+            <li><a href="#product">产品定位</a></li>
+            <li><a href="#profile">Profile 词汇</a></li>
+            <li><a href="#entry">入口 Skill</a></li>
+            <li><a href="#check">安装即检查</a></li>
+            <li><a href="#quickstart">Quickstart</a></li>
+            <li><a href="#layout">模板结构</a></li>
+            <li><a href="#super">Super Skill 支持</a></li>
+            <li><a href="#mvp">MVP</a></li>
+          </ol>
+        </aside>
+      </section>
+
+      <section class="layout">
+        <div class="content">
+          <article id="product" class="panel section">
+            <span class="tag mono">Product Thesis</span>
+            <h2>产品定位：从包管理器到本地 Skill 系统管理器</h2>
+            <p>
+              aweskill 的底层优势仍然是 central store、bundle、projection、doctor、update。不要抛弃这些边界。但对用户表达时，不应该停在“我能管理 skill 文件夹”，而应该表达成“我能把 Agent 的能力组织成可调用的工作流”。
+            </p>
+            <pre><code>现在：
+aweskill manages local AI agent skills across tools.
+
+更好：
+aweskill turns scattered skills into installable, reusable,
+checkable workflow systems for local AI agents.</code></pre>
+            <div class="cards">
+              <div class="card">
+                <h3>保留边界</h3>
+                <p>不做 runtime authority，不做 workspace memory，不做自动 specialist router。</p>
+              </div>
+              <div class="card">
+                <h3>升级体验</h3>
+                <p>从“linked”升级成“ready for Codex / Claude Code / Cursor”。</p>
+              </div>
+            </div>
+          </article>
+
+          <article id="profile" class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>0</strong>
+            </div>
+            <div class="priority-body">
+              <h2>引入 profile：用户不想手动拼十个 Skill</h2>
+              <p>
+                `profile` 是 curated bundle 的用户友好入口。它不改变底层模型，只是把 bundle、入口 skill、说明文档和检查规则包装成一个更容易理解的对象。
+              </p>
+              <pre><code>aweskill profile list
+aweskill profile show coding
+aweskill profile install coding --global --agent codex
+aweskill profile remove coding --global --agent codex</code></pre>
+              <ul class="checklist">
+                <li>初始 profiles：`coding`、`research`、`publishing`、`frontend`、`agent-maintenance`。</li>
+                <li>`profile` 复用现有 bundle / projection 逻辑，不创建第二套激活状态。</li>
+                <li>`bundle` 保留为底层精确对象，`profile` 作为高层 UX。</li>
+              </ul>
+            </div>
+          </article>
+
+          <article id="entry" class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>1</strong>
+            </div>
+            <div class="priority-body">
+              <h2>每个 profile 都要有一个入口 Skill</h2>
+              <p>
+                Vibe-Skills 最强的产品符号是 `vibe`。aweskill 的 profile 也应该让用户记住一个入口，而不是面对一串支持技能。
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>入口 Skill 示例</h3>
+                  <p>`coding-workflow`、`research-workflow`、`publishing-workflow`、`frontend-workflow`。</p>
+                </div>
+                <div class="card">
+                  <h3>入口 Skill 内容</h3>
+                  <p>什么时候用、分阶段选哪些支持技能、非目标、完成前证据要求。</p>
+                </div>
+              </div>
+              <div class="note">
+                第一版只做 `coding-workflow`。支持技能包括 `brainstorming`、`systematic-debugging`、`test-driven-development`、`verification-before-completion`、`requesting-code-review`、`subagent-driven-development`。
+              </div>
+            </div>
+          </article>
+
+          <article id="check" class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>2</strong>
+            </div>
+            <div class="priority-body">
+              <h2>安装完成后必须能检查 readiness</h2>
+              <p>
+                Vibe-Skills 强调 verified delivery。aweskill 不需要验证任务成果，但要验证“这个工作流在目标 Agent 里是否真的可用”。
+              </p>
+              <pre><code>aweskill profile check coding --global --agent codex
+aweskill profile check coding --project . --agent cursor
+aweskill profile check coding --global --agent codex --json</code></pre>
+              <ul class="checklist">
+                <li>检查 profile、入口 skill、required skills 是否存在。</li>
+                <li>检查入口和依赖是否投影到目标 Agent。</li>
+                <li>检查 broken、duplicate、suspicious 状态。</li>
+                <li>输出 `ready`、`partially ready` 或 `not ready`。</li>
+                <li>不 ready 时给出下一条建议命令。</li>
+              </ul>
+              <pre><code>profile: coding
+entry: coding-workflow
+target: codex global
+status: ready</code></pre>
+            </div>
+          </article>
+
+          <article id="quickstart" class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>3</strong>
+            </div>
+            <div class="priority-body">
+              <h2>做一个 `aweskill quickstart`</h2>
+              <p>
+                Vibe-Skills 用一个入口降低上手成本。aweskill 也需要一个 setup 入口：检测 Agent、推荐 profile、安装、投影、检查、打印使用卡片。
+              </p>
+              <pre><code>aweskill quickstart
+aweskill quickstart coding
+aweskill quickstart coding --global --agent codex
+aweskill quickstart --project . --agent cursor</code></pre>
+              <div class="note">
+                关键约束：先 inspect 再 mutate；目标 agent 或 scope 不明确时再询问；不要默认投影到所有 Agent。
+              </div>
+            </div>
+          </article>
+
+          <article id="layout" class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>4</strong>
+            </div>
+            <div class="priority-body">
+              <h2>增加 profile template 目录</h2>
+              <p>
+                先把 profile 作为资源模板落地，不急着侵入已有 bundle 模型。这样实验成本低，也方便后续调整。
+              </p>
+              <pre><code>resources/profile_templates/coding/
+├── profile.yaml
+├── README.md
+├── usage.md
+└── skills/
+    └── coding-workflow/
+        └── SKILL.md</code></pre>
+              <ul class="checklist">
+                <li>`profile.yaml` 包含 `name`、`entry`、`requires`、`optional`、`tags`、`checks`。</li>
+                <li>内置入口 skill 可在 profile install 时导入 central store。</li>
+                <li>支持技能继续通过现有 store / bundle 机制解析。</li>
+              </ul>
+            </div>
+          </article>
+
+          <article id="super" class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>5</strong>
+            </div>
+            <div class="priority-body">
+              <h2>识别 Vibe-Skills 这类 super-skill 包</h2>
+              <p>
+                aweskill 不必执行第三方 runtime installer，但应该能识别“这不是普通单技能仓库”，并给出保守、清晰的安装建议。
+              </p>
+              <pre><code>Detected workflow-style skill package.
+
+Entry:
+- vibe
+
+Install options:
+- aweskill install &lt;source&gt; --skill vibe
+- aweskill install &lt;source&gt; --all
+
+Note:
+This package may include its own runtime installer. aweskill can manage projection,
+but it will not replace the package's runtime setup unless explicitly supported.</code></pre>
+              <div class="note warning">
+                不自动执行第三方 `install.sh`。发现脚本时只展示，并要求用户显式确认。
+              </div>
+            </div>
+          </article>
+
+          <article class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>6</strong>
+            </div>
+            <div class="priority-body">
+              <h2>README 首屏改成三个具体结果</h2>
+              <p>
+                不要第一屏就讲 central store。central store 是架构，不是用户最先感受到的价值。
+              </p>
+              <pre><code>aweskill quickstart coding --global --agent codex
+aweskill profile install research --global --agent claude-code
+aweskill doctor sync --global --agent cursor</code></pre>
+              <ul class="checklist">
+                <li>给一个 Agent 装上工作流能力。</li>
+                <li>跨 Agent 复用同一套能力。</li>
+                <li>修复本地技能混乱状态。</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="priority">
+            <div class="marker">
+              <span class="mono">Priority</span>
+              <strong>7</strong>
+            </div>
+            <div class="priority-body">
+              <h2>给 Agent 和 CI 准备 JSON 输出</h2>
+              <p>
+                profile 相关命令应该从第一版开始支持 `--json`，方便 Agent 做自动判断。
+              </p>
+              <pre><code>aweskill profile list --json
+aweskill profile show coding --json
+aweskill profile check coding --json</code></pre>
+              <div class="pill-row">
+                <span class="pill mono">profile</span>
+                <span class="pill mono">entry</span>
+                <span class="pill mono">requiredSkills</span>
+                <span class="pill mono">target</span>
+                <span class="pill mono">status</span>
+                <span class="pill mono">issues</span>
+                <span class="pill mono">suggestedCommands</span>
+              </div>
+            </div>
+          </article>
+
+          <article id="mvp" class="priority mvp">
+            <div class="marker">
+              <span class="mono">MVP</span>
+              <strong>1</strong>
+            </div>
+            <div class="priority-body">
+              <h2>最小可落地版本</h2>
+              <p>
+                不要一次做完。第一版只验证一件事：用户是否能通过 profile 获得一个可调用、可检查的 coding workflow。
+              </p>
+              <ul class="checklist">
+                <li>创建 `resources/profile_templates/coding/`。</li>
+                <li>新增 `coding-workflow` 入口 skill。</li>
+                <li>实现 `aweskill profile list`。</li>
+                <li>实现 `aweskill profile install coding --global --agent codex`。</li>
+                <li>实现 `aweskill profile check coding --global --agent codex`。</li>
+                <li>安装后打印 usage card。</li>
+                <li>更新 README 的 workflow-profile 叙事。</li>
+              </ul>
+              <pre><code>aweskill profile install coding --global --agent codex
+aweskill profile check coding --global --agent codex</code></pre>
+            </div>
+          </article>
+        </div>
+
+        <aside class="side">
+          <div class="sidebox">
+            <h3>不要做</h3>
+            <ul>
+              <li>不要实现 Vibe-like runtime state machine。</li>
+              <li>不要在 aweskill 里做 workspace memory。</li>
+              <li>不要做自动 specialist routing。</li>
+              <li>不要引入隐藏 profile activation registry。</li>
+            </ul>
+          </div>
+
+          <div class="sidebox">
+            <h3>保留 aweskill 的硬边界</h3>
+            <ul>
+              <li>central store 是唯一事实来源。</li>
+              <li>projection 仍然是 filesystem state。</li>
+              <li>doctor 仍然是 repair path。</li>
+              <li>profile 只是更好的 bundle UX。</li>
+            </ul>
+          </div>
+
+          <div class="sidebox">
+            <h3>一句话方向</h3>
+            <p>
+              面向工作流型 AI Agent 的本地 Skill 系统管理器。
+            </p>
+            <div class="pill-row">
+              <span class="pill">profile</span>
+              <span class="pill">entry skill</span>
+              <span class="pill">ready check</span>
+              <span class="pill">quickstart</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="shell">
+        Source note: this document translates Vibe-Skills' public value proposition into concrete aweskill TODOs while preserving aweskill's local-first package-manager boundary.
+      </div>
+    </footer>
+  </body>
+</html>

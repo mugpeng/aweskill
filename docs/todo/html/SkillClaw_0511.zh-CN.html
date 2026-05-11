@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkillClaw 给 aweskill 的启发 - 0511</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18201d;
+        --muted: #65716d;
+        --paper: #f5f1e8;
+        --panel: #fffdf7;
+        --line: #d9d0bf;
+        --line-strong: #9d907c;
+        --green: #1f7650;
+        --green-soft: #e1eee4;
+        --blue: #315f7c;
+        --blue-soft: #ddebf1;
+        --gold: #a87524;
+        --gold-soft: #f1e3c5;
+        --red: #9d3d31;
+        --red-soft: #f0ddd8;
+        --purple: #625293;
+        --purple-soft: #e8e3f3;
+        --shadow: 0 18px 48px rgba(27, 24, 18, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, rgba(24, 32, 29, 0.04) 1px, transparent 1px),
+          linear-gradient(rgba(24, 32, 29, 0.035) 1px, transparent 1px),
+          var(--paper);
+        background-size: 34px 34px;
+        color: var(--ink);
+        font-family:
+          "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+          system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.72;
+      }
+
+      a {
+        color: inherit;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      code {
+        padding: 0.14em 0.35em;
+        border: 1px solid rgba(24, 32, 29, 0.12);
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92em;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        padding: 56px 0 34px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: var(--green);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 900px;
+        margin-bottom: 18px;
+        font-size: clamp(38px, 7vw, 78px);
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 920px;
+        margin-bottom: 0;
+        color: #33413c;
+        font-size: 20px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+        gap: 18px;
+        padding: 28px 0;
+      }
+
+      .panel,
+      .rail,
+      .card,
+      .priority,
+      .callout {
+        background: rgba(255, 253, 247, 0.94);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .panel {
+        padding: 28px;
+      }
+
+      .panel h2,
+      .rail h2,
+      .card h3 {
+        margin-bottom: 12px;
+      }
+
+      .contrast {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .mini {
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: #faf7ef;
+      }
+
+      .mini b {
+        display: block;
+        margin-bottom: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .rail {
+        position: sticky;
+        top: 16px;
+        align-self: start;
+        padding: 20px;
+      }
+
+      .rail ol {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: step;
+      }
+
+      .rail li {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 40px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        background: #faf7ef;
+        font-size: 13px;
+      }
+
+      .rail li::before {
+        content: counter(step);
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        background: var(--ink);
+        color: var(--paper);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-weight: 800;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 310px;
+        gap: 24px;
+        padding: 4px 0 60px;
+      }
+
+      .main {
+        display: grid;
+        gap: 18px;
+      }
+
+      .map {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      .card small {
+        display: inline-block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .flow span {
+        padding: 8px 10px;
+        border: 1px solid var(--line-strong);
+        background: #f8f3e8;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .priority {
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr);
+        overflow: hidden;
+      }
+
+      .marker {
+        padding: 18px 14px;
+        border-right: 1px solid var(--line);
+        background: #efe6d5;
+      }
+
+      .marker span {
+        display: block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .marker strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 40px;
+        line-height: 1;
+      }
+
+      .priority:nth-child(3n + 1) .marker {
+        background: var(--green-soft);
+      }
+
+      .priority:nth-child(3n + 2) .marker {
+        background: var(--blue-soft);
+      }
+
+      .priority:nth-child(3n) .marker {
+        background: var(--gold-soft);
+      }
+
+      .content {
+        padding: 20px 22px;
+      }
+
+      .content h2 {
+        margin-bottom: 8px;
+        font-size: 24px;
+      }
+
+      .content ul {
+        margin: 12px 0 0;
+        padding-left: 21px;
+      }
+
+      .content li {
+        margin: 7px 0;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .chip {
+        padding: 6px 9px;
+        border: 1px solid var(--line);
+        background: #fbf7ef;
+        color: #34433d;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+
+      .callout {
+        padding: 18px 20px;
+        border-left: 6px solid var(--red);
+        background: var(--red-soft);
+        box-shadow: none;
+      }
+
+      .callout h2 {
+        margin-bottom: 8px;
+      }
+
+      .sidebox {
+        margin-bottom: 16px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 253, 247, 0.9);
+      }
+
+      .sidebox h3 {
+        margin-bottom: 8px;
+        font-size: 17px;
+      }
+
+      .sidebox ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .sidebox li {
+        margin: 7px 0;
+      }
+
+      .order {
+        margin: 0;
+        padding-left: 24px;
+      }
+
+      .order li {
+        margin: 8px 0;
+      }
+
+      @media (max-width: 920px) {
+        .summary-grid,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          position: static;
+        }
+
+        .map {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .contrast,
+        .priority {
+          grid-template-columns: 1fr;
+        }
+
+        .marker {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .hero {
+          padding-top: 36px;
+        }
+
+        .panel,
+        .content {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="shell">
+        <p class="eyebrow">SkillClaw study notes · 2026-05-11</p>
+        <h1>SkillClaw 给 aweskill 的启发</h1>
+        <p class="lead">
+          SkillClaw 的重点不是安装 Skill，而是让 Skill 从真实会话中积累、验证、同步和演化。
+          aweskill 不应该照搬它的代理服务器形态，但可以学习它的生命周期思想，把本地包管理推进到质量管理、候选审核、清晰同步和可读报告。
+        </p>
+      </div>
+    </header>
+
+    <section class="shell summary-grid">
+      <article class="panel">
+        <h2>核心判断</h2>
+        <p>
+          aweskill 的优势是 CLI-first、本地中央仓库、Bundle、跨 Agent 投影和 Doctor 修复。
+          SkillClaw 的优势是使用反馈、共享存储、候选验证、Dashboard 和演化循环。最合理的学习方式是吸收后者的质量闭环，但保留 aweskill 的本地、显式、可审计边界。
+        </p>
+        <div class="contrast">
+          <div class="mini">
+            <b>aweskill 应保持</b>
+            <p>一个中央 store，一个清楚的投影模型，一套能被 Agent 和 CI 调用的 CLI。</p>
+          </div>
+          <div class="mini">
+            <b>aweskill 可学习</b>
+            <p>质量元数据、staged review、manifest sync、HTML report，以及可选的离线演化插件。</p>
+          </div>
+        </div>
+        <div class="flow" aria-label="recommended lifecycle">
+          <span>install/import</span>
+          <span>validate</span>
+          <span>staged review</span>
+          <span>approve</span>
+          <span>project</span>
+          <span>run/eval/history</span>
+          <span>score/report</span>
+          <span>optional improve</span>
+        </div>
+      </article>
+
+      <aside class="rail">
+        <h2>学习顺序</h2>
+        <ol>
+          <li>先读 aweskill 的设计边界</li>
+          <li>再读 SkillClaw 的 SkillManager</li>
+          <li>继续看 SkillHub 的 manifest 和 rollback</li>
+          <li>把 validation 和 dashboard 当作产品方向</li>
+          <li>最后才考虑 evolve 或 proxy</li>
+        </ol>
+      </aside>
+    </section>
+
+    <main class="shell layout">
+      <section class="main">
+        <section class="map">
+          <article class="card">
+            <small>Lesson 1</small>
+            <h3>Skill 是有状态资产</h3>
+            <p>一个 Skill 不只是目录和 `SKILL.md`。它还应该有 review、质量、风险、来源、验证状态和维护建议。</p>
+          </article>
+          <article class="card">
+            <small>Lesson 2</small>
+            <h3>候选不应直接激活</h3>
+            <p>外部导入、LLM 生成、自动演化产生的 Skill 应先进入 staged 区，通过检查和人工确认后再进入 store。</p>
+          </article>
+          <article class="card">
+            <small>Lesson 3</small>
+            <h3>共享需要 manifest</h3>
+            <p>团队同步不能只是复制文件夹。manifest、tree hash、版本和备份能让 sync 行为可解释、可回滚。</p>
+          </article>
+        </section>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>0</strong></div>
+          <div class="content">
+            <h2>质量元数据</h2>
+            <p>先让 aweskill 知道每个 Skill 的质量状态，但不要修改 `SKILL.md` 本身。</p>
+            <ul>
+              <li>新增 `~/.aweskill/metadata/skills/&lt;skill&gt;.json`。</li>
+              <li>记录 rating、notes、knownIssues、lastReviewedAt、validationStatus。</li>
+              <li>提供 `aweskill store quality list/show/set`，并从第一版支持 `--json`。</li>
+            </ul>
+            <div class="chips">
+              <span class="chip">explicit metadata</span>
+              <span class="chip">no telemetry</span>
+              <span class="chip">agent friendly JSON</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>1</strong></div>
+          <div class="content">
+            <h2>显式验证</h2>
+            <p>SkillClaw 有候选验证思想。aweskill 可以先做确定性的本地验证，而不是一上来引入 LLM judge。</p>
+            <ul>
+              <li>`aweskill store validate` 检查 `SKILL.md`、frontmatter、目录名、引用文件、脚本和正文。</li>
+              <li>输出分为 error、warning、info。</li>
+              <li>验证只报告，不默认修复；修复仍属于 doctor 命令。</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>2</strong></div>
+          <div class="content">
+            <h2>Staged 候选区</h2>
+            <p>新 Skill 先进入候选区，避免未审查内容直接影响 Agent 行为。</p>
+            <ul>
+              <li>路径：`~/.aweskill/staged/&lt;skill&gt;/`。</li>
+              <li>命令：`staged list/show/validate/approve/reject`。</li>
+              <li>staged Skill 不允许投影，approve 时必须检测中央仓库冲突。</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>3</strong></div>
+          <div class="content">
+            <h2>Manifest Sync</h2>
+            <p>借鉴 SkillHub 的 manifest 和 hash 思想，先做本地目录同步，再考虑 Git、S3 或 OSS。</p>
+            <ul>
+              <li>`aweskill store export ./team-skills`。</li>
+              <li>`aweskill store sync ./team-skills --dry-run`。</li>
+              <li>manifest 包含 name、description、version、treeSha256、files、source、updatedAt、status。</li>
+              <li>默认 dry-run，apply 前备份，不默认 mirror-delete。</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>4</strong></div>
+          <div class="content">
+            <h2>先报告，后 Dashboard</h2>
+            <p>SkillClaw 的 Dashboard 很有启发，但 aweskill 可以先做静态报告，把数据模型跑顺。</p>
+            <ul>
+              <li>`aweskill doctor report --json` 给 Agent 和 CI 用。</li>
+              <li>`aweskill doctor report --html` 给人看。</li>
+              <li>报告包含 store、bundles、agents、projection 分类、validation、staged、source update 和建议命令。</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>5</strong></div>
+          <div class="content">
+            <h2>可选 run/history/eval</h2>
+            <p>如果未来要学习 SkillClaw 的真实使用反馈，aweskill 可以用显式 `run` 和本地 history 做更小的闭环。</p>
+            <ul>
+              <li>`aweskill run &lt;skill&gt; --input "..."`。</li>
+              <li>`~/.aweskill/logs/execution.ndjson` 只在日志策略明确后启用。</li>
+              <li>`aweskill eval &lt;skill&gt;` 使用 `SKILL.tests.yaml`，支持 grep、command、可选 LLM judge。</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="priority">
+          <div class="marker"><span>Priority</span><strong>6</strong></div>
+          <div class="content">
+            <h2>演化能力放到可选层</h2>
+            <p>自动改写 Skill 很强，但也带来隐私、冲突、模型调用和质量风险。更稳妥的做法是插件化和 staged-first。</p>
+            <ul>
+              <li>`aweskill improve &lt;skill&gt; --from-eval latest --out &lt;dir&gt;`。</li>
+              <li>`aweskill evolve from-log ./session.md --staged`。</li>
+              <li>生成结果默认进入 staged，不能直接覆盖中央仓库。</li>
+            </ul>
+          </div>
+        </article>
+
+        <aside class="callout">
+          <h2>暂时不要做</h2>
+          <p>
+            不要把本地代理、隐藏 telemetry、OSS/S3 团队同步、完整 Dashboard、自动覆盖式 evolve 直接塞进核心。
+            这些能力都应该建立在质量元数据、验证、staged review、manifest sync 和 report 已稳定的基础上。
+          </p>
+        </aside>
+      </section>
+
+      <aside>
+        <div class="sidebox">
+          <h3>建议实现顺序</h3>
+          <ol class="order">
+            <li>`store quality`</li>
+            <li>`store validate`</li>
+            <li>`staged` 工作流</li>
+            <li>`store export/sync`</li>
+            <li>`doctor report`</li>
+            <li>可选 `run`</li>
+            <li>history 和 eval</li>
+            <li>可选 improve/evolve 插件</li>
+          </ol>
+        </div>
+
+        <div class="sidebox">
+          <h3>关键边界</h3>
+          <ul>
+            <li>中央 store 是唯一事实来源。</li>
+            <li>投影文件系统状态就是启用状态。</li>
+            <li>质量数据独立于 `SKILL.md`。</li>
+            <li>所有危险操作先 dry-run 或 staged。</li>
+            <li>生成内容必须可审查。</li>
+          </ul>
+        </div>
+
+        <div class="sidebox">
+          <h3>阅读入口</h3>
+          <ul>
+            <li><a href="https://github.com/AMAP-ML/SkillClaw/blob/main/README.md">SkillClaw README</a></li>
+            <li><a href="https://github.com/AMAP-ML/SkillClaw/blob/main/skillclaw/skill_manager.py">SkillManager</a></li>
+            <li><a href="https://github.com/AMAP-ML/SkillClaw/blob/main/skillclaw/skill_hub.py">SkillHub</a></li>
+            <li><a href="../../DESIGN.md">aweskill DESIGN.md</a></li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>

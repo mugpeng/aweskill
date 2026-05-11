@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkillNexus-inspired aweskill Roadmap - 0511</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211b;
+        --muted: #687369;
+        --paper: #f7f4ec;
+        --panel: #fffcf4;
+        --line: #d8d0c0;
+        --line-strong: #a79881;
+        --green: #1f7a4d;
+        --green-soft: #dcecdf;
+        --red: #a84332;
+        --red-soft: #f1ddd7;
+        --blue: #2d6078;
+        --blue-soft: #dbe9ee;
+        --gold: #b07a25;
+        --gold-soft: #f2e5c9;
+        --shadow: 0 18px 50px rgba(35, 28, 16, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(90deg, rgba(23, 33, 27, 0.04) 1px, transparent 1px),
+          linear-gradient(rgba(23, 33, 27, 0.035) 1px, transparent 1px),
+          var(--paper);
+        background-size: 32px 32px;
+        color: var(--ink);
+        font-family: Georgia, "Times New Roman", serif;
+        line-height: 1.55;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        padding: 54px 0 34px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: var(--green);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 820px;
+        margin-bottom: 18px;
+        font-size: clamp(36px, 6vw, 76px);
+        line-height: 0.96;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 840px;
+        margin-bottom: 0;
+        color: #334139;
+        font-size: 20px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+        gap: 18px;
+        padding: 28px 0;
+      }
+
+      .brief,
+      .rail {
+        background: rgba(255, 252, 244, 0.88);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .brief {
+        padding: 26px;
+      }
+
+      .brief h2,
+      .rail h2 {
+        margin-bottom: 12px;
+        font-size: 22px;
+      }
+
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .principle {
+        min-height: 88px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        background: #fbf7ed;
+      }
+
+      .principle b {
+        display: block;
+        margin-bottom: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .rail {
+        padding: 20px;
+        position: sticky;
+        top: 16px;
+        align-self: start;
+      }
+
+      .steps {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: step;
+      }
+
+      .steps li {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: 30px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 38px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        background: #fbf7ed;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .steps li::before {
+        content: counter(step);
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 700;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 310px;
+        gap: 24px;
+        padding: 4px 0 56px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 16px;
+      }
+
+      .priority {
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr);
+        border: 1px solid var(--line);
+        background: rgba(255, 252, 244, 0.92);
+        box-shadow: 0 12px 34px rgba(35, 28, 16, 0.07);
+      }
+
+      .marker {
+        padding: 18px 14px;
+        border-right: 1px solid var(--line);
+        background: #efe8d9;
+      }
+
+      .marker span {
+        display: block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .marker strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 40px;
+        line-height: 1;
+      }
+
+      .priority-body {
+        padding: 22px 24px 24px;
+      }
+
+      .priority h2 {
+        margin-bottom: 8px;
+        font-size: 27px;
+        line-height: 1.1;
+      }
+
+      .why {
+        margin-bottom: 18px;
+        color: #3d4a41;
+        font-size: 17px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        padding: 14px;
+        border: 1px solid var(--line);
+        background: #fbf7ed;
+      }
+
+      .card.full {
+        grid-column: 1 / -1;
+      }
+
+      .card h3 {
+        margin-bottom: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+        text-transform: uppercase;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      code {
+        padding: 2px 5px;
+        border: 1px solid rgba(23, 33, 27, 0.16);
+        background: #f1ebdd;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92em;
+      }
+
+      .command-list {
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .command-list li {
+        margin-top: 7px;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 12px;
+      }
+
+      .tag {
+        padding: 4px 8px;
+        border: 1px solid var(--line-strong);
+        background: #f8f1df;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .side-panel {
+        display: grid;
+        gap: 16px;
+        align-self: start;
+        position: sticky;
+        top: 16px;
+      }
+
+      .box {
+        padding: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 252, 244, 0.92);
+        box-shadow: 0 12px 34px rgba(35, 28, 16, 0.07);
+      }
+
+      .box h2 {
+        margin-bottom: 10px;
+        font-size: 21px;
+      }
+
+      .box.warn {
+        border-color: #d4a99b;
+        background: var(--red-soft);
+      }
+
+      .box.note {
+        border-color: #b5c8cf;
+        background: var(--blue-soft);
+      }
+
+      .box.gold {
+        border-color: #d7bb7d;
+        background: var(--gold-soft);
+      }
+
+      .source {
+        padding: 26px 0 42px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      @media (max-width: 920px) {
+        .summary-grid,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail,
+        .side-panel {
+          position: static;
+        }
+
+        .priority {
+          grid-template-columns: 1fr;
+        }
+
+        .marker {
+          display: flex;
+          justify-content: space-between;
+          align-items: end;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          width: min(100% - 22px, 1180px);
+        }
+
+        .hero {
+          padding-top: 34px;
+        }
+
+        .lead {
+          font-size: 17px;
+        }
+
+        .brief,
+        .priority-body {
+          padding: 18px;
+        }
+
+        .principles,
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .brief,
+        .rail,
+        .priority,
+        .box {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+
+        .side-panel,
+        .rail {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="shell">
+        <p class="eyebrow">aweskill roadmap / SkillNexus notes / 0511</p>
+        <h1>Borrow the quality loop, not the whole studio.</h1>
+        <p class="lead">
+          SkillNexus suggests a useful lifecycle: manage, run, capture history, evaluate, improve, and rank.
+          For aweskill, the right adaptation is a set of small CLI surfaces that keep the local store and
+          multi-agent projection model intact.
+        </p>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="summary-grid" aria-label="roadmap summary">
+        <div class="brief">
+          <h2>Design Position</h2>
+          <p>
+            aweskill should stay a local, CLI-first skill package manager. The next useful layer is evidence:
+            can a skill run, what happened when it ran, how well did it perform, and what should be improved?
+          </p>
+          <div class="principles">
+            <div class="principle">
+              <b>Keep</b>
+              Local store, source lifecycle, bundles, projection, and repair remain the product center.
+            </div>
+            <div class="principle">
+              <b>Add</b>
+              Runnable, measurable, maintainable skill workflows with JSON output for agents and CI.
+            </div>
+            <div class="principle">
+              <b>Avoid</b>
+              Hidden activation state, broad automatic rewrites, Electron-only interfaces, and service-first design.
+            </div>
+            <div class="principle">
+              <b>Sequence</b>
+              Readiness before run, run before history, history before eval, eval before improve.
+            </div>
+          </div>
+        </div>
+
+        <aside class="rail" aria-label="implementation order">
+          <h2>Implementation Order</h2>
+          <ol class="steps">
+            <li><code>doctor status --json</code></li>
+            <li><code>run &lt;skill&gt;</code></li>
+            <li>execution log + <code>history</code></li>
+            <li><code>SKILL.tests.yaml</code> + <code>eval</code></li>
+            <li><code>testcase from-history</code></li>
+            <li><code>improve --out</code></li>
+            <li><code>score list/top/stale</code></li>
+            <li>MCP / JSON-RPC wrapper</li>
+          </ol>
+        </aside>
+      </section>
+
+      <section class="layout">
+        <div class="timeline">
+          <article class="priority" id="p0">
+            <div class="marker"><span>Priority</span><strong>0</strong></div>
+            <div class="priority-body">
+              <h2>Readiness First</h2>
+              <p class="why">
+                Add a read-only readiness probe before introducing evaluation or evolution. Agents need one stable
+                answer to whether the store and projection state are usable.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Command Shape</h3>
+                  <ul class="command-list">
+                    <li><code>aweskill doctor status --global --agent codex</code></li>
+                    <li><code>aweskill doctor status --project . --agent codex</code></li>
+                    <li><code>aweskill doctor status --global --agent codex --json</code></li>
+                  </ul>
+                </div>
+                <div class="card">
+                  <h3>Reuse</h3>
+                  <ul>
+                    <li>Store initialization checks</li>
+                    <li><code>agent list</code> classification</li>
+                    <li><code>doctor clean</code> hygiene rules</li>
+                  </ul>
+                </div>
+                <div class="card full">
+                  <h3>Boundary</h3>
+                  <p>
+                    No <code>--apply</code>, no repair behavior, no second diagnostic model. Output readiness,
+                    counts, and suggested next commands.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="priority" id="p1">
+            <div class="marker"><span>Priority</span><strong>1</strong></div>
+            <div class="priority-body">
+              <h2>Run Skills Directly</h2>
+              <p class="why">
+                SkillNexus has a Quick Run path. aweskill needs the CLI equivalent before history, eval, and
+                improvement can become meaningful.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Command Shape</h3>
+                  <ul class="command-list">
+                    <li><code>aweskill run &lt;skill&gt; --input "..."</code></li>
+                    <li><code>aweskill run &lt;skill&gt; --stdin</code></li>
+                    <li><code>aweskill run &lt;skill&gt; --json</code></li>
+                  </ul>
+                </div>
+                <div class="card">
+                  <h3>Behavior</h3>
+                  <ul>
+                    <li>Resolve central-store skill names first</li>
+                    <li>Read <code>SKILL.md</code></li>
+                    <li>Send skill instructions plus input to the configured provider</li>
+                    <li>Print plain output by default</li>
+                  </ul>
+                </div>
+                <div class="card full">
+                  <h3>Open Question</h3>
+                  <p>
+                    Decide whether provider configuration belongs in <code>~/.aweskill/config.json</code>,
+                    environment variables only, or a small provider subcommand.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="priority" id="p2">
+            <div class="marker"><span>Priority</span><strong>2</strong></div>
+            <div class="priority-body">
+              <h2>Execution History</h2>
+              <p class="why">
+                Production usage is the strongest signal. Append-only logs can turn real runs into reviewable
+                evidence and later candidate test cases.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Storage</h3>
+                  <p><code>~/.aweskill/logs/execution.ndjson</code></p>
+                  <div class="tag-row">
+                    <span class="tag">skill</span>
+                    <span class="tag">input</span>
+                    <span class="tag">output</span>
+                    <span class="tag">model</span>
+                    <span class="tag">durationMs</span>
+                    <span class="tag">caller</span>
+                    <span class="tag">success</span>
+                  </div>
+                </div>
+                <div class="card">
+                  <h3>Commands</h3>
+                  <ul class="command-list">
+                    <li><code>aweskill history &lt;skill&gt;</code></li>
+                    <li><code>aweskill history &lt;skill&gt; --json</code></li>
+                    <li><code>aweskill run &lt;skill&gt; --no-log</code></li>
+                  </ul>
+                </div>
+                <div class="card full">
+                  <h3>Safety</h3>
+                  <p>
+                    Logs may contain sensitive user input. Document that clearly, provide opt-out behavior, and
+                    consider retention settings before adding destructive clear commands.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="priority" id="p3">
+            <div class="marker"><span>Priority</span><strong>3</strong></div>
+            <div class="priority-body">
+              <h2>Lightweight Eval</h2>
+              <p class="why">
+                The most important SkillNexus idea is making skills measurable. Start with companion test files and
+                explainable scoring.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Command Shape</h3>
+                  <ul class="command-list">
+                    <li><code>aweskill eval &lt;skill&gt;</code></li>
+                    <li><code>aweskill eval &lt;skill&gt; --case SKILL.tests.yaml</code></li>
+                    <li><code>aweskill eval &lt;skill&gt; --json</code></li>
+                  </ul>
+                </div>
+                <div class="card">
+                  <h3>Judge Types</h3>
+                  <ul>
+                    <li><code>grep</code> for expected text</li>
+                    <li><code>command</code> for deterministic checks</li>
+                    <li><code>llm</code> only when configured</li>
+                  </ul>
+                </div>
+                <div class="card full">
+                  <h3>Dimensions</h3>
+                  <div class="tag-row">
+                    <span class="tag">correctness</span>
+                    <span class="tag">instruction following</span>
+                    <span class="tag">safety</span>
+                    <span class="tag">completeness</span>
+                    <span class="tag">robustness</span>
+                    <span class="tag">executability</span>
+                    <span class="tag">cost awareness</span>
+                    <span class="tag">maintainability</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="priority" id="p4">
+            <div class="marker"><span>Priority</span><strong>4</strong></div>
+            <div class="priority-body">
+              <h2>Improve Without Overwriting</h2>
+              <p class="why">
+                Evolution is valuable, but automatic rewriting is risky in a package manager. Generate candidates,
+                explanations, and diff-friendly output first.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Command Shape</h3>
+                  <ul class="command-list">
+                    <li><code>aweskill improve &lt;skill&gt; --from-eval latest --out &lt;dir&gt;</code></li>
+                    <li><code>aweskill improve &lt;skill&gt; --from-history --out &lt;dir&gt;</code></li>
+                    <li><code>aweskill improve &lt;skill&gt; --json</code></li>
+                  </ul>
+                </div>
+                <div class="card">
+                  <h3>Inputs</h3>
+                  <ul>
+                    <li>Latest eval failures</li>
+                    <li>Repeated history failures</li>
+                    <li>Existing <code>SKILL.md</code></li>
+                  </ul>
+                </div>
+                <div class="card full">
+                  <h3>Guardrail</h3>
+                  <p>
+                    Never overwrite the managed store by default. Preserve frontmatter and linked assets unless a
+                    change is justified and visible.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="priority" id="p5">
+            <div class="marker"><span>Priority</span><strong>5</strong></div>
+            <div class="priority-body">
+              <h2>Local Score and Trending</h2>
+              <p class="why">
+                SkillNexus Trending acts like an asset map. aweskill can expose the same signal as a CLI maintenance
+                view over local eval, history, and source metadata.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Command Shape</h3>
+                  <ul class="command-list">
+                    <li><code>aweskill score list</code></li>
+                    <li><code>aweskill score list --json</code></li>
+                    <li><code>aweskill score top --by maintainability</code></li>
+                    <li><code>aweskill score stale</code></li>
+                  </ul>
+                </div>
+                <div class="card">
+                  <h3>Signals</h3>
+                  <ul>
+                    <li>Latest total score</li>
+                    <li>Failing dimensions</li>
+                    <li>Last evaluated and last used</li>
+                    <li>Source update availability</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="priority" id="p6">
+            <div class="marker"><span>Priority</span><strong>6</strong></div>
+            <div class="priority-body">
+              <h2>MCP/API After CLI Stability</h2>
+              <p class="why">
+                JSON-RPC or MCP can be useful, but only after command semantics settle. The service layer should wrap
+                the existing library behavior, not create parallel rules.
+              </p>
+              <div class="cards">
+                <div class="card">
+                  <h3>Candidate Methods</h3>
+                  <ul>
+                    <li><code>skill.run</code></li>
+                    <li><code>skill.eval</code></li>
+                    <li><code>skill.history</code></li>
+                    <li><code>store.list</code></li>
+                    <li><code>agent.status</code></li>
+                  </ul>
+                </div>
+                <div class="card">
+                  <h3>Rule</h3>
+                  <p>MCP/API should be an adapter over tested CLI/library semantics.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="side-panel" aria-label="guardrails">
+          <section class="box warn">
+            <h2>Not Now</h2>
+            <ul>
+              <li>Do not build an Electron desktop studio.</li>
+              <li>Do not start with a complex multi-engine evolution framework.</li>
+              <li>Do not add a hidden global activation registry.</li>
+              <li>Do not overwrite generated or evolved skills by default.</li>
+            </ul>
+          </section>
+
+          <section class="box note">
+            <h2>Human Reading Lens</h2>
+            <p>
+              Each priority should answer one question: what evidence do we need before the next capability is safe
+              and useful?
+            </p>
+          </section>
+
+          <section class="box gold">
+            <h2>Source</h2>
+            <p>
+              Derived from <code>docs/todo/SkillNexus_0511.md</code>. This HTML is a reading artifact, not the source
+              of truth.
+            </p>
+          </section>
+        </aside>
+      </section>
+
+      <footer class="source">
+        Local file: aweskill/docs/todo/html/SkillNexus_0511.html
+      </footer>
+    </main>
+  </body>
+</html>
