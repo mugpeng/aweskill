@@ -84,6 +84,16 @@ npm run build
 npm install -g .
 ```
 
+### Install dev version from GitHub
+
+To try the latest development features before they are released:
+
+```bash
+npm install -g mugpeng/aweskill#dev
+```
+
+The `dev` branch contains in-progress changes and may be unstable. Use the npm release for production.
+
 ### Local development link
 
 ```bash

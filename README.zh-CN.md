@@ -75,6 +75,16 @@ npm run build
 npm install -g .
 ```
 
+### 从 GitHub 安装开发版
+
+想提前体验最新的开发功能：
+
+```bash
+npm install -g mugpeng/aweskill#dev
+```
+
+`dev` 分支包含正在开发中的改动，可能不稳定。正式使用请安装 npm 正式版。
+
 ### 本地开发模式
 
 ```bash
